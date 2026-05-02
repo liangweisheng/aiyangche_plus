@@ -19,6 +19,9 @@ desktop.ini
 *.swp
 *.swo
 
+# 项目配置（含敏感信息）
+project.config.json
+
 # 临时文件
 *.tmp
 *.temp
