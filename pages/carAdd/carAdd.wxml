@@ -1,0 +1,198 @@
+<!-- 新增车辆档案 -->
+<view class="container">
+
+  <!-- 车牌号（必填） -->
+  <view class="form-group">
+    <text class="label required">车牌号</text>
+    <view class="plate-trigger" bindtap="showPlateKeyboard">
+      <view class="plate-display {{form.plateNumber ? '' : 'placeholder'}}">
+        <text>{{form.plateNumber || '请输入车牌号（7/8位）'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 车牌键盘 -->
+  <plate-keyboard
+    visible="{{keyboardVisible}}"
+    value="{{form.plateNumber}}"
+    bindconfirm="onPlateConfirm"
+    bindcancel="hidePlateKeyboard"
+  />
+
+  <!-- 填写详细信息按钮（折叠态显示） -->
+  <view class="toggle-detail-btn" wx:if="{{!showDetail}}" bindtap="toggleDetail">
+    <text class="toggle-text">填写详细信息</text>
+    <text class="toggle-arrow">▾</text>
+  </view>
+
+  <!-- 详细信息区域（展开态） -->
+  <block wx:if="{{showDetail}}">
+    <!-- 收起按钮 -->
+    <view class="toggle-detail-btn collapse" bindtap="toggleDetail">
+      <text class="toggle-text">收起详细信息</text>
+      <text class="toggle-arrow collapse-arrow">▴</text>
+    </view>
+
+  <!-- 车主姓名（选填） -->
+  <view class="form-group">
+    <text class="label">车主姓名</text>
+    <input
+      class="input"
+      type="text"
+      placeholder="选填，车主姓名"
+      placeholder-class="placeholder"
+      value="{{form.ownerName}}"
+      data-field="ownerName"
+      bindinput="onInput"
+    />
+  </view>
+
+  <!-- 车架号（选填） -->
+  <view class="form-group">
+    <text class="label">车架号(VIN)</text>
+    <input
+      class="input"
+      type="text"
+      placeholder="选填，17位车辆识别码"
+      placeholder-class="placeholder"
+      value="{{form.vin}}"
+      data-field="vin"
+      bindinput="onInput"
+      maxlength="17"
+    />
+  </view>
+
+  <!-- 车型 -->
+  <view class="form-group">
+    <text class="label">车型</text>
+    <input
+      class="input"
+      type="text"
+      placeholder="如：丰田凯美瑞 2023款"
+      placeholder-class="placeholder"
+      value="{{form.carModel}}"
+      data-field="carModel"
+      bindinput="onInput"
+    />
+  </view>
+
+  <!-- 颜色 -->
+  <view class="form-group">
+    <text class="label">颜色</text>
+    <view class="color-row">
+      <input
+        class="input flex-1"
+        type="text"
+        placeholder="选择或输入颜色"
+        placeholder-class="placeholder"
+        value="{{form.color}}"
+        data-field="color"
+        bindinput="onInput"
+      />
+      <view class="color-toggle" bindtap="toggleColorPanel">
+        <text>选</text>
+      </view>
+    </view>
+    <!-- 预设颜色 -->
+    <view class="color-options" wx:if="{{colorExpanded}}">
+      <view
+        class="color-tag {{form.color === item ? 'active' : ''}}"
+        wx:for="{{colorOptions}}"
+        wx:key="*this"
+        data-color="{{item}}"
+        bindtap="onColorPick"
+      >{{item}}</view>
+    </view>
+  </view>
+
+  <!-- 里程数 -->
+  <view class="form-group">
+    <text class="label">里程数</text>
+    <view class="input-with-unit">
+      <input
+        class="input"
+        type="digit"
+        placeholder="当前行驶里程"
+        placeholder-class="placeholder"
+        value="{{form.mileage}}"
+        data-field="mileage"
+        bindinput="onInput"
+      />
+      <text class="unit">km</text>
+    </view>
+  </view>
+
+  <!-- 车主电话（选填） -->
+  <view class="form-group">
+    <text class="label">车主电话</text>
+    <input
+      class="input"
+      type="number"
+      maxlength="11"
+      placeholder="选填，方便联系车主"
+      placeholder-class="placeholder"
+      value="{{form.ownerPhone}}"
+      data-field="ownerPhone"
+      bindinput="onInput"
+    />
+  </view>
+
+  <!-- 保养到期日期（选填） -->
+  <view class="form-group">
+    <text class="label">保养到期日期</text>
+    <picker mode="date" value="{{form.maintainDate}}" bindchange="onDatePick" data-field="maintainDate">
+      <view class="picker-input {{form.maintainDate ? '' : 'placeholder'}}">
+        <text>{{form.maintainDate || '选填，设置保养提醒'}}</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 车险到期日期（选填） -->
+  <view class="form-group">
+    <text class="label">车险到期日期</text>
+    <picker mode="date" value="{{form.insuranceDate}}" bindchange="onDatePick" data-field="insuranceDate">
+      <view class="picker-input {{form.insuranceDate ? '' : 'placeholder'}}">
+        <text>{{form.insuranceDate || '选填，设置车险续保提醒'}}</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 配件更换提醒（选填） -->
+  <view class="form-group">
+    <text class="label">配件更换提醒</text>
+    <input
+      class="input"
+      type="text"
+      placeholder="配件名称，如：刹车片、机油"
+      placeholder-class="placeholder"
+      value="{{form.partReplaceName}}"
+      data-field="partReplaceName"
+      bindinput="onInput"
+    />
+    <picker mode="date" value="{{form.partReplaceDate}}" bindchange="onDatePick" data-field="partReplaceDate" style="margin-top: 12rpx;">
+      <view class="picker-input {{form.partReplaceDate ? '' : 'placeholder'}}">
+        <text>{{form.partReplaceDate || '建议更换日期'}}</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 备注（选填） -->
+  <view class="form-group">
+    <text class="label">备注</text>
+    <textarea
+      class="textarea"
+      placeholder="选填，记录其他信息"
+      placeholder-class="placeholder"
+      value="{{form.remark}}"
+      data-field="remark"
+      bindinput="onInput"
+      maxlength="200"
+    />
+  </view>
+  </block>
+</view>
+
+<!-- 底部保存按钮 -->
+<view class="footer">
+  <view class="save-btn" bindtap="onSave">保存车辆</view>
+</view>

@@ -1,0 +1,225 @@
+/* pages/checkSheetDetail/checkSheetDetail.wxss */
+/* 商用SaaS风格 */
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f7ff 0%, #f5f7fa 100%);
+  padding: 24rpx 24rpx 200rpx;
+}
+
+/* 车辆信息卡片 */
+.vehicle-card {
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  border-radius: 28rpx;
+  padding: 28rpx;
+  margin-bottom: 28rpx;
+  box-shadow: 0 12rpx 48rpx rgba(22, 119, 255, 0.25);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.plate {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 4rpx;
+}
+
+.badge {
+  padding: 8rpx 20rpx;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8rpx);
+  border-radius: 16rpx;
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.card-body {
+  padding-top: 8rpx;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10rpx 0;
+}
+
+.info-row .label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.info-row .value {
+  font-size: 24rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* 分区标题 */
+.section-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #999;
+  margin-bottom: 20rpx;
+  padding: 0 8rpx;
+}
+
+/* 检查结果 */
+.check-section {
+  margin-bottom: 28rpx;
+}
+
+.check-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.check-item {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.check-icon {
+  font-size: 40rpx;
+  margin-bottom: 12rpx;
+}
+
+.check-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.check-result {
+  font-size: 22rpx;
+  line-height: 1.5;
+  padding: 8rpx 12rpx;
+  border-radius: 8rpx;
+  background: #f7f8fa;
+  color: #666;
+  word-break: break-all;
+}
+
+.check-result.normal {
+  background: rgba(82, 196, 26, 0.08);
+  color: #52c41a;
+}
+
+.check-result.warn {
+  background: rgba(250, 140, 22, 0.08);
+  color: #fa8c16;
+}
+
+/* 问题描述 / 维修建议 */
+.form-section {
+  margin-bottom: 28rpx;
+}
+
+.form-card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.form-text {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.8;
+}
+
+/* 检查时间 */
+.time-section {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.time-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.time-value {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+/* 底部按钮 */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.share-btn {
+  width: 100%;
+  height: 104rpx;
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 32rpx rgba(22, 119, 255, 0.35);
+}
+
+.share-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.btn-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 4rpx;
+}
+
+/* 浮动首页按钮 */
+.fab-home {
+  position: fixed;
+  right: 32rpx;
+  bottom: 300rpx;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  box-shadow: 0 8rpx 28rpx rgba(22, 119, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.fab-home:active {
+  opacity: 0.8;
+  transform: scale(0.92);
+}

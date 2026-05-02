@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "新增车辆",
+  "usingComponents": {
+    "plate-keyboard": "/components/plate-keyboard/plate-keyboard"
+  }
+}

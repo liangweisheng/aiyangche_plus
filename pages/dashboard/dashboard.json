@@ -1,0 +1,1 @@
+{"navigationBarTitleText": "数据看板", "enablePullDownRefresh": true, "usingComponents": {"report-card": "../../components/report-card/report-card", "shop-guide": "../../components/shop-guide/shop-guide"}}

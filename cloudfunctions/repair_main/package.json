@@ -1,0 +1,9 @@
+{
+  "name": "repair_main",
+  "version": "1.0.0",
+  "description": "AI养车门店管理系统 - 聚合云函数（路由模式）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

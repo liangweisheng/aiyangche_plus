@@ -1,0 +1,356 @@
+<!--pages/proUnlock/proUnlock.wxml-->
+<view class="container">
+
+  <!-- 游客模式提示 -->
+  <view class="guest-banner" wx:if="{{isGuest}}">
+    <text class="guest-banner-text">当前为游客模式（演示账号）</text>
+  </view>
+
+  <!-- 游客模式 - 登录注册大按钮 -->
+  <view class="guest-action-card" wx:if="{{isGuest}}">
+    <view class="guest-action-icon">🔐</view>
+    <view class="guest-action-title">登录后可使用完整功能</view>
+    <view class="guest-action-desc">包含工单管理、会员管理、数据导出等全部功能</view>
+    <button class="guest-login-btn" bindtap="onGuestLogin">登 录 / 注 册</button>
+  </view>
+
+  <!-- ★ 合并门店头部卡片（名称+badge+详情折叠） -->
+  <view class="card shop-header-card">
+    <view class="shop-header">
+      <view class="shop-name-row">
+        <text class="shop-name">{{shopName || '未设置门店名称'}}</text>
+        <text class="edit-icon" bindtap="onEditShopName">📝</text>
+      </view>
+      <view class="header-badges">
+        <text class="account-type-tag {{roleTagClass}}" wx:if="{{roleLabel}}">{{roleLabel}}</text>
+        <view class="shop-badge {{isPro ? 'badge-pro' : 'badge-free'}}">
+          {{versionLabel}}
+        </view>
+      </view>
+    </view>
+    <!-- 门店详情（始终展开） -->
+    <view class="shop-detail-list">
+      <view class="info-item">
+        <text class="info-label">绑定手机号</text>
+        <text class="info-value">{{shopPhone || '未绑定'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">注册时间</text>
+        <text class="info-value">{{registerDate || '暂无'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">当前版本</text>
+        <text class="info-value {{isPro ? 'text-pro' : 'text-free'}}">{{versionLabel}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">有效期至</text>
+        <text class="info-value">{{expireLabel}}</text>
+      </view>
+      <!-- 门店联系方式 -->
+      <view class="shop-detail-divider">
+        <text class="divider-text">门店联系方式</text>
+      </view>
+      <view class="info-item info-item-editable" bindtap="onEditShopTel">
+        <text class="info-label">门店电话</text>
+        <view class="info-value-row">
+          <text class="info-value info-value-dark">{{shopTel || '点击设置'}}</text>
+          <text class="edit-icon-sm">📝</text>
+        </view>
+      </view>
+      <view class="info-item info-item-editable" bindtap="onEditShopAddr">
+        <text class="info-label">门店地址</text>
+        <view class="info-value-row">
+          <text class="info-value info-value-dark info-value-addr">{{shopAddr || '点击设置'}}</text>
+          <text class="edit-icon-sm">📝</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 免费版额度说明（仅免费版显示） -->
+  <view class="card limit-card" wx:if="{{!isPro}}">
+    <view class="card-title">
+      <text class="icon">📦</text>
+      免费版限制
+    </view>
+    <view class="limit-list">
+      <view class="limit-item">
+        <text class="label">工单数量</text>
+        <text class="value">100 单</text>
+      </view>
+      <view class="limit-item">
+        <text class="label">会员管理</text>
+        <text class="value">10 人</text>
+      </view>
+      <view class="limit-item">
+        <text class="label">数据导出</text>
+        <text class="value text-disabled">不支持</text>
+      </view>
+      <view class="limit-item">
+        <text class="label">高级报表</text>
+        <text class="value text-disabled">不支持</text>
+      </view>
+    </view>
+    <view class="limit-tip">
+      已使用 {{usedCount}} / 100 单
+    </view>
+  </view>
+
+  <!-- Pro版特权（仅免费版显示） -->
+  <view class="card pro-card" wx:if="{{!isPro}}">
+    <view class="card-title pro-title">
+      <text class="icon">⭐</text>
+      Pro 版特权
+    </view>
+    <view class="price-section">
+      <view class="price-row">
+        <text class="price-label">首次激活</text>
+        <view class="price-value">
+          <text class="price-amount">¥298</text>
+          <text class="price-unit">/年</text>
+        </view>
+      </view>
+      <view class="price-row">
+        <text class="price-label">续费价格</text>
+        <view class="price-value">
+          <text class="price-amount price-renew">¥98</text>
+          <text class="price-unit">/年</text>
+        </view>
+      </view>
+    </view>
+    <view class="pro-list">
+      <view class="pro-item">
+        <text class="check">✓</text>
+        无限工单数量
+      </view>
+      <view class="pro-item">
+        <text class="check">✓</text>
+        无限会员管理
+      </view>
+      <view class="pro-item">
+        <text class="check">✓</text>
+        数据导出功能
+      </view>
+      <view class="pro-item">
+        <text class="check">✓</text>
+        高级数据分析
+      </view>
+      <view class="pro-item">
+        <text class="check">✓</text>
+        员工管理功能
+      </view>
+      <view class="pro-item">
+        <text class="check">✓</text>
+        持续功能更新
+      </view>
+    </view>
+  </view>
+
+  <!-- 激活码输入（仅免费版显示） -->
+  <view class="card activation-card" wx:if="{{!isPro}}">
+    <view class="card-title">
+      <text class="icon">🔑</text>
+      激活码解锁
+    </view>
+    <view class="activation-tips" wx:if="{{shopPhone}}">
+      <text class="tip-text">激活码将绑定当前手机号：{{shopPhone}}</text>
+    </view>
+    <view class="input-box">
+      <input
+        class="code-input"
+        type="text"
+        placeholder="请输入激活码"
+        value="{{activationCode}}"
+        bindinput="onCodeInput"
+        maxlength="20"
+      />
+    </view>
+    <view class="button-group">
+      <button
+        class="unlock-btn"
+        bindtap="onUnlock"
+        disabled="{{!activationCode || unlocking}}"
+      >
+        {{unlocking ? '激活中...' : '立即激活 Pro'}}
+      </button>
+    </view>
+  </view>
+
+  <!-- Pro续费提醒横幅（Pro版且剩余<30天时显示） -->
+  <view class="renew-banner" wx:if="{{showRenew}}">
+    <view class="renew-icon">⚠️</view>
+    <view class="renew-content">
+      <text class="renew-text">{{renewTip}}</text>
+      <text class="renew-action">续费请联系客服获取续费激活码</text>
+    </view>
+  </view>
+
+  <!-- ★ 数据导出独立卡片（仅 Pro+超级管理员） -->
+  <view class="card data-export-card {{isPro && isOwner ? 'export-enabled' : 'export-disabled'}}" bindtap="onGoDataExport">
+    <view class="export-row">
+      <view class="export-icon-wrap">
+        <text class="export-icon">📊</text>
+      </view>
+      <view class="export-info">
+        <text class="export-title">数据导出</text>
+        <text class="export-desc" wx:if="{{isPro && isOwner}}">导出工单、车辆、会员数据</text>
+        <text class="export-desc export-desc-lock" wx:if="{{!isPro || !isOwner}}">仅超级管理员可用</text>
+      </view>
+      <text class="export-arrow" wx:if="{{isPro && isOwner}}">›</text>
+      <text class="export-lock" wx:if="{{!isPro || !isOwner}}">🔒</text>
+    </view>
+  </view>
+
+  <!-- ★ v4.0.0 员工管理（仅 Pro+超级管理员；游客模式下也可展示供演示） -->
+  <view class="card staff-card" wx:if="{{isPro && (isOwner || isGuest)}}">
+    <view class="collapse-header" bindtap="toggleStaff">
+      <view class="collapse-title">
+        <text class="icon">👥</text>
+        员工管理
+      </view>
+      <text class="collapse-arrow {{staffExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{staffExpanded}}">
+      <!-- 添加员工 -->
+      <view class="staff-add-row">
+        <input class="staff-phone-input" type="number" placeholder="员工手机号" maxlength="11" value="{{staffPhoneInput}}" bindinput="onStaffPhoneInput" />
+        <picker mode="selector" range="{{staffRoleOptions}}" range-key="label" value="{{staffRoleIndex}}" bindchange="onStaffRoleChange">
+          <view class="staff-role-picker">{{staffRoleOptions[staffRoleIndex].label}}</view>
+        </picker>
+        <button class="staff-add-btn" size="mini" bindtap="onAddStaff" disabled="{{staffAdding || !staffPhoneInput}}">添加</button>
+      </view>
+      <!-- 员工列表 -->
+      <view wx:if="{{staffList.length > 0}}" class="staff-list">
+        <view class="staff-item" wx:for="{{staffList}}" wx:key="_id">
+          <view class="staff-info">
+            <text class="staff-phone">{{item.phone}}</text>
+            <text class="staff-role-tag {{item.role === 'admin' ? 'tag-admin' : 'tag-staff'}}">{{item.role === 'admin' ? '管理员' : '店员'}}</text>
+          </view>
+          <view class="staff-actions">
+            <text class="staff-action-btn" wx:if="{{item.role !== 'admin'}}" bindtap="onToggleStaffRole" data-id="{{item._id}}" data-role="{{item.role}}">{{item.role === 'staff' ? '升为管理员' : '降为店员'}}</text>
+            <text class="staff-action-btn staff-action-del" bindtap="onRemoveStaff" data-id="{{item._id}}">移除</text>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="staff-empty">
+        <text class="staff-empty-text">暂无员工</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ★ v5.0.0 门店设置（经营诊断配置）—— 仅超级管理员可见 -->
+  <view class="card shop-profile-card" wx:if="{{isOwner}}">
+    <view class="collapse-header" bindtap="toggleShopProfile">
+      <view class="collapse-title">
+        <text class="icon">📊</text>
+        <text>AI诊断设置</text>
+      </view>
+      <text class="collapse-arrow {{shopProfileExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{shopProfileExpanded}}">
+      <view class="profile-form-item">
+        <text class="profile-label">施工工位数</text>
+        <picker mode="selector" range="{{bayCountOptions}}"
+                value="{{shopBayCountIndex}}" bindchange="onBayCountChange">
+          <view class="profile-picker">
+            <text>{{shopBayCount || '选择数量'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+      <view class="profile-form-item">
+        <text class="profile-label">开业年份</text>
+        <picker mode="date" fields="year" start="1990" end="{{currentYear}}"
+                value="{{shopOpenYear}}" bindchange="onOpenYearChange">
+          <view class="profile-picker">
+            <text>{{shopOpenYear || '选择年份'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+      <button class="profile-save-btn" size="mini"
+              bindtap="onSaveShopProfile"
+              disabled="{{shopProfileSaving}}">
+        {{shopProfileSaving ? '保存中...' : '保存设置'}}
+      </button>
+      <view class="profile-tip">
+        <text>用于每月经营报告的基准值对标和诊断分析</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ★ 门店码（可折叠，默认收起） -->
+  <view class="card collapsible-card" wx:if="{{shopCode}}">
+    <view class="collapse-header" bindtap="toggleShopCode">
+      <view class="collapse-title">
+        <text class="icon">🏪</text>
+        门店码
+      </view>
+      <text class="collapse-arrow {{shopCodeExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{shopCodeExpanded}}">
+      <view class="shop-code-section">
+        <view class="shop-code-num" bindtap="onCopyShopCode">{{shopCode}}</view>
+        <view class="shop-code-tip">点击复制，分享给员工即可加入此门店</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ★ 联系客服（可折叠，默认收起，标题随版本变化） -->
+  <view class="card collapsible-card">
+    <view class="collapse-header" bindtap="toggleContact">
+      <view class="collapse-title">
+        <text class="icon">📞</text>
+        <text wx:if="{{!isPro}}">如何获取激活码？</text>
+        <text wx:if="{{isPro}}">联系客服</text>
+      </view>
+      <text class="collapse-arrow {{contactExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{contactExpanded}}">
+      <view class="contact-list">
+        <!-- 在线客服（微信官方 contact 组件） -->
+        <button class="contact-item contact-official" open-type="contact" session-from="proUnlock">
+          <text class="contact-label">在线客服</text>
+          <view class="contact-value-row">
+            <text class="contact-value contact-online-hint">点击进入对话</text>
+            <text class="contact-badge">推荐</text>
+          </view>
+        </button>
+        <!-- 微信复制 -->
+        <view class="contact-item contact-tappable" bindtap="onCopyWechat">
+          <text class="contact-label">技术支持</text>
+          <view class="contact-value-row">
+            <text class="contact-value">liang-weisheng</text>
+            <text class="contact-copy-hint">点击复制</text>
+          </view>
+        </view>
+        <!-- 电话拨打 -->
+        <view class="contact-item contact-tappable" bindtap="onCallPhone">
+          <text class="contact-label">电话咨询</text>
+          <view class="contact-value-row">
+            <text class="contact-value">17807725166</text>
+            <text class="contact-copy-hint">点击拨打</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ★ 使用帮助 - 跳转视频号 -->
+  <view class="card collapsible-card">
+    <view class="collapse-header" bindtap="onGoVideoHelp">
+      <view class="collapse-title">
+        <text class="icon">📺</text>
+        使用帮助
+      </view>
+      <text class="collapse-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 底部隐私提示（dashboard风格） -->
+  <view class="privacy-footer">
+    <text class="privacy-link" bindtap="onGoPrivacy">隐私政策</text>
+    <text class="privacy-divider">|</text>
+    <text class="privacy-link" bindtap="onGoAgreement">用户服务协议</text>
+  </view>
+</view>

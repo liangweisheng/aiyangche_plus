@@ -1,0 +1,40 @@
+<view class="container">
+  <view class="page-title">数据导出</view>
+  <view class="page-desc">导出本门店的业务数据为Excel文件，通过微信发送给好友或文件传输助手</view>
+
+  <!-- 导出分类卡片 -->
+  <view class="export-card" bindtap="onExport" data-type="cars">
+    <view class="card-icon">🚗</view>
+    <view class="card-content">
+      <text class="card-title">车辆信息清单</text>
+      <text class="card-desc">导出所有车辆档案，含车型、车架号、保养/保险到期等信息</text>
+    </view>
+    <view class="card-arrow">›</view>
+  </view>
+
+  <view class="export-card" bindtap="onExport" data-type="members">
+    <view class="card-icon">👥</view>
+    <view class="card-content">
+      <text class="card-title">会员权益清单</text>
+      <text class="card-desc">导出所有会员信息及权益使用情况，自动计算剩余次数</text>
+    </view>
+    <view class="card-arrow">›</view>
+  </view>
+
+  <view class="export-card" bindtap="onExport" data-type="orders">
+    <view class="card-icon">📋</view>
+    <view class="card-content">
+      <text class="card-title">订单明细清单</text>
+      <text class="card-desc">导出所有工单明细，含服务项目、金额、支付方式、状态等</text>
+    </view>
+    <view class="card-arrow">›</view>
+  </view>
+
+  <!-- 导出中遮罩 -->
+  <view class="loading-mask" wx:if="{{exporting}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">{{loadingText}}</text>
+    </view>
+  </view>
+</view>

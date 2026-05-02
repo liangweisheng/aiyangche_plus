@@ -1,0 +1,105 @@
+<!-- 电子查车单 - 商用SaaS风格 -->
+<view class="container">
+
+  <!-- 车辆信息卡片 -->
+  <view class="vehicle-card" wx:if="{{carInfo}}">
+    <view class="card-header">
+      <text class="plate">{{plate}}</text>
+      <view class="badge">待检查</view>
+    </view>
+    <view class="card-body">
+      <view class="info-row">
+        <text class="label">车型</text>
+        <text class="value">{{carInfo.carType || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="label">颜色</text>
+        <text class="value">{{carInfo.color || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="label">入库时间</text>
+        <text class="value">{{carInfo.createTime}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 检查项目 -->
+  <view class="check-section">
+    <view class="section-title">检查项目</view>
+    <view class="check-grid">
+      <view class="check-card" wx:for="{{checkItems}}" wx:key="key">
+        <view class="card-icon">{{item.icon}}</view>
+        <view class="card-label-row">
+          <text class="card-label">{{item.label}}</text>
+          <view class="normal-check" bindtap="onToggleNormal" data-key="{{item.key}}">
+            <view class="checkbox {{item.normal ? 'checked' : ''}}">
+              <text class="check-mark" wx:if="{{item.normal}}">✓</text>
+            </view>
+            <text class="check-text">正常</text>
+          </view>
+        </view>
+        <textarea
+          class="check-input"
+          placeholder="检查结果"
+          placeholder-class="check-placeholder"
+          value="{{form[item.key]}}"
+          data-field="{{item.key}}"
+          bindinput="onInput"
+          maxlength="100"
+        />
+      </view>
+    </view>
+  </view>
+
+  <!-- 问题描述 -->
+  <view class="form-section">
+    <view class="section-title">问题描述</view>
+    <view class="form-card">
+      <textarea
+        class="textarea"
+        placeholder="记录发现的问题..."
+        placeholder-class="placeholder"
+        value="{{form.issue}}"
+        data-field="issue"
+        bindinput="onInput"
+        maxlength="200"
+      />
+    </view>
+  </view>
+
+  <!-- 维修建议 -->
+  <view class="form-section">
+    <view class="section-title">维修建议</view>
+    <view class="form-card">
+      <textarea
+        class="textarea"
+        placeholder="给出维修或保养建议..."
+        placeholder-class="placeholder"
+        value="{{form.suggestion}}"
+        data-field="suggestion"
+        bindinput="onInput"
+        maxlength="200"
+      />
+    </view>
+  </view>
+
+  <!-- 客户签名（预留） -->
+  <view class="sign-section disabled">
+    <view class="section-title">客户签名</view>
+    <view class="sign-card">
+      <text class="sign-icon">✍️</text>
+      <text class="sign-text">签名功能开发中</text>
+    </view>
+  </view>
+
+</view>
+
+<!-- 底部保存按钮 -->
+<view class="footer">
+  <view class="save-btn" bindtap="onSave">
+    <text class="btn-text">保存查车单</text>
+  </view>
+</view>
+
+<!-- 浮动首页按钮 -->
+<view class="fab-home" bindtap="onGoHome">首页</view>

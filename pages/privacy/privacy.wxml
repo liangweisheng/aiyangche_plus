@@ -1,0 +1,117 @@
+<view class="policy-container">
+  <view class="policy-title">隐私政策</view>
+  <view class="policy-update">更新日期：2026年4月17日 | 生效日期：2026年4月17日</view>
+
+  <view class="policy-section">
+    <view class="section-head">引言</view>
+    <view class="section-body">欢迎使用"AI养车"小程序（以下简称"本小程序"）。本小程序由独立开发者运营。我们深知个人信息对您的重要性，并会尽全力保护您的个人信息安全。我们致力于维持您对我们的信任，恪守以下原则保护您的个人信息：权责一致原则、目的明确原则、选择同意原则、最少够用原则、确保安全原则、主体参与原则、公开透明原则等。</view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">一、我们收集的信息</view>
+    <view class="section-body">
+      <view class="sub-title">1.1 我们主动收集的信息</view>
+      <text class="text-block">在您使用本小程序服务期间，我们需要在符合法律法规的前提下收集和使用您的以下个人信息：</text>
+      <text class="text-block">（1）门店注册信息：门店名称、联系电话。当您首次使用本小程序进行门店注册时，我们会收集这些信息以完成账号创建和门店身份标识。联系电话（手机号）是使用本系统的核心必要信息，作为门店唯一身份标识，用于实现多门店数据隔离和安全认证。不提供手机号将无法创建门店账号和使用管理功能。我们承诺手机号仅用于身份识别，不会用于营销推广或向第三方披露。</text>
+      <text class="text-block">（2）车辆管理信息：车牌号、车型、颜色、里程数、保养日期、保险到期日期、配件更换信息、车主姓名、车主联系电话。这些信息由门店操作人员录入，用于车辆档案管理和到期提醒服务。</text>
+      <text class="text-block">（3）工单管理信息：车牌号、服务项目、金额、支付方式、备注。用于门店日常施工管理和经营数据统计。</text>
+      <text class="text-block">（4）会员权益信息：车牌号、车主姓名、联系电话、权益名称、权益次数。用于会员权益登记和核销管理。</text>
+
+      <view class="sub-title">1.2 我们自动收集的信息</view>
+      <text class="text-block">（1）OpenID：当您打开本小程序时，微信系统会自动分配一个唯一的OpenID给我们。OpenID是微信用户在我们小程序中的唯一标识，我们仅用于识别用户身份，不会用于追踪您的行为轨迹。</text>
+      <text class="text-block">（2）设备信息：我们会收集您的设备型号、操作系统版本等信息，用于保证服务的安全性和稳定性。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">二、我们如何使用收集的信息</view>
+    <view class="section-body">
+      <text class="text-block">我们严格遵守法律法规的规定，将收集的信息用于以下用途：</text>
+      <text class="text-block">1. 提供门店管理服务：包括车辆档案管理、工单管理、会员权益管理等核心功能。</text>
+      <text class="text-block">2. 提供提醒服务：根据您录入的保养日期、保险到期日期等信息，为您发送到期提醒。</text>
+      <text class="text-block">3. 数据统计分析：对门店经营数据进行汇总统计，帮助门店了解经营状况。</text>
+      <text class="text-block">4. 账号安全维护：使用OpenID进行身份验证，保障您的账号安全。</text>
+      <text class="text-block">5. 服务优化改进：根据使用情况优化产品功能和用户体验。</text>
+      <text class="text-block important">我们承诺，不会将您的信息用于任何与上述用途无关的目的，不会向任何第三方出售、出租或共享您的个人信息。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">三、信息的存储与保护</view>
+    <view class="section-body">
+      <text class="text-block">1. 存储地点：您的所有数据均存储在腾讯云数据库中，位于中国境内。</text>
+      <text class="text-block">2. 存储期限：在您使用本小程序服务期间，我们会持续保存您的信息。当您注销账户或停止使用本小程序后，我们将在合理期限内删除或匿名化处理您的个人信息。</text>
+      <text class="text-block">3. 安全措施：我们采用行业标准的加密技术和访问控制措施保护您的数据安全，包括但不限于数据加密传输、权限访问控制、数据备份等。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">四、信息共享与披露</view>
+    <view class="section-body">
+      <text class="text-block">我们不会与任何第三方公司、组织和个人共享您的个人信息，但以下情形除外：</text>
+      <text class="text-block">1. 获得您的明确同意或授权。</text>
+      <text class="text-block">2. 根据法律法规的要求或政府部门的强制性要求。</text>
+      <text class="text-block">3. 为维护社会公共利益。</text>
+      <text class="text-block">4. 为保护本小程序、其他用户或公众的人身财产安全。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">五、您的权利</view>
+    <view class="section-body">
+      <text class="text-block">根据相关法律法规，您享有以下权利：</text>
+      <text class="text-block">1. 查看权：您可以在本小程序中查看您的门店信息和经营数据。</text>
+      <text class="text-block">2. 更正权：您可以在本小程序中修改门店名称、车辆信息等。</text>
+      <text class="text-block">3. 删除权：您可以删除车辆档案、工单记录等业务数据。</text>
+      <text class="text-block">4. 撤回同意权：您可以随时通过微信设置关闭本小程序的授权。</text>
+      <text class="text-block">如需行使上述权利或对本隐私政策有任何疑问，请通过微信联系我们：liang-weisheng。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">六、未成年人保护</view>
+    <view class="section-body">
+      <text class="text-block">本小程序的服务面向成年经营者。如果您是未满18周岁的未成年人，请在监护人的指导下使用本小程序。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">七、隐私政策的更新</view>
+    <view class="section-body">
+      <text class="text-block">我们可能会适时修订本隐私政策。政策更新后，我们会在本小程序内通过适当方式提醒您。请您定期查看以了解最新的隐私政策。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">八、联系我们</view>
+    <view class="section-body">
+      <text class="text-block">如果您对本隐私政策有任何疑问、意见或建议，请通过以下方式联系我们：</text>
+      <text class="text-block">微信：liang-weisheng</text>
+      <text class="text-block">电话：17807725166</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head important-section">关于手机号收集的特别说明</view>
+    <view class="section-body">
+      <text class="text-block">本小程序为汽车维修门店经营管理工具（B端应用），面向门店经营者和工作人员提供服务。手机号作为门店唯一身份标识，用于实现多门店数据隔离和安全认证，是使用本系统核心功能的必要条件。</text>
+      <text class="text-block">我们收集手机号的目的如下：</text>
+      <text class="text-block">1. 门店身份识别：手机号是门店在系统中的唯一账号标识，确保不同门店之间的数据完全隔离，保障数据安全。</text>
+      <text class="text-block">2. 安全认证：门店码配合手机号进行双重身份验证，防止未经授权的人员访问门店数据。</text>
+      <text class="text-block">3. 账号恢复：当用户更换设备时，可通过手机号和门店码重新登录，恢复门店数据访问权限。</text>
+      <text class="text-block important">我们郑重承诺：手机号仅用于上述身份识别和安全认证目的，绝不会用于营销推广、短信推送或向任何第三方披露。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head important-section">关于车牌号收集的特别说明</view>
+    <view class="section-body">
+      <text class="text-block">本小程序为汽车维修门店经营管理工具（B端应用），车牌号是门店日常经营管理的核心业务数据，用于关联车辆档案、维修工单、会员权益等业务记录。</text>
+      <text class="text-block">关于车牌号的收集与使用：</text>
+      <text class="text-block">1. 业务必要性：车牌号是汽车维修行业的标准标识信息，用于建立车辆档案、关联维修记录和保养提醒。无车牌号则无法提供基本的车辆管理功能。</text>
+      <text class="text-block">2. 去标识化展示：为保护用户隐私，本小程序在前端列表、选择器、搜索结果等场景中，对车牌号进行去标识化处理（如：粤B***45），仅在用户主动进入详情页面时显示完整车牌号。</text>
+      <text class="text-block">3. 用途限制：车牌号仅用于门店内部经营管理目的，包括车辆档案维护、工单记录关联、到期提醒服务、会员权益管理等。不会用于用户身份追踪或向任何第三方披露。</text>
+      <text class="text-block important">我们郑重承诺：车牌号仅用于上述经营管理必要用途，前端已做去标识化处理，绝不会用于用户身份识别或任何其他无关目的。</text>
+    </view>
+  </view>
+</view>

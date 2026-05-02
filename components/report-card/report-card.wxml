@@ -1,0 +1,50 @@
+<!--components/report-card/report-card.wxml-->
+<view class="report-card {{hasData ? 'has-data' : ''}}" bindtap="onCardTap">
+
+  <!-- 右上角红点 -->
+  <view class="red-dot" wx:if="{{showDot}}"></view>
+
+  <!-- 无数据态 -->
+  <view class="card-empty" wx:if="{{!loading && !hasData}}">
+    <text class="empty-icon">📊</text>
+    <view class="empty-info">
+      <text class="empty-title">AI经营诊断</text>
+      <text class="empty-desc">每月1日自动生成上月经营报告</text>
+    </view>
+    <text class="empty-action">了解功能 ›</text>
+  </view>
+
+  <!-- 加载态 -->
+  <view class="card-loading" wx:elif="{{loading}}">
+    <text class="loading-icon">⏳</text>
+    <text class="loading-text">正在生成报告...</text>
+  </view>
+
+  <!-- 有数据态 -->
+  <view class="card-content" wx:if="{{hasData && !loading}}">
+    <view class="card-header">
+      <text class="card-tag">📊 {{yearMonthLabel}}</text>
+      <view class="score-block">
+        <text class="score-num {{level}}">{{score}}</text>
+        <text class="score-unit">分</text>
+        <text class="score-level {{level}}">{{levelText}}</text>
+      </view>
+    </view>
+
+    <view class="card-body">
+      <view class="card-row">
+        <text class="row-label">营收</text>
+        <text class="row-value">¥{{revenue}}</text>
+      </view>
+      <view class="card-row">
+        <text class="row-label">工单</text>
+        <text class="row-value">{{orderCount}}<text class="row-unit">单</text></text>
+      </view>
+    </view>
+
+    <view class="card-footer">
+      <text class="footer-action">查看完整报告 ›</text>
+    </view>
+  </view>
+
+</view>

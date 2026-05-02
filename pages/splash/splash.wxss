@@ -1,0 +1,136 @@
+/* pages/splash/splash.wxss */
+
+.splash-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #e8f4fd 0%, #f0f7ff 30%, #f5f7fa 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 装饰圆 */
+.splash-deco {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.12;
+}
+
+.splash-deco-1 {
+  width: 500rpx;
+  height: 500rpx;
+  background: radial-gradient(circle, #1677ff 0%, transparent 70%);
+  top: -150rpx;
+  right: -120rpx;
+}
+
+.splash-deco-2 {
+  width: 360rpx;
+  height: 360rpx;
+  background: radial-gradient(circle, #0958d9 0%, transparent 70%);
+  bottom: -100rpx;
+  left: -100rpx;
+}
+
+/* 品牌 Logo */
+.splash-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.splash-logo {
+  width: 180rpx;
+  height: 180rpx;
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 20rpx 60rpx rgba(22, 119, 255, 0.35);
+  margin-bottom: 36rpx;
+  animation: logoFadeIn 0.6s ease-out;
+}
+
+.splash-logo-img {
+  width: 110rpx;
+  height: 110rpx;
+  border-radius: 8rpx;
+}
+
+.splash-appname {
+  font-size: 52rpx;
+  font-weight: 800;
+  color: #1677ff;
+  letter-spacing: 6rpx;
+  margin-bottom: 12rpx;
+  animation: logoFadeIn 0.6s ease-out 0.1s both;
+}
+
+.splash-slogan {
+  font-size: 26rpx;
+  color: #999;
+  letter-spacing: 4rpx;
+  animation: logoFadeIn 0.6s ease-out 0.2s both;
+}
+
+@keyframes logoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 加载指示器 */
+.splash-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 80rpx;
+  position: relative;
+  z-index: 1;
+  animation: logoFadeIn 0.6s ease-out 0.3s both;
+}
+
+.splash-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid rgba(22, 119, 255, 0.15);
+  border-top-color: #1677ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.splash-loading-text {
+  font-size: 26rpx;
+  color: #bbb;
+  letter-spacing: 2rpx;
+}
+
+/* 底部版本号 */
+.splash-footer {
+  position: absolute;
+  bottom: calc(60rpx + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.splash-version {
+  font-size: 22rpx;
+  color: #ccc;
+  letter-spacing: 2rpx;
+}

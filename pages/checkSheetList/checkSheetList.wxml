@@ -1,0 +1,74 @@
+<!-- 查车单列表页 -->
+<wxs src="../../utils/maskPlate.wxs" module="mask" />
+<view class="container">
+
+  <!-- 搜索栏 -->
+  <view class="search-section">
+    <view class="search-wrapper">
+      <text class="search-icon">🔍</text>
+      <input class="search-input" placeholder="搜索车牌号" placeholder-class="search-placeholder" value="{{keyword}}" bindinput="onSearchInput" bindconfirm="onSearch" confirm-type="search" />
+      <view class="clear-btn" wx:if="{{keyword}}" bindtap="onClear">
+        <text class="clear-icon">✕</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stats-section" wx:if="{{!firstLoad}}">
+    <view class="stats-card">
+      <text class="stats-num">{{totalCount}}</text>
+      <text class="stats-label">份查车单</text>
+    </view>
+  </view>
+
+  <!-- 列表 -->
+  <view class="list-section" wx:if="{{!firstLoad}}">
+    <view class="sheet-list">
+      <view class="sheet-card" wx:for="{{list}}" wx:key="_id" bindtap="onCardTap" data-id="{{item._id}}">
+        <view class="card-header">
+          <view class="left-info">
+            <text class="plate">{{mask.maskPlate(item.plate) || '未知车牌'}}</text>
+            <text class="owner-name">{{item.ownerName || '未知车主'}}</text>
+          </view>
+          <view class="date-badge">
+            <text class="date-text">{{item.dateStr}}</text>
+          </view>
+        </view>
+        <view class="card-footer">
+          <text class="car-type-text">{{item.carType || '未知车型'}} {{item.carColor ? '| ' + item.carColor : ''}}</text>
+          <text class="arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{list.length === 0 && !loading}}">
+      <text class="empty-icon">📋</text>
+      <text class="empty-text">暂无查车单记录</text>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="loading-more" wx:if="{{loading}}">
+      <view class="loading-dot"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+    <view class="load-more" wx:if="{{noMore && list.length > 0}}">
+      <text class="load-more-text">— 已加载全部 —</text>
+    </view>
+  </view>
+
+  <!-- 骨架屏 -->
+  <view class="skeleton-section" wx:if="{{firstLoad}}">
+    <view class="skeleton-card" wx:for="{{[1,2,3]}}" wx:key="*this">
+      <view class="skeleton-header">
+        <view class="skeleton-line skeleton-plate"></view>
+        <view class="skeleton-line skeleton-date"></view>
+      </view>
+      <view class="skeleton-line skeleton-sub"></view>
+    </view>
+  </view>
+
+</view>
+
+<!-- 浮动首页按钮 -->
+<view class="fab-home" bindtap="onGoHome">首页</view>

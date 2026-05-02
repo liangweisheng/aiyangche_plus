@@ -1,0 +1,342 @@
+<!-- 快速开单 - 商用SaaS风格 -->
+<wxs src="../../utils/maskPlate.wxs" module="mask" />
+<view class="container">
+
+  <!-- 车牌输入/展示区 -->
+  <view class="plate-card {{plate && isMember ? 'member' : ''}}">
+    <!-- 无车牌：显示8格输入 + 选择车辆 -->
+    <block wx:if="{{!plate}}">
+      <view class="plate-input-area">
+        <view class="plate-grid" bindtap="onPlateGridTap">
+          <view class="plate-cell {{plateChars[0] ? 'filled' : 'active'}}">{{plateChars[0] || '省'}}</view>
+          <view class="plate-dot"></view>
+          <view class="plate-cell {{plateChars[1] ? 'filled' : (plateChars[0] && !plateChars[1] ? 'active' : '')}}">{{plateChars[1] || 'A'}}</view>
+          <view class="plate-cell {{plateChars[2] ? 'filled' : (plateChars[1] && !plateChars[2] ? 'active' : '')}}">{{plateChars[2] || ''}}</view>
+          <view class="plate-cell {{plateChars[3] ? 'filled' : ''}}">{{plateChars[3] || ''}}</view>
+          <view class="plate-cell {{plateChars[4] ? 'filled' : ''}}">{{plateChars[4] || ''}}</view>
+          <view class="plate-cell {{plateChars[5] ? 'filled' : ''}}">{{plateChars[5] || ''}}</view>
+          <view class="plate-cell {{plateChars[6] ? 'filled' : ''}}">{{plateChars[6] || ''}}</view>
+          <view class="plate-cell energy {{plateChars[7] ? 'filled' : ''}}">{{plateChars[7] || ''}}</view>
+        </view>
+        <view class="plate-actions">
+          <view class="action-btn select-car" bindtap="onSelectCar">
+            <text class="action-btn-icon">🔍</text>
+            <text class="action-btn-text">选择车辆</text>
+          </view>
+        </view>
+      </view>
+    </block>
+    <!-- 有车牌：展示车牌 + 历史工单 -->
+    <block wx:else>
+      <view class="card-header">
+        <text class="plate">{{plate}}</text>
+        <view class="plate-actions-inline">
+          <view class="action-btn-sm history" bindtap="onViewHistory">
+            <text>📋 历史工单</text>
+          </view>
+          <view class="action-btn-sm change" bindtap="onClearPlate">
+            <text>✕ 更换</text>
+          </view>
+        </view>
+      </view>
+        <view class="card-desc-row">
+          <text class="card-desc">正在为该车辆创建服务工单</text>
+          <text class="card-desc spent" wx:if="{{totalSpent > 0}}">历史消费：¥{{totalSpent}}</text>
+        </view>
+        <view class="card-desc-row benefit-row" wx:if="{{isMember}}" style="margin-top:8rpx;" bindtap="onGoCarDetail">
+          <text class="benefit-label">👤 会员权益信息</text>
+          <view class="benefit-badges-inline">
+            <view class="benefit-badge-sm" wx:for="{{memberInfo.benefits || []}}" wx:if="{{item.remain > 0}}" wx:key="index">
+              <text class="bbn">{{item.name}}</text>
+              <text class="bbc">剩{{item.remain}}次</text>
+            </view>
+            <view class="benefit-badge-sm" wx:if="{{!memberInfo.benefits || memberInfo.benefits.length === 0}}">
+              <text class="bbn">{{memberInfo.benefitName || '套餐'}}</text>
+              <text class="bbc" wx:if="{{memberInfo.benefitRemain > 0}}">剩{{memberInfo.benefitRemain}}次</text>
+              <text class="bbc" wx:else>已用完</text>
+            </view>
+          </view>
+          <text class="benefit-arrow">›</text>
+        </view>
+    </block>
+  </view>
+
+  <!-- 车牌键盘 -->
+  <plate-keyboard visible="{{showKeyboard}}" value="{{plate}}" bind:confirm="onPlateConfirm" bind:cancel="onPlateCancel" bind:input="onPlateInput"></plate-keyboard>
+
+  <!-- 服务项目表格 -->
+  <view class="form-section">
+    <view class="section-title-row">
+      <text class="section-title">服务项目</text>
+      <text class="phrase-manage-btn" bindtap="onManagePhrases">管理短语</text>
+    </view>
+
+    <!-- 快捷短语 -->
+    <view class="phrase-section" wx:if="{{phrases.length > 0}}">
+      <view class="phrase-wrap {{phraseExpanded ? '' : 'collapsed'}}">
+        <view class="phrase-tag {{item.selected ? 'selected' : ''}}" wx:for="{{phrases}}" wx:key="index" data-index="{{index}}" data-text="{{item.text}}" bindtap="onPhraseTap">
+          <text>{{item.displayText}}</text>
+        </view>
+      </view>
+      <view class="phrase-expand" wx:if="{{phraseNeedExpand}}" bindtap="onToggleExpand">
+        <text>{{phraseExpanded ? '收起' : '展开更多 (' + phrases.length + ')个'}}</text>
+        <text class="expand-arrow">{{phraseExpanded ? '▲' : '▼'}}</text>
+      </view>
+    </view>
+
+    <!-- 表格 -->
+    <view class="svc-table-card">
+      <view class="svc-table">
+        <view class="svc-header">
+          <text class="svc-col col-num">序</text>
+          <text class="svc-col col-name">项目</text>
+          <text class="svc-col col-spec">规格</text>
+          <text class="svc-col col-amount">金额</text>
+        </view>
+        <view class="svc-row" wx:for="{{serviceRows}}" wx:key="index">
+          <text class="svc-col col-num">{{index + 1}}</text>
+          <input class="svc-input col-name" placeholder="项目名" placeholder-class="svc-placeholder" value="{{item.name}}" data-index="{{index}}" data-field="name" bindinput="onRowInput" bindfocus="onRowFocus" bindblur="onRowBlur" />
+          <input class="svc-input col-spec" placeholder="规格" placeholder-class="svc-placeholder" value="{{item.spec}}" data-index="{{index}}" data-field="spec" bindinput="onRowInput" />
+          <input class="svc-input col-amount" type="number" placeholder="0" placeholder-class="svc-placeholder" value="{{item.amount}}" data-index="{{index}}" data-field="amount" bindinput="onRowInput" bindblur="onAmountBlur" />
+        </view>
+      </view>
+      <view class="svc-add-row" bindtap="onAddRow">
+        <text class="svc-add-icon">+</text>
+        <text class="svc-add-text">加一行</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 金额区域 -->
+  <view class="amount-section">
+    <view class="section-title">金额信息</view>
+    <view class="amount-card">
+      <view class="amount-row-inline">
+        <view class="amount-field">
+          <text class="amount-label">总金额</text>
+          <view class="amount-input-wrapper">
+            <text class="currency">¥</text>
+            <text class="amount-value" wx:if="{{form.totalAmount}}">{{form.totalAmount}}</text>
+            <text class="amount-value auto" wx:else>自动汇总</text>
+          </view>
+        </view>
+        <view class="amount-divider-v"></view>
+        <view class="amount-field">
+          <text class="amount-label">实收金额</text>
+          <view class="amount-input-wrapper">
+            <text class="currency">¥</text>
+            <input
+              class="amount-input"
+              type="digit"
+              placeholder="0.00"
+              placeholder-class="amount-placeholder"
+              value="{{form.paidAmount}}"
+              data-field="paidAmount"
+              bindinput="onInput"
+            />
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付方式 -->
+  <view class="pay-section">
+    <view class="section-title">支付方式</view>
+    <view class="pay-grid">
+      <view
+        class="pay-card {{form.payMethod === item.value ? 'active' : ''}}"
+        wx:for="{{payOptions}}"
+        wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="onPayMethodChange"
+      >
+        <view class="pay-icon">{{item.icon}}</view>
+        <text class="pay-label">{{item.label}}</text>
+        <view class="pay-check" wx:if="{{form.payMethod === item.value}}">
+          <text class="check-icon">✓</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 备注 -->
+  <view class="form-section">
+    <view class="section-title">备注信息</view>
+    <view class="form-card">
+      <textarea
+        class="textarea"
+        placeholder="选填，记录其他信息"
+        placeholder-class="placeholder"
+        value="{{form.remark}}"
+        data-field="remark"
+        bindinput="onInput"
+        maxlength="200"
+      />
+    </view>
+  </view>
+
+  <!-- 到期提醒设置 -->
+  <view class="form-section">
+    <view class="section-title">到期提醒设置</view>
+    <view class="alert-tip">开单时设置下次提醒，保存后自动同步到车辆档案</view>
+    <view class="form-card">
+      <!-- 下次保养时间 -->
+      <view class="alert-row">
+        <view class="alert-label">
+          <text class="alert-emoji">🔧</text>
+          <text>下次保养</text>
+        </view>
+        <picker mode="date" value="{{form.setMaintainDate}}" start="{{today}}" bindchange="onDatePick" data-field="setMaintainDate">
+          <view class="alert-picker {{form.setMaintainDate ? '' : 'placeholder'}}">
+            <text>{{form.setMaintainDate || '选择日期'}}</text>
+          </view>
+        </picker>
+      </view>
+      <!-- 配件更换提醒 -->
+      <view class="alert-divider"></view>
+      <view class="alert-row">
+        <view class="alert-label">
+          <text class="alert-emoji">⚙️</text>
+          <text>配件名称</text>
+        </view>
+        <input
+          class="alert-input"
+          placeholder="如：刹车片、机油"
+          placeholder-class="placeholder"
+          value="{{form.setPartName}}"
+          data-field="setPartName"
+          bindinput="onInput"
+        />
+      </view>
+      <view class="alert-divider"></view>
+      <view class="alert-row">
+        <view class="alert-label">
+          <text class="alert-emoji">📅</text>
+          <text>更换日期</text>
+        </view>
+        <picker mode="date" value="{{form.setPartDate}}" start="{{today}}" bindchange="onDatePick" data-field="setPartDate">
+          <view class="alert-picker {{form.setPartDate ? '' : 'placeholder'}}">
+            <text>{{form.setPartDate || '选择日期'}}</text>
+          </view>
+        </picker>
+      </view>
+    </view>
+  </view>
+
+  <!-- 施工照片（预留） -->
+  <view class="upload-section disabled">
+    <view class="section-title">施工照片</view>
+    <view class="upload-card">
+      <text class="upload-icon">📷</text>
+      <text class="upload-text">上传功能开发中</text>
+    </view>
+  </view>
+
+</view>
+
+<!-- 车牌选择器弹层 -->
+<view class="car-picker-mask" wx:if="{{showCarPicker}}" bindtap="onCloseCarPicker">
+  <view class="car-picker-panel" style="margin-bottom: {{carPickerKbHeight}}px;" catchtap="onCarPickerMask">
+    <view class="car-picker-header">
+      <text class="car-picker-title">选择车辆</text>
+      <text class="car-picker-close" bindtap="onCloseCarPicker">✕</text>
+    </view>
+    <view class="car-picker-search">
+      <view class="car-picker-search-box">
+        <text class="car-picker-search-icon">🔍</text>
+        <input
+          class="car-picker-search-input"
+          placeholder="输入车牌号或手机号"
+          placeholder-class="car-picker-placeholder"
+          value="{{carPickerKeyword}}"
+          bindinput="onCarPickerInput"
+          focus="{{carPickerInputFocus}}"
+          confirm-type="search"
+          cursor-spacing="20"
+          adjust-position="{{false}}"
+          bindfocus="onCarPickerSearchFocus"
+          bindblur="onCarPickerSearchBlur"
+          bindkeyboardheightchange="onCarPickerKBChange"
+        />
+        <text class="car-picker-clear" wx:if="{{carPickerKeyword}}" bindtap="onCarPickerClear">✕</text>
+      </view>
+    </view>
+    <!-- 搜索结果 -->
+    <view class="car-picker-body">
+      <!-- 搜索中 -->
+      <view class="car-picker-loading" wx:if="{{carPickerSearching}}">
+        <text>搜索中...</text>
+      </view>
+      <!-- 无结果 -->
+      <view class="car-picker-empty" wx:elif="{{carPickerEmpty}}">
+        <text class="empty-icon">🔍</text>
+        <text class="empty-text">未找到匹配车辆</text>
+      </view>
+      <!-- 搜索结果列表 -->
+      <view wx:elif="{{carPickerResults.length > 0}}">
+        <view class="car-picker-label">搜索结果({{carPickerResults.length}})</view>
+        <view class="car-picker-item" wx:for="{{carPickerResults}}" wx:key="_id" data-plate="{{item.plate}}" bindtap="onPickCar">
+          <view class="car-picker-item-plate">{{mask.maskPlate(item.plate)}}</view>
+          <view class="car-picker-item-info">
+            <text wx:if="{{item.brand}}">{{item.brand}}</text>
+            <text wx:if="{{item.color}}"> · {{item.color}}</text>
+            <text wx:if="{{item.phone}}"> · {{item.phone}}</text>
+          </view>
+        </view>
+      </view>
+      <!-- 最近车辆（无搜索时显示） -->
+      <view wx:elif="{{!carPickerKeyword}}">
+        <view class="car-picker-label" wx:if="{{carPickerRecent.length > 0}}">最近新增</view>
+        <view class="car-picker-item" wx:for="{{carPickerRecent}}" wx:key="_id" data-plate="{{item.plate}}" bindtap="onPickCar">
+          <view class="car-picker-item-plate">{{mask.maskPlate(item.plate)}}</view>
+          <view class="car-picker-item-info">
+            <text wx:if="{{item.brand}}">{{item.brand}}</text>
+            <text wx:if="{{item.color}}"> · {{item.color}}</text>
+            <text wx:if="{{item.phone}}"> · {{item.phone}}</text>
+          </view>
+        </view>
+        <view class="car-picker-empty" wx:if="{{carPickerRecent.length === 0}}">
+          <text class="empty-icon">🚗</text>
+          <text class="empty-text">暂无车辆记录</text>
+        </view>
+      </view>
+      <!-- 输入不足提示 -->
+      <view wx:elif="{{carPickerKeyword.length > 0 && carPickerKeyword.length < 2}}" class="car-picker-waiting">
+        <text>请输入至少 2 个字符搜索</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 短语编辑弹窗 -->
+<view class="phrase-modal-mask" wx:if="{{showPhraseEdit}}" bindtap="onPhraseEditCancel">
+  <view class="phrase-modal" catchtap="onPhraseModalTap">
+    <view class="phrase-modal-header">
+      <text class="phrase-modal-title">编辑快捷短语</text>
+      <text class="phrase-modal-tip">用逗号或换行分隔，每个短语占一行</text>
+    </view>
+    <textarea
+      class="phrase-modal-textarea"
+      value="{{phraseEditText}}"
+      bindinput="onPhraseEditInput"
+      maxlength="-1"
+      auto-height="{{false}}"
+    />
+    <view class="phrase-modal-footer">
+      <view class="phrase-modal-btn reset" bindtap="onPhraseResetDefault">恢复默认</view>
+      <view class="phrase-modal-btn cancel" bindtap="onPhraseEditCancel">取消</view>
+      <view class="phrase-modal-btn save" bindtap="onPhraseEditSave">保存</view>
+    </view>
+  </view>
+</view>
+
+<!-- 底部提交按钮 -->
+<view class="footer">
+  <view class="draft-btn" bindtap="onSaveDraft">
+    <text class="btn-text">暂存工单</text>
+  </view>
+  <view class="submit-btn" bindtap="onSave">
+    <text class="btn-text">保存工单</text>
+  </view>
+</view>

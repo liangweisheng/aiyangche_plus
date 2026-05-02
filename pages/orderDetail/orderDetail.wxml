@@ -1,0 +1,118 @@
+<!-- 工单详情 -->
+<view class="container" wx:if="{{!loading && order}}">
+
+  <!-- 顶部状态卡片 -->
+  <view class="top-card {{isMemberVehicle ? 'member' : ''}}">
+    <view class="top-card-header">
+      <view class="plate-badge">{{plate}}</view>
+      <view class="header-tags">
+        <view class="status-tag status-{{order.status === '已完成' ? 'done' : order.status === '待结算' ? 'pending' : 'working'}}">{{order.status || '施工中'}}</view>
+        <view class="pay-tag">{{payMethodText}}</view>
+      </view>
+    </view>
+    <view class="top-card-body">
+      <text class="amount-main">¥{{order.totalAmount}}</text>
+      <text class="amount-paid" wx:if="{{order.paidAmount > 0 && order.paidAmount !== order.totalAmount}}">实收 ¥{{order.paidAmount}}</text>
+    </view>
+    <view class="top-card-bottom">
+      <text class="create-time">开单时间：{{createTimeStr}}</text>
+      <view class="share-btn" bindtap="onShareOrder">
+        <text class="share-icon">📤</text>
+        <text class="share-text">分享工单</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 服务项目表格 -->
+  <view class="section" wx:if="{{itemRows.length > 0}}">
+    <view class="section-title">服务项目</view>
+    <view class="info-card" style="padding:0;overflow:hidden;">
+      <view class="svc-table">
+        <view class="svc-thead">
+          <text class="svc-th" style="width:60rpx;">序</text>
+          <text class="svc-th" style="flex:2;">项目名</text>
+          <text class="svc-th" style="flex:2;">规格</text>
+          <text class="svc-th" style="width:140rpx;text-align:right;">金额</text>
+        </view>
+        <view class="svc-tbody">
+          <view class="svc-tr {{index % 2 === 1 ? 'svc-tr-alt' : ''}}" wx:for="{{itemRows}}" wx:key="index">
+            <text class="svc-td" style="width:60rpx;">{{item.index}}</text>
+            <text class="svc-td svc-name" style="flex:2;">{{item.name}}</text>
+            <text class="svc-td" style="flex:2;">{{item.spec}}</text>
+            <text class="svc-td svc-amt" style="width:140rpx;text-align:right;">{{item.amount > 0 ? '¥' + item.amount : ''}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 金额明细 -->
+  <view class="section">
+    <view class="section-title">金额明细</view>
+    <view class="info-card">
+      <view class="detail-row">
+        <text class="detail-label">总金额</text>
+        <text class="detail-value primary">¥{{order.totalAmount}}</text>
+      </view>
+      <view class="detail-row" wx:if="{{order.paidAmount !== undefined}}">
+        <text class="detail-label">实收金额</text>
+        <text class="detail-value green">¥{{order.paidAmount}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付信息 -->
+  <view class="section">
+    <view class="section-title">支付信息</view>
+    <view class="info-card">
+      <view class="detail-row">
+        <text class="detail-label">支付方式</text>
+        <text class="detail-value">{{payMethodText}}</text>
+      </view>
+      <view class="detail-row" wx:if="{{order.shopPhone}}">
+        <text class="detail-label">门店电话</text>
+        <text class="detail-value link" bindtap="onCallPhone">{{order.shopPhone}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 备注 -->
+  <view class="section" wx:if="{{order.remark}}">
+    <view class="section-title">备注</view>
+    <view class="info-card">
+      <text class="info-text">{{order.remark}}</text>
+    </view>
+  </view>
+
+</view>
+
+<!-- 加载状态 -->
+<view class="loading-wrap" wx:if="{{loading}}">
+  <text class="loading-text">加载中...</text>
+</view>
+
+<!-- 底部操作按钮 -->
+<view class="footer" wx:if="{{!loading && order}}">
+  <view class="footer-row">
+    <view class="edit-btn" bindtap="onEdit" wx:if="{{!order.isVoided}}">
+      <text class="edit-icon">✏️</text>
+      <text class="edit-text">编辑工单</text>
+    </view>
+    <view class="reorder-btn" bindtap="onReorder">
+      <text class="reorder-icon">📝</text>
+      <text class="reorder-text">再开一单</text>
+    </view>
+    <view class="void-btn {{order.isVoided ? 'voided' : ''}}" bindtap="onVoidOrder" wx:if="{{!order.isVoided}}">
+      <text class="void-text">作废</text>
+    </view>
+    <view class="void-btn voided disabled" wx:else>
+      <text class="void-text">已作废</text>
+    </view>
+  </view>
+</view>
+
+<!-- 离屏分享画布（高度设大，JS中动态绘制） -->
+<canvas canvas-id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:600px;height:1600px;"></canvas>
+
+<!-- 浮动首页按钮 -->
+<view class="fab-home" bindtap="onGoHome">首页</view>

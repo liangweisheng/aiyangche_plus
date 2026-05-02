@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI养车门店管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; }
+        .header { background: linear-gradient(135deg, #1677ff, #0958d9); color: white; padding: 60px 20px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 16px; }
+        .container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .card h2 { color: #1677ff; font-size: 18px; margin-bottom: 12px; border-left: 4px solid #1677ff; padding-left: 12px; }
+        .feature-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .feature-list li { background: #f0f5ff; padding: 10px 14px; border-radius: 8px; font-size: 14px; }
+        .flow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .flow-step { text-align: center; flex: 1; min-width: 120px; }
+        .flow-step .num { width: 36px; height: 36px; background: #1677ff; color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 6px; }
+        .footer { text-align: center; padding: 30px; color: #999; font-size: 13px; }
+        .tag { display: inline-block; background: #e6f7ff; color: #1677ff; padding: 2px 10px; border-radius: 12px; font-size: 12px; margin-right: 6px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AI养车门店管理系统</h1>
+        <p>专为汽车维修门店打造的数字化经营工具</p>
+        <div style="margin-top:16px;">
+            <span class="tag">工单管理</span>
+            <span class="tag">车辆档案</span>
+            <span class="tag">会员管理</span>
+            <span class="tag">经营报表</span>
+            <span class="tag">AI诊断</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>产品简介</h2>
+            <p>AI养车门店管理系统是一款面向汽车维修门店的轻量级经营管理工具，基于微信云开发构建，支持多端运行（微信小程序、Android App、iOS App）。</p>
+            <p style="margin-top:8px;">帮助门店实现工单数字化、车辆档案电子化、会员管理精细化、经营数据可视化，并通过 AI 能力提供月度经营诊断报告。</p>
+        </div>
+
+        <div class="card">
+            <h2>核心功能</h2>
+            <ul class="feature-list">
+                <li>工单开单/核销/作废</li>
+                <li>车辆档案管理</li>
+                <li>会员信息与权益</li>
+                <li>日/周/月/年报表</li>
+                <li>AI月度经营诊断</li>
+                <li>多角色权限管理</li>
+                <li>电子查车单</li>
+                <li>数据导出</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>运行流程</h2>
+            <div class="flow">
+                <div class="flow-step"><div class="num">1</div><div>启动应用</div></div>
+                <div class="flow-step"><div class="num">2</div><div>手机号登录</div></div>
+                <div class="flow-step"><div class="num">3</div><div>进入主界面</div></div>
+                <div class="flow-step"><div class="num">4</div><div>使用各功能模块</div></div>
+                <div class="flow-step"><div class="num">5</div><div>数据云端同步</div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>技术架构</h2>
+            <p><strong>前端框架：</strong>微信原生小程序 + Donut 多端框架</p>
+            <p style="margin-top:6px;"><strong>后端服务：</strong>微信云开发（云函数 + 云数据库）</p>
+            <p style="margin-top:6px;"><strong>数据存储：</strong>微信云数据库（无需自建服务器）</p>
+        </div>
+
+        <div class="card">
+            <h2>应用平台</h2>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <tr style="background:#f5f5f5;"><th style="padding:8px;text-align:left;">平台</th><th style="padding:8px;text-align:left;">状态</th></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #eee;">微信小程序</td><td style="padding:8px;border-bottom:1px solid #eee;color:#52c41a;">已上线</td></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #eee;">Android App</td><td style="padding:8px;border-bottom:1px solid #eee;color:#1677ff;">开发中</td></tr>
+                <tr><td style="padding:8px;">iOS App</td><td style="padding:8px;color:#1677ff;">开发中</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2026 AI养车门店管理系统 &middot; 基于微信云开发构建</p>
+    </div>
+</body>
+</html>

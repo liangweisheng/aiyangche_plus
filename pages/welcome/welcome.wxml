@@ -1,0 +1,130 @@
+<!--pages/welcome/welcome.wxml-->
+<view class="container">
+
+  <!-- 顶部装饰 -->
+  <view class="deco-circle deco-1"></view>
+  <view class="deco-circle deco-2"></view>
+
+  <!-- Logo 区域 -->
+  <view class="logo-section">
+    <view class="logo-icon">🔧</view>
+    <view class="app-name">AI养车</view>
+  </view>
+
+  <!-- 登录模式（默认） -->
+  <view class="welcome-card" wx:if="{{mode === 'login'}}">
+    <view class="card-title">登录门店系统</view>
+    <view class="login-scope-tip">
+      <text class="usage-tip-icon">ℹ️</text>
+      <text>仅限汽修店店主和店员使用</text>
+    </view>
+
+    <!-- 功能标签 -->
+    <view class="intro-tags">
+      <text class="intro-tag">📋车辆管理</text>
+      <text class="intro-tag">🔧工单管理</text>
+      <text class="intro-tag">📊经营报表</text>
+    </view>
+
+    <view class="card-desc">请使用注册时的手机号和门店码登录门店系统</view>
+
+    <view class="input-wrapper">
+      <text class="input-label">门店手机号</text>
+      <input class="name-input" type="number" placeholder="请输入注册时的手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11" />
+    </view>
+
+    <view class="input-wrapper">
+      <text class="input-label">门店码</text>
+      <input class="name-input code-input" type="digit" placeholder="请输入6位数字门店码" value="{{shopCode}}" bindinput="onCodeInput" maxlength="6" />
+      <view class="forgot-code-tip">
+        <text class="forgot-text">忘记门店码？</text>
+        <text class="forgot-link" bindtap="onContactService">点击联系客服获取</text>
+      </view>
+    </view>
+
+    <!-- 按钮行：登录 + 取消 -->
+    <view class="btn-row">
+      <button class="submit-btn btn-flex" bindtap="onLogin">
+        {{submitting ? '登录中...' : '登录'}}
+      </button>
+      <button class="cancel-btn" bindtap="onCancelLogin">取消</button>
+    </view>
+
+    <!-- #ifdef MP-WEIXIN -->
+    <view class="register-entry" bindtap="switchToRegister">
+      <text class="register-entry-text">还没有门店？</text>
+      <text class="register-entry-action">立即免费注册</text>
+    </view>
+    <!-- #endif -->
+  </view>
+
+  <!-- 注册模式 -->
+  <view class="welcome-card" wx:if="{{mode === 'register'}}">
+    <view class="card-title">注册新门店</view>
+    <view class="card-desc">首次使用，请完善门店信息</view>
+
+    <view class="input-wrapper">
+      <text class="input-label">门店名称</text>
+      <input class="name-input" type="text" placeholder="请输入汽修厂/门店名称" value="{{shopName}}" bindinput="onNameInput" maxlength="30" />
+    </view>
+
+    <view class="input-wrapper">
+      <text class="input-label">联系电话</text>
+      <input class="name-input" type="number" placeholder="请输入11位手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11" />
+    </view>
+
+    <view class="phone-usage-tip">
+      <text class="usage-tip-icon">ℹ️</text>
+      <text class="usage-tip-text">手机号作为门店唯一身份标识，用于数据隔离和安全认证</text>
+    </view>
+
+    <button class="submit-btn" bindtap="onSubmit" disabled="{{!shopName || !phone || submitting}}">
+      {{submitting ? '注册中...' : '确认注册并进入'}}
+    </button>
+
+    <view class="switch-link" bindtap="switchToLogin">
+      <text class="switch-text">已有门店？</text>
+      <text class="switch-action">返回登录</text>
+    </view>
+  </view>
+
+  <!-- ===== 隐私确认弹窗（覆盖在 login 之上） ===== -->
+  <view class="privacy-overlay" wx:if="{{showPrivacyModal}}">
+    <view class="privacy-mask" bindtap="onClosePrivacyModal"></view>
+    <view class="privacy-modal">
+      <view class="modal-title">📋 使用须知</view>
+      <view class="modal-body">
+        <view class="modal-desc">
+          欢迎使用 AI养车 门店管理系统。在使用本服务前，请您仔细阅读以下协议：
+        </view>
+        <view class="modal-agreements">
+          <view class="modal-agreement-item" catchtap="onGoPrivacy">
+            <text>《隐私政策》</text><text class="modal-arrow">›</text>
+          </view>
+          <view class="modal-agreement-item" catchtap="onGoAgreement">
+            <text>《用户服务协议》</text><text class="modal-arrow">›</text>
+          </view>
+        </view>
+        <view class="modal-tip">
+          点击"同意"即表示您已阅读并同意上述全部协议
+        </view>
+        <view class="privacy-check-row" bindtap="onTogglePrivacyCheck">
+          <view class="privacy-checkbox {{privacyChecked ? 'checked' : ''}}">
+            <text wx:if="{{privacyChecked}}">✓</text>
+          </view>
+          <text class="privacy-check-text">我已阅读并同意《隐私政策》和《用户服务协议》</text>
+        </view>
+      </view>
+      <view class="modal-actions">
+        <button class="modal-agree-btn" bindtap="onAgreeFromModal" disabled="{{!privacyChecked}}">同意并继续</button>
+        <button class="modal-cancel-btn" bindtap="onCancelPrivacyModal">暂不登录</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="footer">
+    <text class="footer-text" wx:if="{{mode === 'login'}}">门店码可在"我的"页面查看和复制</text>
+    <text class="footer-text" wx:if="{{mode === 'register'}}">注册后将自动生成门店码，请妥善保管</text>
+  </view>
+</view>

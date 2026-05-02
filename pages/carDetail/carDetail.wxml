@@ -1,0 +1,300 @@
+<!-- 车辆详情页 - 商用SaaS风格 -->
+<view class="container" wx:if="{{carInfo}}">
+
+  <!-- 车辆信息卡片 -->
+  <view class="vehicle-card {{memberInfo ? 'member' : ''}}">
+    <view class="card-header">
+      <view class="plate-header-left">
+        <text class="plate">{{carInfo.plate}}</text>
+        <text class="owner-name" wx:if="{{carInfo.ownerName}}">{{carInfo.ownerName}}</text>
+      </view>
+      <view class="plate-tag">车辆档案</view>
+    </view>
+    <view class="card-body">
+      <view class="car-type-row">
+        <text class="car-type">{{carInfo.carType || '未填写车型'}}</text>
+        <text class="edit-btn-white" bindtap="onEditVehicle">编辑</text>
+      </view>
+      <view class="info-row">
+        <view class="info-item">
+          <text class="info-label">颜色</text>
+          <text class="info-value">{{carInfo.color || '未填写'}}</text>
+        </view>
+        <view class="divider"></view>
+        <view class="info-item">
+          <text class="info-label">里程</text>
+          <text class="info-value">{{carInfo.mileage || 0}}km</text>
+        </view>
+      </view>
+      <view class="info-row" wx:if="{{carInfo.vin}}">
+        <view class="info-item">
+          <text class="info-label">车架号</text>
+          <text class="info-value" style="font-size:24rpx;">{{carInfo.vin}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 编辑车型信息弹窗 -->
+  <view class="modal-mask" wx:if="{{showVehicleModal}}" bindtap="onCloseVehicle">
+    <view class="modal-area" catchtap="stopPropagation">
+      <view class="modal-title">编辑车型信息</view>
+      <view class="modal-body">
+        <view class="modal-row">
+          <text class="modal-label">🚗 车型</text>
+          <input class="modal-input" placeholder="如：丰田卡罗拉" placeholder-class="placeholder" value="{{vehicleForm.carType}}" data-field="carType" bindinput="onVehicleInput" />
+        </view>
+        <view class="modal-row">
+          <text class="modal-label">🔢 车架号</text>
+          <input class="modal-input" placeholder="17位VIN码" placeholder-class="placeholder" value="{{vehicleForm.vin}}" data-field="vin" bindinput="onVehicleInput" maxlength="17" />
+        </view>
+        <view class="modal-row">
+          <text class="modal-label">🎨 颜色</text>
+          <input class="modal-input" placeholder="如：白色" placeholder-class="placeholder" value="{{vehicleForm.color}}" data-field="color" bindinput="onVehicleInput" />
+        </view>
+        <view class="modal-row">
+          <text class="modal-label">📏 里程</text>
+          <input class="modal-input" type="number" placeholder="如：50000" placeholder-class="placeholder" value="{{vehicleForm.mileage}}" data-field="mileage" bindinput="onVehicleInput" />
+        </view>
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn cancel" bindtap="onCloseVehicle">取消</view>
+        <view class="modal-btn confirm" bindtap="onSaveVehicle">保存</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 详细信息 -->
+  <view class="info-section">
+    <view class="section-title-row">
+      <text class="section-title">详细信息</text>
+      <text class="edit-btn" bindtap="onEditDetail">编辑</text>
+    </view>
+    <view class="info-card">
+      <view class="info-row-card">
+        <text class="label">车主姓名</text>
+        <text class="value">{{carInfo.ownerName || '未填写'}}</text>
+      </view>
+      <view class="info-row-card" wx:if="{{carInfo.phone}}" data-phone="{{carInfo.phone}}" bindtap="onPhoneTap">
+        <text class="label">车主电话</text>
+        <view class="phone-action">
+          <text class="value">{{carInfo.phone}}</text>
+          <text class="phone-tap-hint">点击拨打</text>
+        </view>
+      </view>
+      <view class="info-row-card" wx:else>
+        <text class="label">车主电话</text>
+        <text class="value">未填写</text>
+      </view>
+      <view class="info-row-card">
+        <text class="label">入库时间</text>
+        <text class="value">{{carInfo.createTime}}</text>
+      </view>
+      <view class="info-row-card remark">
+        <text class="label">备注</text>
+        <text class="value">{{carInfo.remark || '无备注'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 编辑详细信息弹窗 -->
+  <view class="modal-mask" wx:if="{{showDetailModal}}" bindtap="onCloseDetail">
+    <view class="modal-area" catchtap="stopPropagation">
+      <view class="modal-title">编辑详细信息</view>
+      <view class="modal-body">
+        <view class="modal-row">
+          <text class="modal-label">👤 车主姓名</text>
+          <input class="modal-input" placeholder="车主姓名" placeholder-class="placeholder" value="{{detailForm.ownerName}}" data-field="ownerName" bindinput="onDetailInput" />
+        </view>
+        <view class="modal-divider"></view>
+        <view class="modal-row">
+          <text class="modal-label">📞 车主电话</text>
+          <input class="modal-input" type="number" placeholder="手机号码" placeholder-class="placeholder" value="{{detailForm.phone}}" data-field="phone" bindinput="onDetailInput" />
+        </view>
+        <view class="modal-divider"></view>
+        <view class="modal-row-textarea">
+          <text class="modal-label">📝 备注</text>
+          <textarea class="modal-textarea" placeholder="添加备注信息" placeholder-class="placeholder" value="{{detailForm.remark}}" data-field="remark" bindinput="onDetailInput" auto-height maxlength="200" />
+        </view>
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn cancel" bindtap="onCloseDetail">取消</view>
+        <view class="modal-btn confirm" bindtap="onSaveDetail">保存</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 会员权益 -->
+  <view class="info-section" wx:if="{{memberInfo}}">
+    <view class="section-title-row">
+      <text class="section-title">会员权益</text>
+      <text class="edit-btn" style="color:#722ed1;background:rgba(114,46,209,0.08);" bindtap="onGoMemberBenefit">+ 登记权益</text>
+    </view>
+    <!-- 多权益列表 -->
+    <block wx:if="{{memberInfo.benefits && memberInfo.benefits.length > 0}}">
+      <view class="benefit-card" wx:for="{{memberInfo.benefits}}" wx:key="index" style="margin-bottom: 16rpx;">
+        <view class="benefit-header">
+          <view class="benefit-left">
+            <text class="benefit-name-tag">🎫</text>
+            <text class="benefit-title">{{item.name}}</text>
+          </view>
+          <view class="use-btn" bindtap="onUseBenefit" data-index="{{index}}">使用1次</view>
+        </view>
+        <view class="benefit-body">
+          <view class="benefit-stat">
+            <text class="stat-num">{{item.total || 0}}</text>
+            <text class="stat-label">总次数</text>
+          </view>
+          <view class="benefit-divider-v"></view>
+          <view class="benefit-stat">
+            <text class="stat-num remain">{{item.remain || 0}}</text>
+            <text class="stat-label">剩余次数</text>
+          </view>
+        </view>
+      <view class="benefit-footer" wx:if="{{(item.remain || 0) <= 0}}">
+        <text class="benefit-expired">权益次数已用完</text>
+        <text class="benefit-del-btn" bindtap="onRemoveBenefit" data-index="{{index}}">删除此权益</text>
+      </view>
+    </view>
+    </block>
+    <!-- 兼容旧数据：单权益 -->
+    <view class="benefit-card" wx:elif="{{memberInfo.benefitName}}">
+      <view class="benefit-header">
+        <view class="benefit-left">
+          <text class="benefit-name-tag">🎫</text>
+          <text class="benefit-title">{{memberInfo.benefitName}}</text>
+        </view>
+        <view class="use-btn" bindtap="onUseBenefit" data-index="{{0}}">使用1次</view>
+      </view>
+      <view class="benefit-body">
+        <view class="benefit-stat">
+          <text class="stat-num">{{memberInfo.benefitTotal || 0}}</text>
+          <text class="stat-label">总次数</text>
+        </view>
+        <view class="benefit-divider-v"></view>
+        <view class="benefit-stat">
+          <text class="stat-num remain">{{memberInfo.benefitRemain || 0}}</text>
+          <text class="stat-label">剩余次数</text>
+        </view>
+      </view>
+      <view class="benefit-footer" wx:if="{{(memberInfo.benefitRemain || 0) <= 0}}">
+        <text class="benefit-expired">权益次数已用完</text>
+        <text class="benefit-del-btn" bindtap="onRemoveBenefit" data-index="{{0}}">删除此权益</text>
+      </view>
+    </view>
+    <view class="info-card" wx:else>
+      <text class="no-benefit-hint">该会员尚未登记权益套餐</text>
+    </view>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="actions-section">
+    <view class="section-title">快捷操作</view>
+    <view class="actions-grid">
+      <view class="action-card primary" bindtap="onCreateOrder">
+        <view class="action-icon">📝</view>
+        <text class="action-title">快速开单</text>
+        <text class="action-desc">创建服务工单</text>
+      </view>
+      <view class="action-card" bindtap="onViewOrders">
+        <view class="action-icon">📋</view>
+        <text class="action-title">历史工单</text>
+        <text class="action-desc">查看服务记录</text>
+      </view>
+      <view class="action-card" bindtap="onViewChecklist">
+        <view class="action-icon">🔧</view>
+        <text class="action-title">建查车单</text>
+        <text class="action-desc">车辆检测报告</text>
+      </view>
+      <view class="action-card" bindtap="onViewCheckSheetList">
+        <view class="action-icon">📋</view>
+        <text class="action-title">历史查车</text>
+        <text class="action-desc">查看检测记录</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 提醒事项 -->
+  <view class="info-section">
+    <view class="section-title-row">
+      <text class="section-title">提醒事项</text>
+      <text class="edit-btn" bindtap="onEditAlert">编辑</text>
+    </view>
+    <view class="info-card">
+      <view class="info-row-card">
+        <view class="alert-label-cell">
+          <text class="alert-emoji">🔧</text>
+          <text class="label">保养到期</text>
+        </view>
+        <text class="value {{carInfo.maintainDate ? '' : 'empty'}}">{{carInfo.maintainDate || '未设置'}}</text>
+      </view>
+      <view class="info-row-card">
+        <view class="alert-label-cell">
+          <text class="alert-emoji">🛡️</text>
+          <text class="label">车险到期</text>
+        </view>
+        <text class="value {{carInfo.insuranceDate ? '' : 'empty'}}">{{carInfo.insuranceDate || '未设置'}}</text>
+      </view>
+      <view class="info-row-card">
+        <view class="alert-label-cell">
+          <text class="alert-emoji">⚙️</text>
+          <text class="label">配件更换</text>
+        </view>
+        <text class="value {{carInfo.partReplaceName ? '' : 'empty'}}">{{carInfo.partReplaceName || '未设置'}}</text>
+      </view>
+      <view class="info-row-card" wx:if="{{carInfo.partReplaceName}}">
+        <view class="alert-label-cell">
+          <text class="alert-emoji">📅</text>
+          <text class="label">更换日期</text>
+        </view>
+        <text class="value">{{carInfo.partReplaceDate || '未设置'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 编辑提醒事项弹窗 -->
+  <view class="modal-mask" wx:if="{{showAlertModal}}" bindtap="onCloseAlert">
+    <view class="modal-area" catchtap="stopPropagation">
+      <view class="modal-title">编辑提醒事项</view>
+      <view class="modal-body">
+        <view class="modal-row">
+          <text class="modal-label">🔧 保养到期</text>
+          <picker mode="date" value="{{alertForm.maintainDate}}" bindchange="onAlertDatePick" data-field="maintainDate">
+            <view class="modal-picker {{alertForm.maintainDate ? '' : 'placeholder'}}">
+              <text>{{alertForm.maintainDate || '选择日期'}}</text>
+            </view>
+          </picker>
+        </view>
+        <view class="modal-row">
+          <text class="modal-label">🛡️ 车险到期</text>
+          <picker mode="date" value="{{alertForm.insuranceDate}}" bindchange="onAlertDatePick" data-field="insuranceDate">
+            <view class="modal-picker {{alertForm.insuranceDate ? '' : 'placeholder'}}">
+              <text>{{alertForm.insuranceDate || '选择日期'}}</text>
+            </view>
+          </picker>
+        </view>
+        <view class="modal-divider"></view>
+        <view class="modal-row">
+          <text class="modal-label">⚙️ 配件名称</text>
+          <input class="modal-input" placeholder="如：刹车片" placeholder-class="placeholder" value="{{alertForm.partReplaceName}}" data-field="partReplaceName" bindinput="onAlertInput" />
+        </view>
+        <view class="modal-row">
+          <text class="modal-label">📅 更换日期</text>
+          <picker mode="date" value="{{alertForm.partReplaceDate}}" bindchange="onAlertDatePick" data-field="partReplaceDate">
+            <view class="modal-picker {{alertForm.partReplaceDate ? '' : 'placeholder'}}">
+              <text>{{alertForm.partReplaceDate || '选择日期'}}</text>
+            </view>
+          </picker>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn cancel" bindtap="onCloseAlert">取消</view>
+        <view class="modal-btn confirm" bindtap="onSaveAlert">保存</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 浮动首页按钮 -->
+  <view class="fab-home" bindtap="onGoHome">首页</view>
+
+</view>

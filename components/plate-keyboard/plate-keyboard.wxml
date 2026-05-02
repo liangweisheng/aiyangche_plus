@@ -1,0 +1,72 @@
+<!-- 车牌键盘组件：第1位汉字，第2位字母，第3位起数字或字母 -->
+<view class="plate-keyboard-mask" wx:if="{{visible}}" bindtap="onMaskTap">
+  <view class="keyboard-area" catchtap="stopPropagation">
+    <!-- 输入显示区 -->
+    <view class="display-area">
+      <view class="plate-box">
+        <view class="cell {{currentPos === 0 ? 'active' : 'filled'}}" bindtap="onCellTap" data-pos="0">
+          <text>{{plate[0] || ''}}</text>
+        </view>
+        <text class="dot">·</text>
+        <view class="cell {{currentPos === 1 ? 'active' : (plate[1] ? 'filled' : '')}}" bindtap="onCellTap" data-pos="1">
+          <text>{{plate[1] || ''}}</text>
+        </view>
+        <view class="cell {{currentPos === 2 ? 'active' : (plate[2] ? 'filled' : '')}}" bindtap="onCellTap" data-pos="2">
+          <text>{{plate[2] || ''}}</text>
+        </view>
+        <view class="cell {{currentPos === 3 ? 'active' : (plate[3] ? 'filled' : '')}}" bindtap="onCellTap" data-pos="3">
+          <text>{{plate[3] || ''}}</text>
+        </view>
+        <text class="dot">·</text>
+        <view class="cell {{currentPos === 4 ? 'active' : (plate[4] ? 'filled' : '')}}" bindtap="onCellTap" data-pos="4">
+          <text>{{plate[4] || ''}}</text>
+        </view>
+        <view class="cell {{currentPos === 5 ? 'active' : (plate[5] ? 'filled' : '')}}" bindtap="onCellTap" data-pos="5">
+          <text>{{plate[5] || ''}}</text>
+        </view>
+        <view class="cell {{currentPos === 6 ? 'active' : (plate[6] ? 'filled' : '')}}" bindtap="onCellTap" data-pos="6">
+          <text>{{plate[6] || ''}}</text>
+        </view>
+        <!-- 新能源第8位 -->
+        <view class="cell energy {{currentPos === 7 ? 'active' : (plate[7] ? 'filled' : '')}}" wx:if="{{isEnergy}}" bindtap="onCellTap" data-pos="7">
+          <text>{{plate[7] || ''}}</text>
+        </view>
+      </view>
+      <!-- 能源类型切换 -->
+      <view class="energy-switch">
+        <view class="switch-item {{!isEnergy ? 'active' : ''}}" bindtap="switchType" data-energy="{{false}}">
+          <text>燃油车</text>
+        </view>
+        <view class="switch-item {{isEnergy ? 'active' : ''}}" bindtap="switchType" data-energy="{{true}}">
+          <text>新能源</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 键盘区域 -->
+    <view class="keys-area">
+      <!-- 第1位：省份键盘 -->
+      <view class="keys-grid province-grid" wx:if="{{currentPos === 0}}">
+        <view class="key-item" wx:for="{{provinceKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
+      </view>
+      <!-- 第2位：字母键盘 -->
+      <view class="keys-grid letter-grid" wx:elif="{{currentPos === 1}}">
+        <view class="key-item" wx:for="{{letterKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
+      </view>
+      <!-- 第3位起：数字+字母混合键盘 -->
+      <view class="keys-grid mix-grid" wx:elif="{{currentPos >= 2}}">
+        <view class="key-item" wx:for="{{mixKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
+      </view>
+
+      <!-- 功能键行 -->
+      <view class="func-row">
+        <view class="func-item back" bindtap="onDelete">
+          <text>⌫ 删除</text>
+        </view>
+        <view class="func-item confirm" bindtap="onConfirm">
+          <text>确认</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

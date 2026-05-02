@@ -1,0 +1,198 @@
+<!--pages/memberAdd/memberAdd.wxml-->
+<view class="container">
+
+  <!-- 第一步：车牌搜索 -->
+  <view class="card search-card" wx:if="{{!carFound}}">
+    <view class="card-title">
+      <text class="title-icon">🔍</text>
+      搜索车辆
+    </view>
+    <view class="search-hint">请先输入车牌号，查找车辆信息</view>
+    <view class="search-row">
+      <input
+        class="search-input"
+        placeholder="请输入车牌号（3位自动搜索）"
+        value="{{searchPlate}}"
+        bindinput="onSearchPlateInput"
+        confirm-type="search"
+        bindconfirm="onSearchCar"
+        focus="{{autoFocusSearch}}"
+      />
+    </view>
+
+    <!-- 模糊搜索下拉结果 -->
+    <view class="dropdown-list" wx:if="{{searchResults.length > 0}}">
+      <view
+        class="dropdown-item"
+        wx:for="{{searchResults}}"
+        wx:key="_id"
+        bindtap="onSelectCar"
+        data-plate="{{item.plate}}"
+        data-name="{{item.ownerName}}"
+        data-phone="{{item.phone}}"
+      >
+        <text class="dropdown-plate">{{item.plate}}</text>
+        <text class="dropdown-owner" wx:if="{{item.ownerName}}">{{item.ownerName}}</text>
+        <text class="dropdown-owner" wx:else>未知车主</text>
+      </view>
+    </view>
+
+    <!-- 无结果提示 -->
+    <view class="dropdown-empty" wx:if="{{searched && searchResults.length === 0}}">
+      <text class="empty-text">未找到相关车辆</text>
+    </view>
+
+    <!-- 最近添加的车辆 -->
+    <view class="recent-section" wx:if="{{recentCars.length > 0}}">
+      <view class="recent-title">最近添加</view>
+      <view class="recent-grid">
+        <view
+          class="recent-tag"
+          wx:for="{{recentCars}}"
+          wx:key="_id"
+          data-plate="{{item.plate}}"
+          bindtap="onRecentTap"
+        >
+          <text class="recent-plate">{{item.plate}}</text>
+          <text class="recent-owner" wx:if="{{item.ownerName}}">{{item.ownerName}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 车辆信息已加载 -->
+  <view class="card car-info-card" wx:if="{{carFound}}">
+    <view class="card-title">
+      <text class="title-icon">🚗</text>
+      车辆信息
+      <view class="re-search" bindtap="onReSearch">重新搜索</view>
+    </view>
+    <view class="info-list">
+      <view class="info-item">
+        <text class="info-label">车牌号</text>
+        <text class="info-value plate-text">{{plate}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">车主姓名</text>
+        <input
+          class="info-input"
+          placeholder="请输入车主姓名"
+          value="{{name}}"
+          bindinput="onNameInput"
+        />
+      </view>
+      <view class="info-item">
+        <text class="info-label">联系电话</text>
+        <input
+          class="info-input"
+          type="number"
+          maxlength="11"
+          placeholder="请输入电话号码"
+          value="{{phone}}"
+          bindinput="onPhoneInput"
+        />
+      </view>
+    </view>
+  </view>
+
+  <!-- 会员信息表单（车辆找到后显示） -->
+  <block wx:if="{{carFound}}">
+    <!-- 权益登记 -->
+    <view class="card benefit-card">
+      <view class="card-title">
+        <text class="title-icon">🎫</text>
+        权益登记
+      </view>
+
+      <!-- 快捷预设 -->
+      <view class="benefit-presets">
+        <view
+          wx:for="{{benefitPresets}}"
+          wx:key="index"
+          class="preset-tag {{item === curBenefit.name ? 'active' : ''}}"
+          bindtap="onPresetTap"
+          data-preset="{{item}}"
+        >
+          <text>{{item}}</text>
+        </view>
+      </view>
+
+      <!-- 当前权益输入 -->
+      <view class="benefit-fields">
+        <view class="field-row">
+          <text class="field-label">权益名称</text>
+          <input
+            class="field-input"
+            placeholder="如：10次洗车卡"
+            value="{{curBenefit.name}}"
+            bindinput="onCurNameInput"
+          />
+        </view>
+        <view class="field-row">
+          <text class="field-label">总次数</text>
+          <input
+            class="field-input"
+            type="number"
+            placeholder="如：10"
+            value="{{curBenefit.total}}"
+            bindinput="onCurTotalInput"
+          />
+        </view>
+        <view class="field-row">
+          <text class="field-label">剩余次数</text>
+          <input
+            class="field-input"
+            type="number"
+            placeholder="默认等于总次数"
+            value="{{curBenefit.remain}}"
+            bindinput="onCurRemainInput"
+          />
+        </view>
+      </view>
+      <view class="add-benefit-btn" bindtap="onAddBenefit">
+        <text>+ 添加此权益</text>
+      </view>
+    </view>
+
+    <!-- 已添加权益列表 -->
+    <view class="card" wx:if="{{benefits.length > 0}}">
+      <view class="card-title">
+        <text class="title-icon">📋</text>
+        已添加权益（{{benefits.length}}）
+      </view>
+      <view class="added-benefit-list">
+        <view class="added-benefit-item" wx:for="{{benefits}}" wx:key="index">
+          <view class="added-benefit-left">
+            <text class="added-benefit-name">{{item.name}}</text>
+            <text class="added-benefit-count">剩余 {{item.remain}} / {{item.total}} 次</text>
+          </view>
+          <view class="added-benefit-del" bindtap="onRemoveBenefit" data-index="{{index}}">✕</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 备注 -->
+    <view class="card remark-card">
+      <view class="card-title">
+        <text class="title-icon">📝</text>
+        备注说明
+      </view>
+      <textarea
+        class="remark-textarea"
+        placeholder="请输入备注（选填）"
+        value="{{remark}}"
+        bindinput="onRemarkInput"
+        maxlength="200"
+      ></textarea>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="button-group">
+      <button class="submit-btn" bindtap="onSubmit" disabled="{{submitting}}">
+        {{submitting ? '保存中...' : '保存为会员'}}
+      </button>
+      <button class="cancel-btn" bindtap="onCancel">取消</button>
+    </view>
+  </block>
+
+</view>

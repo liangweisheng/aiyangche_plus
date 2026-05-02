@@ -1,0 +1,195 @@
+<!--pages/monthlyReport/monthlyReport.wxml-->
+<!-- Phase 4 完整版 - 含边界状态+动态参考范围 -->
+<view class="container">
+
+  <!-- 顶部导航：返回 + 标题 + 月份切换 -->
+  <view class="nav-header">
+    <view class="nav-back" bindtap="goBack">
+      <text class="nav-back-icon">◀</text>
+      <text class="nav-back-text">返回</text>
+    </view>
+    <text class="nav-title">经营报告</text>
+    <view class="month-switcher">
+      <text class="month-tab {{currentIndex === index ? 'active' : ''}}"
+            wx:for="{{months}}" wx:key="yearMonth"
+            data-idx="{{index}}" bindtap="onMonthTap">{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- 加载态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">正在加载报告...</text>
+  </view>
+
+  <!-- 空数据态（Phase 4 增强：区分新店/无数据/低数据） -->
+  <view class="empty-state" wx:elif="{{!report && !loading}}">
+    <text class="empty-icon">{{emptyType === 'new_shop' ? '🏪' : '📊'}}</text>
+    <text class="empty-title">{{emptyType === 'new_shop' ? '门店数据积累中' : '暂无月报数据'}}</text>
+    <text class="empty-desc">{{emptyHint || '每月1日自动生成上月经营报告，或确保上月有工单记录'}}</text>
+  </view>
+
+  <!-- 报告内容 -->
+  <view class="report-content" wx:if="{{report && !loading}}">
+
+    <!-- ====== 健康评分区域 ====== -->
+    <view class="score-section card">
+      <view class="score-header">
+        <text class="score-label">综合评分</text>
+        <text class="score-value {{report.healthScore.level}}">{{report.healthScore.total || '--'}}<text class="score-unit">分</text></text>
+      </view>
+      <view class="score-level-tag {{report.healthScore.level}}">
+        {{report.healthScore.level === 'excellent' ? '优秀' :
+          report.healthScore.level === 'good' ? '良好' :
+          report.healthScore.level === 'warning' ? '需改善' : '堪忧'}}
+      </view>
+
+      <!-- 雷达图（Canvas 2D 渲染） -->
+      <radar-chart
+        dimensions="{{report.healthScore.dimensions}}"
+        level="{{report.healthScore.level}}"
+        width="{{580}}"
+        height="{{440}}"
+      />
+    </view>
+
+    <!-- ====== 经营概览区域 ====== -->
+    <view class="overview-section card">
+      <view class="section-title-row"><text class="section-title">📈 经营概览</text></view>
+
+      <!-- Phase 4: 低数据提示条 -->
+      <view class="low-data-hint" wx:if="{{report._lowDataMode}}">
+        <text class="low-data-hint-text">💡 {{report._lowDataHint}}</text>
+      </view>
+
+      <view class="overview-grid">
+        <view class="overview-item">
+          <text class="overview-label">营业额</text>
+          <text class="overview-value">¥{{report.revenue || 0}}</text>
+          <text class="overview-change up" wx:if="{{report.comparison.prevMonthRevenueChange > 0}}">↑{{report.comparison.prevMonthRevenueChange}}%</text>
+          <text class="overview-change down" wx:elif="{{report.comparison.prevMonthRevenueChange < 0}}">↓{{report.comparison._revChangeAbs}}%</text>
+          <text class="overview-change stable" wx:else>→</text>
+        </view>
+        <view class="overview-item">
+          <text class="overview-label">工单数</text>
+          <text class="overview-value">{{report.orderCount || 0}}<text class="overview-unit">单</text></text>
+        </view>
+        <view class="overview-item">
+          <text class="overview-label">客单价</text>
+          <text class="overview-value">¥{{report.avgTicket || 0}}</text>
+          <text class="overview-ticket-trend {{report.metrics.avgTicketTrend}}" wx:if="{{report.metrics.avgTicketTrend !== 'stable' && report.metrics._avgTicketChangeDisplay}}">
+            {{report.metrics.avgTicketTrend === 'up' ? '↑' : '↓'}}{{report.metrics._avgTicketChangeDisplay}}
+          </text>
+        </view>
+        <view class="overview-item">
+          <text class="overview-label">进店车辆</text>
+          <text class="overview-value">{{report.uniquePlates || 0}}<text class="overview-unit">辆</text></text>
+        </view>
+      </view>
+
+      <!-- 指标明细条形图 -->
+      <view class="metrics-bars" wx:if="{{report.metrics}}">
+        <view class="metric-bar-row">
+          <text class="metric-bar-label">新客占比</text>
+          <view class="metric-bar-track">
+            <view class="metric-bar-fill green" style="width: {{report.metrics.newCustomerRatio * 100}}%"></view>
+          </view>
+          <text class="metric-bar-val">{{report.metrics._newCustomerRatioPct}}%</text>
+        </view>
+        <view class="metric-bar-row">
+          <text class="metric-bar-label">维保占比</text>
+          <view class="metric-bar-track">
+            <view class="metric-bar-fill blue" style="width: {{report.metrics.maintenanceRatio * 100}}%"></view>
+          </view>
+          <text class="metric-bar-val">{{report.metrics._maintenanceRatioPct}}%</text>
+        </view>
+        <view class="metric-bar-row">
+          <text class="metric-bar-label">增值占比</text>
+          <view class="metric-bar-track">
+            <view class="metric-bar-fill orange" style="width: {{report.metrics.valueAddedRatio * 100}}%"></view>
+          </view>
+          <text class="metric-bar-val">{{report.metrics._valueAddedRatioPct}}%</text>
+        </view>
+        <view class="metric-bar-row">
+          <text class="metric-bar-label">老客复购</text>
+          <view class="metric-bar-track">
+            <view class="metric-bar-fill purple" style="width: {{report.metrics.repeatRate * 100}}%"></view>
+          </view>
+          <text class="metric-bar-val">{{report.metrics._repeatRatePct}}%</text>
+        </view>
+      </view>
+
+      <!-- 同规模参考范围（Phase 4 动态化） -->
+      <view class="benchmark-ref" wx:if="{{benchmarkText}}">
+        <text class="benchmark-label">{{benchmarkText}}</text>
+      </view>
+    </view>
+
+    <!-- ====== 诊断建议区域（展开/折叠 + 案例弹窗） ====== -->
+    <view class="diagnosis-section card" wx:if="{{report.diagnoses && report.diagnoses.length > 0}}">
+      <view class="section-title-row"><text class="section-title">🔍 诊断建议</text><text class="diag-count">共{{report.diagnoses.length}}条</text></view>
+      <view class="diagnosis-list">
+        <view class="diagnosis-item {{item.severity}} {{expandedIndex === index ? 'expanded' : ''}}"
+              wx:for="{{report.diagnoses}}" wx:key="type"
+              data-index="{{index}}"
+              bindtap="onDiagToggle">
+
+          <!-- 折叠头部 -->
+          <view class="diag-header">
+            <text class="diag-icon">{{item.severity === 'warning' ? '⚠️' : item.severity === 'success' ? '✅' : '💡'}}</text>
+            <view class="diag-header-body">
+              <text class="diag-title">{{item.title}}</text>
+              <text class="diag-detail-brief">{{item.detail}}</text>
+            </view>
+            <text class="diag-arrow {{expandedIndex === index ? 'rotated' : ''}}">›</text>
+          </view>
+
+          <!-- 展开内容 -->
+          <view class="diag-expanded-content" wx:if="{{expandedIndex === index}}">
+            <!-- 建议措施：兼容字符串(suggestion)和数组(suggestions)两种格式 -->
+            <block wx:if="{{item.suggestion}}">
+              <view class="suggestions-block">
+                <text class="suggestions-label">💡 建议措施：</text>
+                <text class="suggestion-text-single">{{item.suggestion}}</text>
+              </view>
+            </block>
+            <view class="suggestions-block" wx:elif="{{item.suggestions && item.suggestions.length > 0}}">
+              <text class="suggestions-label">💡 建议措施：</text>
+              <view class="suggestion-item" wx:for="{{item.suggestions}}" wx:for-item="sug" wx:key="this">
+                <text class="suggestion-dot">•</text>
+                <text class="suggestion-text">{{sug}}</text>
+              </view>
+            </view>
+
+            <!-- 案例按钮：兼容 relatedCaseImageId 和 caseTag -->
+            <view class="case-btn-area" wx:if="{{item.relatedCaseImageId || item.caseTag}}"
+                  catchtap="onOpenCaseModal"
+                  data-case-tag="{{item.relatedCaseImageId || item.caseTag}}"
+                  data-case-title="{{item.title}}">
+              <text class="case-btn-full">📋 看看优秀门店怎么做</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 无诊断时的提示 -->
+    <view class="no-diagnosis card" wx:elif="{{report && !loading}}">
+      <text class="no-diag-icon">✅</text>
+      <text class="no-diag-text">各项指标表现良好，暂无诊断建议</text>
+      <text class="no-diag-hint">继续保持当前经营策略</text>
+    </view>
+
+    <!-- 底部间距 -->
+    <view style="height: 40rpx;"></view>
+  </view>
+
+  <!-- 案例图片弹窗 -->
+  <case-modal
+    visible="{{caseModalVisible}}"
+    case-tag="{{currentCaseTag}}"
+    case-title="{{currentCaseTitle}}"
+    bind:close="_onCaseModalClose"
+  />
+
+</view>

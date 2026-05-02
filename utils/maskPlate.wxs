@@ -1,0 +1,17 @@
+// 车牌号脱敏模块（WXS）
+// 规则：保留前N后3，中间隐藏2位
+// 例：桂D5D667 → 桂D**667，粤B12345 → 粤B1*345
+
+function maskPlate(plate) {
+  if (!plate || typeof plate !== 'string') return plate || '';
+  var len = plate.length;
+  if (len <= 4) return plate;
+  // 保留前(len-5)位 + '**' + 后3位
+  var keepFront = len - 5;
+  if (keepFront < 1) keepFront = 1;
+  return plate.substring(0, keepFront) + '**' + plate.substring(len - 3);
+}
+
+module.exports = {
+  maskPlate: maskPlate
+};

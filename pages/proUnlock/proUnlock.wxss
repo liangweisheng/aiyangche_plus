@@ -1,0 +1,956 @@
+/* pages/proUnlock/proUnlock.wxss */
+
+/* 游客模式横幅 */
+.guest-banner {
+  background: linear-gradient(135deg, #faad14 0%, #ffc53d 100%);
+  padding: 16rpx 32rpx;
+  text-align: center;
+  margin: -32rpx -32rpx 24rpx -32rpx;
+  border-radius: 0;
+}
+
+.guest-banner-text {
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 游客模式 - 登录注册大按钮 */
+.guest-action-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 48rpx 36rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.guest-action-icon {
+  font-size: 72rpx;
+  margin-bottom: 24rpx;
+}
+
+.guest-action-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12rpx;
+}
+
+.guest-action-desc {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 36rpx;
+  line-height: 1.6;
+}
+
+.guest-login-btn {
+  width: 100%;
+  height: 100rpx;
+  line-height: 100rpx;
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+  color: #ffffff;
+  font-size: 34rpx;
+  font-weight: 700;
+  border-radius: 24rpx;
+  border: none;
+  box-shadow: 0 12rpx 40rpx rgba(22, 119, 255, 0.4);
+  letter-spacing: 6rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.guest-login-btn::after {
+  border: none;
+}
+
+.guest-login-btn:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+page {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  padding: 32rpx;
+}
+
+.container {
+  padding-bottom: 180rpx;  /* [问题3修复] 增大底部间距，防止开业年份选择器被 TabBar 遮挡 */
+}
+
+/* 卡片通用样式 */
+.card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: center;
+}
+
+.card-title .icon {
+  margin-right: 12rpx;
+  font-size: 36rpx;
+}
+
+.shop-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.shop-name-row {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-name {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-icon {
+  font-size: 32rpx;
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+
+.shop-badge {
+  display: inline-block;
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 4rpx 16rpx;
+  border-radius: 6rpx;
+}
+
+.badge-pro {
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+  color: #ffffff;
+}
+
+.badge-free {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.info-value.text-pro {
+  color: #1677ff;
+  font-weight: 600;
+}
+
+.info-value.text-free {
+  color: #999;
+}
+
+/* 免费版额度卡片 */
+.limit-card {
+  border-left: 6rpx solid #ff4d4f;
+}
+
+.limit-list {
+  margin-bottom: 20rpx;
+}
+
+.limit-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.limit-item:last-child {
+  border-bottom: none;
+}
+
+.limit-item .label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.limit-item .value {
+  font-size: 28rpx;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.limit-item .value.text-disabled {
+  color: #ff4d4f;
+}
+
+.limit-tip {
+  text-align: center;
+  font-size: 24rpx;
+  color: #ff4d4f;
+  padding: 16rpx;
+  background: #fff1f0;
+  border-radius: 12rpx;
+  margin-top: 16rpx;
+}
+
+/* Pro版特权卡片 */
+.pro-card {
+  border-left: 6rpx solid #1677ff;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+}
+
+.price-section {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.price-row {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 16rpx;
+}
+
+.price-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+}
+
+.price-value {
+  display: flex;
+  align-items: baseline;
+}
+
+.price-amount {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1677ff;
+}
+
+.price-amount.price-renew {
+  color: #52c41a;
+}
+
+.price-unit {
+  font-size: 22rpx;
+  color: #999;
+  margin-left: 4rpx;
+}
+
+.pro-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.pro-item {
+  display: flex;
+  align-items: center;
+  font-size: 28rpx;
+  color: #1a1a1a;
+  padding: 16rpx 20rpx;
+  background: #ffffff;
+  border-radius: 12rpx;
+}
+
+.pro-item .check {
+  margin-right: 12rpx;
+  color: #52c41a;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+/* 激活码输入卡片 */
+.activation-card {
+  border-left: 6rpx solid #1677ff;
+}
+
+.input-box {
+  margin-bottom: 24rpx;
+}
+
+.code-input {
+  width: 100%;
+  height: 88rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  background: #f5f7fa;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  box-sizing: border-box;
+  letter-spacing: 4rpx;
+}
+
+.code-input:focus {
+  background: #ffffff;
+  border-color: #1677ff;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.unlock-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 16rpx;
+  border: none;
+  text-align: center;
+  padding: 0;
+  box-shadow: 0 8rpx 24rpx rgba(22, 119, 255, 0.3);
+}
+
+.unlock-btn::after {
+  border: none;
+}
+
+.unlock-btn[disabled] {
+  opacity: 0.5;
+  background: #d9d9d9;
+  box-shadow: none;
+}
+
+.contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.contact-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 20rpx;
+  background: #f5f7fa;
+  border-radius: 12rpx;
+}
+
+.contact-item .contact-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.contact-item .contact-value {
+  font-size: 28rpx;
+  color: #1677ff;
+  font-weight: 500;
+}
+
+/* 在线客服按钮（覆盖 button 默认样式） */
+.contact-official {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 24rpx 20rpx !important;
+  box-sizing: border-box !important;
+  background: linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%);
+  border: 2rpx solid #91caff !important;
+  border-radius: 12rpx !important;
+  font-size: 28rpx;
+  color: #1a1a1a;
+  line-height: normal;
+  overflow: hidden;
+}
+
+.contact-official::after {
+  border: none !important;
+  display: none !important;
+}
+
+.contact-official .contact-label {
+  color: #1677ff;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.contact-official .contact-value {
+  color: #0958d9;
+}
+
+.contact-official .contact-online-hint {
+  font-size: 26rpx;
+  white-space: nowrap;
+}
+
+.contact-badge {
+  font-size: 20rpx;
+  background: #1677ff;
+  color: #fff;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+  font-weight: 600;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+}
+
+/* 联系方式 - 可点击态 */
+.contact-tappable {
+  position: relative;
+}
+
+.contact-tappable:active {
+  background: #e8f4ff;
+}
+
+.contact-value-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.contact-copy-hint {
+  font-size: 22rpx;
+  color: #bbb;
+  font-weight: 400;
+}
+
+/* Pro续费提醒横幅 */
+.renew-banner {
+  display: flex;
+  align-items: flex-start;
+  padding: 24rpx;
+  background: linear-gradient(135deg, #fff7e6 0%, #fff1cc 100%);
+  border-radius: 20rpx;
+  margin-bottom: 24rpx;
+  border: 2rpx solid #ffd591;
+  box-shadow: 0 6rpx 24rpx rgba(250, 173, 20, 0.12);
+}
+
+.renew-icon {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.renew-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.renew-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #ad6800;
+  margin-bottom: 8rpx;
+}
+
+.renew-action {
+  font-size: 22rpx;
+  color: #ad6800;
+  opacity: 0.7;
+}
+
+/* 门店码 */
+.shop-code-section {
+  text-align: center;
+  padding: 20rpx 0;
+}
+
+.shop-code-num {
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #1677ff;
+  letter-spacing: 16rpx;
+  padding: 16rpx 32rpx;
+  background: #f0f7ff;
+  border-radius: 16rpx;
+  display: inline-block;
+  margin-bottom: 12rpx;
+}
+
+.shop-code-tip {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 门店联系信息 */
+.info-value-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.info-value-row .info-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.info-value-row .edit-icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+/* ========== 合并门店头部卡片 ========== */
+.shop-header-card {
+  border-left: 6rpx solid #1677ff;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+}
+
+.collapse-arrow {
+  font-size: 32rpx;
+  color: #1677ff;
+  transition: transform 0.25s ease;
+  display: inline-block;
+}
+
+.collapse-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.shop-detail-list {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #e8f0fe;
+}
+
+.shop-detail-divider {
+  padding: 20rpx 0 12rpx;
+}
+
+.shop-detail-divider .divider-text {
+  font-size: 22rpx;
+  color: #999;
+  font-weight: 600;
+}
+
+.info-item-editable:active {
+  background: #f9fafb;
+  margin: 0 -32rpx;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+}
+
+.info-value-dark {
+  color: #333;
+}
+
+.info-value-addr {
+  max-width: 360rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-icon-sm {
+  font-size: 24rpx;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+}
+
+/* ========== 可折叠卡片 ========== */
+.collapsible-card {
+  padding: 32rpx 32rpx 32rpx;
+  min-height: 120rpx;
+}
+
+.collapsible-card .collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+
+.collapse-title {
+  display: flex;
+  align-items: center;
+}
+
+.collapse-title .icon {
+  margin-right: 12rpx;
+  font-size: 36rpx;
+}
+
+.collapsible-card .collapse-header + view {
+  padding: 24rpx 0 24rpx;
+}
+
+/* ========== 数据导出独立卡片 ========== */
+.data-export-card {
+  border-left: 6rpx solid #1677ff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.data-export-card:active {
+  transform: scale(0.98);
+}
+
+.export-row {
+  display: flex;
+  align-items: center;
+}
+
+.export-icon-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 18rpx;
+  background: rgba(22, 119, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.export-icon {
+  font-size: 36rpx;
+}
+
+.export-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.export-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4rpx;
+}
+
+.export-desc {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.export-arrow {
+  font-size: 36rpx;
+  color: #ccc;
+  flex-shrink: 0;
+  margin-left: 8rpx;
+}
+
+.export-lock {
+  font-size: 28rpx;
+  flex-shrink: 0;
+  margin-left: 8rpx;
+}
+
+/* 免费版禁用态 */
+.export-disabled {
+  border-left-color: #d9d9d9;
+  opacity: 0.6;
+}
+
+.export-disabled .export-icon-wrap {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.export-disabled .export-title {
+  color: #999;
+}
+
+.export-desc-lock {
+  color: #bbb;
+}
+
+/* Pro版启用态 */
+.export-enabled {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+}
+
+/* ========== v4.0.0 员工管理 ========== */
+.staff-card {
+  padding: 32rpx 32rpx 32rpx;
+  min-height: 120rpx;
+}
+.staff-card .collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.staff-add-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.staff-phone-input {
+  flex: 1;
+  height: 64rpx;
+  border: 1rpx solid #d9d9d9;
+  border-radius: 8rpx;
+  padding: 0 16rpx;
+  font-size: 26rpx;
+}
+.staff-role-picker {
+  height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #d9d9d9;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  color: #333;
+  background: #fff;
+}
+.staff-add-btn {
+  background: #1677ff;
+  color: #fff;
+  border: none;
+  font-size: 26rpx;
+  padding: 0 24rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+}
+.staff-add-btn[disabled] {
+  background: #b0c4de;
+}
+.staff-list {
+  padding: 8rpx 0;
+}
+.staff-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+.staff-item:last-child {
+  border-bottom: none;
+}
+.staff-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.staff-phone {
+  font-size: 28rpx;
+  color: #333;
+}
+.staff-role-tag {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+}
+.tag-admin {
+  background: #e6f4ff;
+  color: #1677ff;
+}
+.tag-staff {
+  background: #f6ffed;
+  color: #52c41a;
+}
+.staff-actions {
+  display: flex;
+  gap: 16rpx;
+}
+.staff-action-btn {
+  font-size: 24rpx;
+  color: #1677ff;
+  padding: 4rpx 0;
+}
+.staff-action-del {
+  color: #ff4d4f;
+}
+.staff-empty {
+  padding: 40rpx 0;
+  text-align: center;
+}
+.staff-empty-text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* ========== 底部隐私提示（与dashboard一致） ========== */
+
+/* 角色标签 + 版本标签 容器 */
+.header-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.account-type-tag {
+  display: inline-block;
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 4rpx 16rpx;
+  border-radius: 6rpx;
+}
+
+.tag-super-admin {
+  background: linear-gradient(135deg, #fff7e6, #ffe7ba);
+  color: #ad6800;
+  border: 1rpx solid #ffd591;
+  box-shadow: 0 4rpx 12rpx rgba(173, 104, 0, 0.15);
+}
+
+.tag-admin-role {
+  background: #e6f4ff;
+  color: #1677ff;
+  border: 1rpx solid #91caff;
+  box-shadow: 0 4rpx 12rpx rgba(22, 119, 255, 0.15);
+}
+
+.tag-staff-role {
+  background: #f5f5f5;
+  color: #999;
+  border: 1rpx solid #d9d9d9;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+/* ========== 底部隐私提示（与dashboard一致） ========== */
+.privacy-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  padding: 40rpx 0 32rpx;
+}
+
+.privacy-link {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.privacy-divider {
+  font-size: 24rpx;
+  color: #ddd;
+}
+
+/* ========== v5.0.0 门店设置（经营诊断配置） ========== */
+.shop-profile-card {
+  margin-top: 20rpx;
+  padding: 32rpx 32rpx 32rpx;
+  min-height: 120rpx;
+}
+
+.shop-profile-card .collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+
+.shop-profile-card .collapse-header + view {
+  padding: 16rpx 0 24rpx;
+}
+
+.profile-form-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.profile-label {
+  width: 180rpx;
+  font-size: 27rpx;
+  color: #333;
+  flex-shrink: 0;
+}
+
+.profile-input {
+  flex: 1;
+  font-size: 28rpx;
+  text-align: right;
+  padding-right: 8rpx;
+  border: none;
+  background: transparent;
+}
+
+.profile-unit {
+  font-size: 24rpx;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.profile-picker {
+  flex: 1;
+  text-align: right;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.picker-arrow {
+  font-size: 18rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+.profile-save-btn {
+  margin-top: 24rpx;
+  width: 100%;
+  height: 72rpx;
+  line-height: 72rpx;
+  background: #1677ff;
+  color: #fff;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 0;
+}
+.profile-save-btn[disabled] {
+  opacity: 0.6;
+}
+.profile-save-btn::after { border: none; }
+
+.profile-tip {
+  margin-top: 16rpx;
+  text-align: center;
+}
+
+.profile-tip text {
+  font-size: 22rpx;
+  color: #bbb;
+}

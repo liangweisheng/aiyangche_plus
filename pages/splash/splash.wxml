@@ -1,0 +1,28 @@
+<!-- Splash 启动页：品牌 Logo + 加载动画 -->
+<view class="splash-page">
+
+  <!-- 顶部装饰圆 -->
+  <view class="splash-deco splash-deco-1"></view>
+  <view class="splash-deco splash-deco-2"></view>
+
+  <!-- 品牌 Logo 区域 -->
+  <view class="splash-brand">
+    <view class="splash-logo">
+      <image class="splash-logo-img" src="/images/logo_mini.png" mode="aspectFit"></image>
+    </view>
+    <view class="splash-appname">AI养车</view>
+    <view class="splash-slogan">智能门店管理系统</view>
+  </view>
+
+  <!-- 加载指示器 -->
+  <view class="splash-loading">
+    <view class="splash-spinner"></view>
+    <text class="splash-loading-text">{{statusText}}</text>
+  </view>
+
+  <!-- 底部版本号 -->
+  <view class="splash-footer">
+    <text class="splash-version">v4.2.0</text>
+  </view>
+
+</view>

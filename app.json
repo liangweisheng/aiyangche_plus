@@ -1,0 +1,66 @@
+{
+  "pages": [
+    "pages/splash/splash",
+    "pages/dashboard/dashboard",
+    "pages/welcome/welcome",
+    "pages/carSearch/carSearch",
+    "pages/carAdd/carAdd",
+    "pages/carDetail/carDetail",
+    "pages/orderAdd/orderAdd",
+    "pages/orderList/orderList",
+    "pages/orderDetail/orderDetail",
+    "pages/memberAdd/memberAdd",
+    "pages/memberList/memberList",
+    "pages/checkSheet/checkSheet",
+    "pages/checkSheetList/checkSheetList",
+    "pages/checkSheetDetail/checkSheetDetail",
+    "pages/proUnlock/proUnlock",
+    "pages/dataExport/dataExport",
+    "pages/report/report",
+    "pages/privacy/privacy",
+    "pages/userAgreement/userAgreement",
+    "pages/monthlyReport/monthlyReport"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#1677ff",
+    "navigationBarTitleText": "AI养车门店管理",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f5f5f5",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#666",
+    "selectedColor": "#1677ff",
+    "backgroundColor": "#fff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/dashboard/dashboard",
+        "text": "首页",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home-active.png"
+      },
+      {
+        "pagePath": "pages/memberList/memberList",
+        "text": "会员",
+        "iconPath": "images/user.png",
+        "selectedIconPath": "images/user-active.png"
+      },
+      {
+        "pagePath": "pages/report/report",
+        "text": "报表",
+        "iconPath": "images/report.png",
+        "selectedIconPath": "images/report-active.png"
+      },
+      {
+        "pagePath": "pages/proUnlock/proUnlock",
+        "text": "我的",
+        "iconPath": "images/me.png",
+        "selectedIconPath": "images/me-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

@@ -1,0 +1,44 @@
+<!--components/shop-guide/shop-guide.wxml-->
+<view class="guide-mask" wx:if="{{visible}}" bindtap="onMaskTap">
+  <view class="guide-dialog" catchtap="preventBubble">
+
+    <!-- 头部图标 -->
+    <view class="guide-header">
+      <text class="guide-icon">🏪</text>
+      <text class="guide-title">完善门店信息</text>
+      <text class="guide-desc">开启 AI 经营诊断，每月自动生成经营报告</text>
+    </view>
+
+    <!-- 表单 -->
+    <view class="guide-form">
+      <view class="form-item">
+        <text class="form-label">施工工位数</text>
+        <picker mode="selector" range="{{bayCountOptions}}" value="{{bayCountIndex}}" bindchange="onBayCountChange">
+          <view class="form-picker">
+            <text>{{bayCount}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">开业年份</text>
+        <picker mode="selector" range="{{yearRange}}" value="{{openYear}}" bindchange="onYearChange">
+          <view class="form-picker">
+            <text>{{openYear}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+    </view>
+
+    <!-- 按钮 -->
+    <view class="guide-actions">
+      <button class="btn-submit {{submitting ? 'disabled' : ''}}"
+              disabled="{{submitting}}"
+              bindtap="onSubmit">{{submitting ? '保存中...' : '开始使用'}}</button>
+      <button class="btn-later" bindtap="onLater">稍后再说</button>
+    </view>
+
+  </view>
+</view>

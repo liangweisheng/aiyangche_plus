@@ -1,0 +1,60 @@
+{
+  "miniprogramRoot": "./",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "setting": {
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "uglifyFileName": false,
+    "enhance": true,
+    "packNpmRelationList": [],
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "useCompilerPlugins": false,
+    "minifyWXML": true,
+    "compileWorklet": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "minifyWXSS": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "condition": true,
+    "swc": false,
+    "disableSWC": true,
+    "cloudfunctionTemplateRoot": ""
+  },
+  "compileType": "miniprogram",
+  "simulatorPluginLibVersion": {
+    "wxext14566970e7e9f62": "2.27.3"
+  },
+  "packOptions": {
+    "ignore": [
+      {
+        "value": "配套资料",
+        "type": "folder"
+      },
+      {
+        "value": "log",
+        "type": "folder"
+      },
+      {
+        "value": ".md",
+        "type": "suffix"
+      },
+      {
+        "value": ".psd",
+        "type": "suffix"
+      }
+    ],
+    "include": []
+  },
+  "appid": "wxdf0d09e0777fdaea",
+  "editorSetting": {},
+  "libVersion": "3.15.1",
+  "cloudfunctionTemplateRoot": "",
+  "condition": {},
+  "projectArchitecture": "multiPlatform"
+}

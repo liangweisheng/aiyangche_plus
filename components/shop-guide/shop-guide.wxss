@@ -1,0 +1,127 @@
+/* components/shop-guide/shop-guide.wxss */
+
+.guide-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guide-dialog {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 48rpx 40rpx 40rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0,0,0,0.15);
+}
+
+/* 头部 */
+.guide-header {
+  text-align: center;
+  margin-bottom: 36rpx;
+}
+
+.guide-icon {
+  font-size: 64rpx;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.guide-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #333;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.guide-desc {
+  font-size: 25rpx;
+  color: #999;
+  line-height: 1.5;
+}
+
+/* 表单 */
+.guide-form {
+  margin-bottom: 36rpx;
+}
+
+.form-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.form-label {
+  width: 180rpx;
+  font-size: 28rpx;
+  color: #333;
+  flex-shrink: 0;
+}
+
+.form-input {
+  flex: 1;
+  font-size: 28rpx;
+  text-align: right;
+  padding-right: 8rpx;
+}
+
+.form-unit {
+  font-size: 26rpx;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.form-picker {
+  flex: 1;
+  text-align: right;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.picker-arrow {
+  font-size: 20rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+/* 按钮 */
+.guide-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.btn-submit {
+  height: 84rpx;
+  line-height: 84rpx;
+  background: #1677ff;
+  color: #fff;
+  border-radius: 42rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+  margin: 0;
+  padding: 0;        /* [问题2修复] 显式清除默认padding，确保文字居中 */
+}
+
+.btn-submit.disabled {
+  opacity: 0.6;
+}
+
+.btn-later {
+  height: 72rpx;
+  line-height: 72rpx;
+  background: transparent;
+  color: #999;
+  border-radius: 36rpx;
+  font-size: 27rpx;
+  border: none;
+  margin: 0;
+  padding: 0;        /* [问题2修复] 显式清除默认padding，确保文字居中 */
+}
+.btn-later::after { border: none; }

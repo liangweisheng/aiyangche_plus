@@ -1,0 +1,79 @@
+<!-- 查车单详情页 -->
+<view class="container" wx:if="{{detail}}">
+
+  <!-- 车辆信息卡片 -->
+  <view class="vehicle-card">
+    <view class="card-header">
+      <text class="plate">{{detail.plate || '未知车牌'}}</text>
+      <view class="badge">查车单</view>
+    </view>
+    <view class="card-body">
+      <view class="info-row">
+        <text class="label">车型</text>
+        <text class="value">{{detail.carType || '未知车型'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{detail.carColor}}">
+        <text class="label">颜色</text>
+        <text class="value">{{detail.carColor}}</text>
+      </view>
+      <view class="info-row">
+        <text class="label">车主</text>
+        <text class="value">{{detail.ownerName || '未填写'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{detail.phone}}">
+        <text class="label">电话</text>
+        <text class="value">{{detail.phone}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 检查结果 -->
+  <view class="check-section">
+    <view class="section-title">检查结果</view>
+    <view class="check-grid">
+      <view class="check-item" wx:for="{{checkItems}}" wx:key="key">
+        <view class="check-icon">{{item.icon}}</view>
+        <text class="check-label">{{item.label}}</text>
+        <view class="check-result {{detail.checkItems[item.key].normal ? 'normal' : 'warn'}}">
+          {{detail.checkItems[item.key].value || '未检查'}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 问题描述 -->
+  <view class="form-section" wx:if="{{detail.issue && detail.issue !== '无'}}">
+    <view class="section-title">问题描述</view>
+    <view class="form-card">
+      <text class="form-text">{{detail.issue}}</text>
+    </view>
+  </view>
+
+  <!-- 维修建议 -->
+  <view class="form-section" wx:if="{{detail.suggestion && detail.suggestion !== '无'}}">
+    <view class="section-title">维修建议</view>
+    <view class="form-card">
+      <text class="form-text">{{detail.suggestion}}</text>
+    </view>
+  </view>
+
+  <!-- 检查时间 -->
+  <view class="time-section">
+    <text class="time-label">检查时间</text>
+    <text class="time-value">{{detail.createTimeStr}}</text>
+  </view>
+
+</view>
+
+<!-- 底部分享按钮 -->
+<view class="footer" wx:if="{{detail}}">
+  <view class="share-btn" bindtap="onShareSheet">
+    <text class="btn-text">📤 分享查车单</text>
+  </view>
+</view>
+
+<!-- 离屏 canvas 用于生成分享图片 -->
+<canvas canvas-id="shareCanvas" style="position:fixed;left:-9999rpx;top:-9999rpx;width:600px;height:900px;"></canvas>
+
+<!-- 浮动首页按钮 -->
+<view class="fab-home" bindtap="onGoHome">首页</view>

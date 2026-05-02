@@ -1,0 +1,195 @@
+/* components/case-modal/case-modal.wxss */
+
+.case-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.case-dialog {
+  width: 88%;
+  max-height: 85vh;
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp .25s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(40rpx); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* ====== 头部 ====== */
+.case-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 28rpx 16rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.case-title-area {
+  display: flex;
+  align-items: center;
+}
+
+.case-icon {
+  font-size: 32rpx;
+  margin-right: 8rpx;
+}
+
+.case-main-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.case-close-btn {
+  font-size: 32rpx;
+  color: #999;
+  padding: 8rpx 12rpx;
+  line-height: 1;
+}
+
+/* ====== 副标题 ====== */
+.case-subtitle {
+  padding: 12rpx 28rpx 0;
+}
+
+.case-subtitle text {
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* ====== 空态 ====== */
+.case-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+}
+
+.case-empty-text {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 12rpx;
+}
+
+.case-empty-hint {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+/* ====== 图片区 ====== */
+.case-image-area {
+  position: relative;
+  padding: 24rpx 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.case-image {
+  width: 100%;
+  border-radius: 12rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.08);
+}
+
+/* ====== 翻页箭头 ====== */
+.case-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.case-prev { left: 8rpx; }
+.case-next { right: 8rpx; }
+
+.case-arrow text {
+  font-size: 36rpx;
+  color: #333;
+  line-height: 1;
+  font-weight: 300;
+}
+
+/* ====== 指示器 ====== */
+.case-indicators {
+  position: absolute;
+  bottom: -36rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10rpx;
+}
+
+.case-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #ddd;
+  transition: all .2s;
+}
+
+.case-dot.active {
+  background: #1677ff;
+  width: 20rpx;
+  border-radius: 5rpx;
+}
+
+/* ====== 底部 ====== */
+.case-footer {
+  padding: 16rpx 28rpx 24rpx;
+  border-top: 1rpx solid #f0f0f0;
+  text-align: center;
+}
+
+.case-footer-text {
+  font-size: 20rpx;
+  color: #bbb;
+}
+
+/* ====== 加载状态 ====== */
+.case-loading-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+}
+
+.case-loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #e8e8e8;
+  border-top-color: #1677ff;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.case-loading-text {
+  font-size: 24rpx;
+  color: #999;
+}

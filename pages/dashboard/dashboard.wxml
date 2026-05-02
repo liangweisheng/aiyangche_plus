@@ -1,0 +1,138 @@
+<!-- 数据看板 -->
+<wxs src="../../utils/maskPlate.wxs" module="mask" />
+<view class="container">
+
+  <!-- 游客模式提示 -->
+  <view class="guest-banner" wx:if="{{isGuest}}">
+    <view class="guest-banner-row">
+      <text class="guest-banner-text">当前为游客体验模式</text>
+      <text class="guest-banner-action" bindtap="onGoRegister">注册/登录 ›</text>
+    </view>
+  </view>
+
+  <!-- 顶部欢迎 -->
+  <view class="header">
+    <text class="greeting">{{shopName}}{{roleLabel ? '  ' + roleLabel : ''}}{{shopName || roleLabel ? ' 欢迎您 👋' : '欢迎使用AI养车 👋'}}</text>
+    <text class="date">{{date}}</text>
+  </view>
+
+  <!-- 免费版工单超限提醒 -->
+  <view class="limit-tip-banner" wx:if="{{showLimitTip}}">
+    <view class="limit-tip-icon">⚠️</view>
+    <view class="limit-tip-content">
+      <text class="limit-tip-text">免费版工单已达上限（{{totalOrderCount}}/100），升级Pro版即可无限使用</text>
+      <text class="limit-tip-action" bindtap="goToPro">了解Pro版 ›</text>
+    </view>
+  </view>
+
+  <!-- 免费版会员超限提醒 -->
+  <view class="member-limit-tip-banner" wx:if="{{showMemberLimitTip}}">
+    <view class="member-limit-tip-icon">👥</view>
+    <view class="member-limit-tip-content">
+      <text class="member-limit-tip-text">免费版会员已达上限（{{totalMemberCount}}/10），升级Pro版即可无限添加</text>
+      <text class="member-limit-tip-action" bindtap="goToPro">了解Pro版 ›</text>
+    </view>
+  </view>
+
+  <!-- 数据概览 -->
+  <view class="stats-section">
+    <view class="section-title">今日数据</view>
+    <view class="stats-row">
+      <view class="stat-card blue">
+        <view class="stat-top">
+          <view class="stat-icon-wrap blue-bg">
+            <text class="stat-icon-text">📊</text>
+          </view>
+          <text class="stat-label">今日开单</text>
+        </view>
+        <text class="stat-num">{{stats.todayOrders}}<text class="stat-unit">单</text></text>
+      </view>
+      <view class="stat-card green">
+        <view class="stat-top">
+          <view class="stat-icon-wrap green-bg">
+            <text class="stat-icon-text">💰</text>
+          </view>
+          <text class="stat-label">今日营收</text>
+        </view>
+        <text class="stat-num">¥{{stats.todayRevenue}}</text>
+      </view>
+      <view class="stat-card orange">
+        <view class="stat-top">
+          <view class="stat-icon-wrap orange-bg">
+            <text class="stat-icon-text">🚗</text>
+          </view>
+          <text class="stat-label">车辆总数</text>
+        </view>
+        <text class="stat-num">{{stats.totalCars}}<text class="stat-unit">辆</text></text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷操作 -->
+  <view class="actions-section">
+    <view class="section-title">快捷操作</view>
+    <view class="actions-grid">
+      <view class="action-card" bindtap="goToCarSearch">
+        <view class="action-icon">🔍</view>
+        <text class="action-title">车牌搜索</text>
+      </view>
+      <view class="action-card" bindtap="goToCreateOrder">
+        <view class="action-icon">📝</view>
+        <text class="action-title">快速开单</text>
+      </view>
+      <view class="action-card" bindtap="goToOrders">
+        <view class="action-icon">📋</view>
+        <text class="action-title">工单列表</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 月报摘要卡片（v5.0.0）——仅游客/超管可见 -->
+  <report-card wx:if="{{showReportCard}}" report="{{latestReport}}" loading="{{reportLoading}}" bind:cardtap="_onReportCardTap" />
+
+  <!-- 到期提醒 -->
+  <view class="alert-section">
+    <view class="section-title-row">
+      <text class="section-title">到期提醒</text>
+      <text class="alert-badge" wx:if="{{alertList.length > 0}}">{{alertList.length}}条</text>
+    </view>
+
+    <view class="alert-card" wx:if="{{alertList.length > 0}}">
+      <view class="alert-item {{item.urgent ? 'urgent' : ''}}" wx:for="{{alertList}}" wx:key="index" data-plate="{{item.plate}}" bindtap="onAlertTap">
+        <view class="alert-left">
+          <view class="alert-type-icon {{item.typeIcon}}">{{item.typeEmoji}}</view>
+          <view class="alert-info">
+            <text class="alert-plate">{{mask.maskPlate(item.plate)}}</text>
+            <text class="alert-desc">{{item.typeName}}：{{item.content}}</text>
+          </view>
+        </view>
+        <view class="alert-right">
+          <text class="alert-days {{item.urgent ? 'urgent' : ''}}" wx:if="{{item.days <= 0}}">已到期</text>
+          <text class="alert-days {{item.urgent ? 'urgent' : ''}}" wx:else>剩{{item.days}}天</text>
+          <text class="alert-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="alert-empty" wx:else>
+      <text class="alert-empty-icon">✅</text>
+      <text class="alert-empty-text">近45天暂无到期提醒</text>
+    </view>
+  </view>
+
+  <!-- 底部隐私提示 -->
+  <view class="privacy-footer">
+    <text class="privacy-link" bindtap="onGoPrivacy">隐私政策</text>
+    <text class="privacy-divider">|</text>
+    <text class="privacy-link" bindtap="onGoAgreement">用户服务协议</text>
+  </view>
+
+  <!-- 隐藏Canvas：用于生成分享卡片 -->
+  <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:400px;"></canvas>
+  <canvas canvas-id="shareCanvasFallback" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:400px;"></canvas>
+
+  <!-- 门店信息引导弹窗（首次使用月报时弹出） -->
+  <shop-guide visible="{{showShopGuide}}" bind:confirm="_onGuideConfirm" bind:close="_onGuideClose" />
+
+</view>
+

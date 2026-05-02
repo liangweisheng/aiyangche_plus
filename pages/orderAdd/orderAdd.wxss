@@ -1,0 +1,1059 @@
+/* pages/orderAdd/orderAdd.wxss */
+/* 商用SaaS风格 */
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f7ff 0%, #f5f7fa 100%);
+  padding: 24rpx 24rpx 140rpx;
+}
+
+/* 车牌卡片 */
+.plate-card {
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  border-radius: 28rpx;
+  padding: 32rpx 28rpx 36rpx;
+  margin-bottom: 28rpx;
+  box-shadow: 0 12rpx 48rpx rgba(22, 119, 255, 0.25);
+}
+
+/* 车牌卡片 - 会员车辆紫色主题 */
+.plate-card.member {
+  background: linear-gradient(135deg, #722ed1 0%, #9254de 100%);
+  box-shadow: 0 12rpx 48rpx rgba(114, 46, 209, 0.3);
+  padding-top: 36rpx;
+  padding-bottom: 40rpx;
+}
+
+.plate-card.member .plate-cell.filled {
+  color: #722ed1;
+  background: #fff;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.plate {
+  font-size: 56rpx;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 6rpx;
+}
+
+.plate-actions-inline {
+  display: flex;
+  gap: 12rpx;
+}
+
+.action-btn-sm {
+  padding: 8rpx 18rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  color: #fff;
+  font-weight: 500;
+  backdrop-filter: blur(8rpx);
+}
+
+.action-btn-sm:active {
+  opacity: 0.7;
+}
+
+.action-btn-sm.change {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.plate-badge {
+  padding: 8rpx 20rpx;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8rpx);
+  border-radius: 16rpx;
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.card-desc-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.card-desc {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.card-desc.spent {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+/* 会员权益行（紫色卡片内） */
+.benefit-row {
+  flex-wrap: wrap;
+  cursor: pointer;
+}
+
+.benefit-row:active {
+  opacity: 0.8;
+}
+
+.benefit-label {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #fff;
+  margin-right: 12rpx;
+}
+
+.benefit-badges-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  flex: 1;
+}
+
+.benefit-badge-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+  backdrop-filter: blur(4px);
+}
+
+.benefit-badge-sm .bbn {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+}
+
+.benefit-badge-sm .bbc {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.benefit-arrow {
+  font-size: 36rpx;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 300;
+  margin-left: 4rpx;
+  flex-shrink: 0;
+}
+
+/* 车牌输入区 */
+.plate-input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.plate-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.plate-cell {
+  width: 64rpx;
+  height: 80rpx;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2rpx solid rgba(255, 255, 255, 0.3);
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #fff;
+  transition: all 0.2s ease;
+}
+
+.plate-cell.active {
+  border-color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.3);
+  animation: blink 1s infinite;
+}
+
+.plate-cell.filled {
+  background: rgba(255, 255, 255, 0.9);
+  color: #1677ff;
+  border-color: transparent;
+}
+
+.plate-cell.energy {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.plate-cell.energy.filled {
+  border-style: solid;
+  border-color: transparent;
+}
+
+.plate-dot {
+  width: 16rpx;
+  height: 8rpx;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4rpx;
+}
+
+@keyframes blink {
+  0%, 100% { border-color: rgba(255, 255, 255, 0.8); }
+  50% { border-color: rgba(255, 255, 255, 0.3); }
+}
+
+.plate-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 36rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 40rpx;
+  backdrop-filter: blur(8rpx);
+}
+
+.action-btn:active {
+  opacity: 0.7;
+}
+
+.action-btn.select-car {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.action-btn-icon {
+  font-size: 28rpx;
+}
+
+.action-btn-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1677ff;
+}
+
+/* 分区标题 */
+.section-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #999;
+  margin-bottom: 16rpx;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.section-title-row .section-title {
+  margin-bottom: 0;
+}
+
+.phrase-manage-btn {
+  font-size: 22rpx;
+  color: #1677ff;
+  padding: 6rpx 16rpx;
+  background: rgba(22, 119, 255, 0.06);
+  border-radius: 8rpx;
+}
+
+/* 快捷短语 */
+.phrase-section {
+  margin-bottom: 16rpx;
+}
+
+.phrase-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  max-height: 240rpx;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.phrase-wrap.collapsed {
+  max-height: 120rpx;
+}
+
+.phrase-tag {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  height: 56rpx;
+  padding: 0 20rpx;
+  background: #f0f4ff;
+  border: 2rpx solid transparent;
+  border-radius: 28rpx;
+  font-size: 24rpx;
+  color: #5b7fff;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.phrase-tag:active {
+  transform: scale(0.95);
+}
+
+.phrase-tag.selected {
+  background: #e6f4ff;
+  border-color: #1677ff;
+  color: #1677ff;
+  font-weight: 600;
+}
+
+.phrase-check {
+  font-size: 20rpx;
+  color: #1677ff;
+}
+
+.phrase-expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #1677ff;
+}
+
+/* 表单卡片 */
+.form-section {
+  margin-bottom: 28rpx;
+}
+
+/* 服务项目表格 */
+.svc-table-card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.svc-table {
+  width: 100%;
+}
+
+.svc-header {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.svc-header .svc-col {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #999;
+  text-align: center;
+}
+
+.svc-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f7f7f7;
+}
+
+.svc-row:last-of-type {
+  border-bottom: none;
+}
+
+.svc-col.col-num {
+  width: 56rpx;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 28rpx;
+  color: #bbb;
+}
+
+.svc-col.col-name {
+  flex: 3;
+  min-width: 0;
+}
+
+.svc-col.col-spec {
+  flex: 2;
+  min-width: 0;
+}
+
+.svc-col.col-amount {
+  flex: 2;
+  min-width: 0;
+}
+
+.svc-input {
+  height: 72rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 16rpx;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.svc-input.col-num {
+  width: 56rpx;
+  text-align: center;
+}
+
+.svc-input.col-name {
+  flex: 3;
+}
+
+.svc-input.col-spec {
+  flex: 2;
+}
+
+.svc-input.col-amount {
+  flex: 2;
+  text-align: right;
+}
+
+.svc-placeholder {
+  color: #ccc;
+  font-size: 26rpx;
+}
+
+.svc-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 16rpx 0 4rpx;
+  border-top: 1rpx dashed #e0e0e0;
+  margin-top: 4rpx;
+}
+
+.svc-add-icon {
+  font-size: 32rpx;
+  color: #1677ff;
+  font-weight: 300;
+}
+
+.svc-add-text {
+  font-size: 24rpx;
+  color: #1677ff;
+  font-weight: 600;
+}
+
+.svc-add-row:active {
+  opacity: 0.6;
+}
+
+.form-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 60rpx;
+  background: #f7f8fa;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.placeholder {
+  color: #bbb;
+}
+
+/* 金额区域 */
+.amount-section {
+  margin-bottom: 28rpx;
+}
+
+.amount-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 28rpx 24rpx;
+  box-shadow: 0 6rpx 28rpx rgba(22, 119, 255, 0.08);
+}
+
+.amount-row-inline {
+  display: flex;
+  align-items: center;
+}
+
+.amount-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 0;
+}
+
+.amount-divider-v {
+  width: 2rpx;
+  height: 48rpx;
+  background: #f0f0f0;
+  margin: 0 24rpx;
+  flex-shrink: 0;
+}
+
+.amount-label {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #f7f8fa;
+  border-radius: 16rpx;
+  padding: 12rpx 20rpx;
+  min-width: 200rpx;
+  transition: all 0.3s ease;
+}
+
+.amount-input-wrapper:focus-within {
+  background: #e6f4ff;
+  box-shadow: 0 0 0 4rpx rgba(22, 119, 255, 0.1);
+}
+
+.currency {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1677ff;
+  margin-right: 8rpx;
+}
+
+.amount-input {
+  flex: 1;
+  height: 48rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.amount-placeholder {
+  font-size: 28rpx;
+  color: #bbb;
+  font-weight: 400;
+}
+
+.amount-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1677ff;
+}
+
+.amount-value.auto {
+  font-size: 24rpx;
+  color: #bbb;
+  font-weight: 400;
+}
+
+/* 支付方式 */
+.pay-section {
+  margin-bottom: 28rpx;
+}
+
+.pay-grid {
+  display: flex;
+  gap: 16rpx;
+}
+
+.pay-card {
+  flex: 1;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  border: 2rpx solid transparent;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.pay-card:active {
+  transform: scale(0.96);
+}
+
+.pay-card.active {
+  border-color: #1677ff;
+  background: linear-gradient(135deg, #f0f7ff 0%, #fff 100%);
+  box-shadow: 0 6rpx 28rpx rgba(22, 119, 255, 0.15);
+}
+
+.pay-icon {
+  font-size: 48rpx;
+  margin-bottom: 12rpx;
+}
+
+.pay-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.pay-check {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  width: 32rpx;
+  height: 32rpx;
+  background: #1677ff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check-icon {
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* 上传区域 */
+.upload-section {
+  margin-bottom: 28rpx;
+}
+
+.upload-section.disabled {
+  opacity: 0.5;
+}
+
+.upload-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 48rpx;
+  text-align: center;
+  border: 2rpx dashed #e0e0e0;
+}
+
+.upload-icon {
+  display: block;
+  font-size: 64rpx;
+  margin-bottom: 16rpx;
+}
+
+.upload-text {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 底部按钮 */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: #fff;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06);
+  display: flex;
+  gap: 20rpx;
+}
+
+.draft-btn {
+  width: 240rpx;
+  height: 104rpx;
+  background: #fff;
+  border: 4rpx solid #1677ff;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.draft-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.draft-btn .btn-text {
+  color: #1677ff;
+}
+
+.submit-btn {
+  flex: 1;
+  height: 104rpx;
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 32rpx rgba(22, 119, 255, 0.35);
+}
+
+.submit-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.btn-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 4rpx;
+}
+
+/* 到期提醒设置 */
+.alert-tip {
+  font-size: 22rpx;
+  color: #bbb;
+  margin-bottom: 12rpx;
+}
+
+.alert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 0;
+}
+
+.alert-label {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-right: 16rpx;
+}
+
+.alert-emoji {
+  font-size: 28rpx;
+}
+
+.alert-picker {
+  height: 64rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  color: #333;
+  min-width: 200rpx;
+  justify-content: center;
+}
+
+.alert-picker.placeholder {
+  color: #bbb;
+}
+
+.alert-input {
+  flex: 1;
+  height: 64rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  font-size: 26rpx;
+  color: #333;
+  min-width: 180rpx;
+}
+
+.alert-divider {
+  height: 1rpx;
+  background: #f5f5f5;
+  margin: 4rpx 0;
+}
+
+/* 短语编辑弹窗 */
+.phrase-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phrase-modal {
+  width: 85%;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.phrase-modal-header {
+  padding: 32rpx 32rpx 16rpx;
+}
+
+.phrase-modal-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.phrase-modal-tip {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.phrase-modal-textarea {
+  width: calc(100% - 48rpx);
+  height: 480rpx;
+  margin: 0 24rpx;
+  background: #f7f8fa;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.8;
+  box-sizing: border-box;
+}
+
+.phrase-modal-footer {
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx 32rpx 32rpx;
+}
+
+.phrase-modal-btn {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.phrase-modal-btn.reset {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.phrase-modal-btn.cancel {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.phrase-modal-btn.save {
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  color: #fff;
+}
+
+.phrase-modal-btn:active {
+  opacity: 0.8;
+}
+
+/* 车牌选择器弹层 */
+.car-picker-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.car-picker-panel {
+  width: 100%;
+  max-height: 60vh;
+  background: #fff;
+  border-radius: 28rpx 28rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.25s ease;
+  transition: margin-bottom 0.25s ease;
+  will-change: margin-bottom;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.car-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx 20rpx;
+  flex-shrink: 0;
+}
+
+.car-picker-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.car-picker-close {
+  width: 52rpx;
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #999;
+  background: #f5f5f5;
+  border-radius: 50%;
+}
+
+.car-picker-close:active {
+  opacity: 0.6;
+}
+
+.car-picker-search {
+  padding: 0 32rpx 20rpx;
+  flex-shrink: 0;
+}
+
+.car-picker-search-box {
+  display: flex;
+  align-items: center;
+  background: #f5f7fa;
+  border-radius: 16rpx;
+  padding: 0 20rpx;
+  height: 76rpx;
+}
+
+.car-picker-search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+
+.car-picker-search-input {
+  flex: 1;
+  height: 76rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.car-picker-placeholder {
+  color: #bbb;
+  font-size: 28rpx;
+}
+
+.car-picker-clear {
+  font-size: 28rpx;
+  color: #ccc;
+  padding: 8rpx;
+  flex-shrink: 0;
+}
+
+.car-picker-clear:active {
+  color: #999;
+}
+
+.car-picker-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 32rpx 32rpx;
+  min-height: 280rpx;
+}
+
+.car-picker-label {
+  font-size: 24rpx;
+  color: #999;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+
+.car-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 20rpx;
+  background: #f9fafb;
+  border-radius: 16rpx;
+  margin-bottom: 12rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.15s ease;
+}
+
+.car-picker-item:active {
+  background: #e6f4ff;
+  border-color: #1677ff;
+}
+
+.car-picker-item-plate {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+  letter-spacing: 2rpx;
+}
+
+.car-picker-item-info {
+  font-size: 24rpx;
+  color: #999;
+  text-align: right;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.car-picker-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx 0;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.car-picker-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx 0;
+}
+
+.car-picker-empty .empty-icon {
+  font-size: 64rpx;
+  margin-bottom: 16rpx;
+  opacity: 0.4;
+}
+
+.car-picker-empty .empty-text {
+  font-size: 26rpx;
+  color: #bbb;
+}
+
+/* 输入不足时的等待提示 */
+.car-picker-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx 0;
+  font-size: 26rpx;
+  color: #bbb;
+}

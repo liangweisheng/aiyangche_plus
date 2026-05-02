@@ -1,0 +1,448 @@
+/* ===================================================
+ * AI养车门店管理系统 - 全局样式 (app.wxss)
+ * 版本: 2.0
+ * 
+ * 设计原则:
+ * 1. 所有全局新增类名统一使用 "g-" 前缀，绝不与页面样式冲突
+ * 2. 仅在 page 和通用无冲突选择器上定义基础样式
+ * 3. 原有 .card / .section-title / .btn-primary 保留兼容
+ * =================================================== */
+
+/* -------------------------
+ * CSS 设计变量（Design Tokens）
+ * ------------------------- */
+page {
+  /* 品牌主色 */
+  --color-primary: #1677ff;
+  --color-primary-light: #4096ff;
+  --color-primary-lighter: #e6f4ff;
+  --color-primary-lightest: #f0f7ff;
+  --color-primary-dark: #0958d9;
+
+  /* 功能色 */
+  --color-success: #52c41a;
+  --color-success-light: #f6ffed;
+  --color-warning: #faad14;
+  --color-warning-light: #fffbe6;
+  --color-danger: #ff4d4f;
+  --color-danger-light: #fff1f0;
+
+  /* 中性文字色 */
+  --color-text-title: #1a1a1a;
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
+  --color-text-hint: #999999;
+  --color-text-placeholder: #bbbbbb;
+  --color-text-disabled: #cccccc;
+
+  /* 边框/分割线/背景 */
+  --color-border: #e0e0e0;
+  --color-border-light: #ebebeb;
+  --color-divider: #f0f0f0;
+  --color-divider-light: #f5f5f5;
+  --color-bg-page: #f5f7fa;
+  --color-bg-card: #ffffff;
+  --color-bg-input: #f7f8fa;
+
+  /* 圆角 */
+  --radius-xs: 6rpx;
+  --radius-sm: 12rpx;
+  --radius-md: 16rpx;
+  --radius-lg: 20rpx;
+  --radius-xl: 24rpx;
+  --radius-2xl: 28rpx;
+  --radius-round: 50%;
+
+  /* 阴影 */
+  --shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 6rpx 28rpx rgba(0, 0, 0, 0.06);
+  --shadow-primary-sm: 0 4rpx 16rpx rgba(22, 119, 255, 0.15);
+  --shadow-primary-md: 0 6rpx 28rpx rgba(22, 119, 255, 0.25);
+  --shadow-primary-lg: 0 8rpx 32rpx rgba(22, 119, 255, 0.35);
+
+  /* 字号 */
+  --font-xs: 20rpx;
+  --font-sm: 22rpx;
+  --font-base: 24rpx;
+  --font-md: 26rpx;
+  --font-lg: 28rpx;
+  --font-xl: 30rpx;
+  --font-2xl: 32rpx;
+  --font-3xl: 36rpx;
+  --font-4xl: 48rpx;
+
+  /* 间距 */
+  --spacing-xs: 8rpx;
+  --spacing-sm: 16rpx;
+  --spacing-md: 24rpx;
+  --spacing-lg: 32rpx;
+  --spacing-xl: 48rpx;
+
+  /* 全局基础 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
+    'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+  font-size: var(--font-lg);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-page);
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+view, text, image, navigator, input, textarea, button {
+  box-sizing: border-box;
+}
+
+/* -------------------------
+ * 旧版兼容样式（保留不删除）
+ * ------------------------- */
+.card {
+  background: #ffffff;
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-title {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text-hint);
+  margin-bottom: var(--spacing-md);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  padding: 24rpx 0;
+  text-align: center;
+  font-size: var(--font-xl);
+  font-weight: 500;
+}
+
+/* -------------------------
+ * g-前缀：全局新增工具类
+ * 仅在 WXML 中使用 g- 开头的类名引用
+ * ------------------------- */
+
+/* ---- 文字颜色 ---- */
+.g-text-title { color: var(--color-text-title); font-weight: 600; }
+.g-text-primary { color: var(--color-text-primary); }
+.g-text-secondary { color: var(--color-text-secondary); }
+.g-text-hint { color: var(--color-text-hint); }
+.g-text-placeholder { color: var(--color-text-placeholder); }
+.g-text-brand { color: var(--color-primary); }
+.g-text-success { color: var(--color-success); }
+.g-text-warning { color: var(--color-warning); }
+.g-text-danger { color: var(--color-danger); }
+.g-text-white { color: #ffffff; }
+.g-text-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- 文字大小 ---- */
+.g-text-xs { font-size: var(--font-xs); }
+.g-text-sm { font-size: var(--font-sm); }
+.g-text-base { font-size: var(--font-base); }
+.g-text-md { font-size: var(--font-md); }
+.g-text-lg { font-size: var(--font-lg); }
+.g-text-xl { font-size: var(--font-xl); }
+.g-text-2xl { font-size: var(--font-2xl); font-weight: 600; }
+.g-text-3xl { font-size: var(--font-3xl); font-weight: 700; }
+.g-text-4xl { font-size: var(--font-4xl); font-weight: 700; }
+.g-text-bold { font-weight: 700; }
+.g-text-semibold { font-weight: 600; }
+.g-text-center { text-align: center; }
+.g-text-right { text-align: right; }
+
+/* ---- 背景 ---- */
+.g-bg-page { background-color: var(--color-bg-page); }
+.g-bg-card { background-color: var(--color-bg-card); }
+.g-bg-input { background-color: var(--color-bg-input); }
+.g-bg-brand { background-color: var(--color-primary); }
+.g-bg-brand-light { background-color: var(--color-primary-lighter); }
+.g-bg-success-light { background-color: var(--color-success-light); }
+.g-bg-warning-light { background-color: var(--color-warning-light); }
+.g-bg-danger-light { background-color: var(--color-danger-light); }
+
+/* ---- 品牌渐变 ---- */
+.g-gradient-brand {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+}
+.g-gradient-brand-dark {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+.g-gradient-success {
+  background: linear-gradient(135deg, var(--color-success) 0%, #73d13d 100%);
+}
+.g-gradient-warning {
+  background: linear-gradient(135deg, var(--color-warning) 0%, #ffc53d 100%);
+}
+.g-gradient-page {
+  background: linear-gradient(180deg, var(--color-primary-lightest) 0%, var(--color-bg-page) 100%);
+}
+
+/* ---- 卡片 ---- */
+.g-card {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+}
+.g-card-sm {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: 20rpx var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+.g-card-accent {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+  border-left: 6rpx solid var(--color-primary);
+}
+
+/* ---- 按钮 ---- */
+.g-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xl);
+  font-size: var(--font-2xl);
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  transition: all 0.3s ease;
+}
+.g-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+.g-btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: #ffffff;
+  box-shadow: var(--shadow-primary-lg);
+}
+.g-btn-ghost {
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  border: 2rpx solid var(--color-primary);
+}
+.g-btn-danger {
+  background: var(--color-danger);
+  color: #ffffff;
+}
+.g-btn[disabled] {
+  opacity: 0.45;
+  background: #d9d9d9;
+  box-shadow: none;
+  color: #999;
+}
+.g-btn-full {
+  width: 100%;
+  height: 96rpx;
+}
+.g-btn-lg {
+  width: 100%;
+  height: 104rpx;
+}
+
+/* ---- 底部安全栏 ---- */
+.g-footer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-bg-card);
+  padding: 20rpx var(--spacing-lg);
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+
+/* ---- 标签/徽章 ---- */
+.g-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 16rpx;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-xs);
+  font-weight: 500;
+}
+.g-tag-brand {
+  background: rgba(22, 119, 255, 0.08);
+  color: var(--color-primary);
+}
+.g-tag-success {
+  background: rgba(82, 196, 26, 0.08);
+  color: var(--color-success);
+}
+.g-tag-warning {
+  background: rgba(250, 173, 20, 0.08);
+  color: var(--color-warning);
+}
+.g-tag-danger {
+  background: rgba(255, 77, 79, 0.08);
+  color: var(--color-danger);
+}
+.g-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+.g-badge-brand {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+/* ---- 空状态 ---- */
+.g-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+}
+.g-empty-icon {
+  font-size: 96rpx;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.4;
+}
+.g-empty-title {
+  font-size: var(--font-xl);
+  font-weight: 600;
+  color: var(--color-text-hint);
+  margin-bottom: 12rpx;
+}
+.g-empty-desc {
+  font-size: var(--font-base);
+  color: var(--color-text-disabled);
+}
+
+/* ---- 加载状态 ---- */
+.g-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.g-loading-spinner {
+  width: 64rpx;
+  height: 64rpx;
+  border: 4rpx solid var(--color-primary-lighter);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: g-spin 0.8s linear infinite;
+  margin-bottom: 20rpx;
+}
+.g-loading-text {
+  font-size: var(--font-lg);
+  color: var(--color-text-hint);
+}
+
+@keyframes g-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ---- 骨架屏 ---- */
+.g-skeleton {
+  height: 24rpx;
+  background: linear-gradient(90deg, #f0f0f0 25%, #f5f5f5 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: g-shimmer 1.5s infinite;
+  border-radius: var(--radius-xs);
+}
+
+@keyframes g-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ---- 弹性布局通用类 ---- */
+.g-flex { display: flex; }
+.g-flex-col { display: flex; flex-direction: column; }
+.g-flex-row { display: flex; flex-direction: row; }
+.g-flex-wrap { flex-wrap: wrap; }
+.g-flex-center { display: flex; align-items: center; justify-content: center; }
+.g-flex-between { display: flex; align-items: center; justify-content: space-between; }
+.g-flex-around { display: flex; align-items: center; justify-content: space-around; }
+.g-flex-start { display: flex; align-items: center; justify-content: flex-start; }
+.g-flex-end { display: flex; align-items: center; justify-content: flex-end; }
+.g-items-center { align-items: center; }
+.g-items-start { align-items: flex-start; }
+.g-items-end { align-items: flex-end; }
+.g-flex-1 { flex: 1; }
+.g-flex-shrink-0 { flex-shrink: 0; }
+
+/* ---- 间距工具类 ---- */
+.g-mt-xs { margin-top: var(--spacing-xs); }
+.g-mt-sm { margin-top: var(--spacing-sm); }
+.g-mt-md { margin-top: var(--spacing-md); }
+.g-mt-lg { margin-top: var(--spacing-lg); }
+.g-mb-xs { margin-bottom: var(--spacing-xs); }
+.g-mb-sm { margin-bottom: var(--spacing-sm); }
+.g-mb-md { margin-bottom: var(--spacing-md); }
+.g-mb-lg { margin-bottom: var(--spacing-lg); }
+.g-ml-sm { margin-left: var(--spacing-sm); }
+.g-ml-md { margin-left: var(--spacing-md); }
+.g-mr-sm { margin-right: var(--spacing-sm); }
+.g-mr-md { margin-right: var(--spacing-md); }
+.g-p-sm { padding: var(--spacing-sm); }
+.g-p-md { padding: var(--spacing-md); }
+.g-p-lg { padding: var(--spacing-lg); }
+.g-px-md { padding-left: var(--spacing-md); padding-right: var(--spacing-md); }
+.g-py-sm { padding-top: var(--spacing-sm); padding-bottom: var(--spacing-sm); }
+.g-gap-xs { gap: var(--spacing-xs); }
+.g-gap-sm { gap: var(--spacing-sm); }
+.g-gap-md { gap: var(--spacing-md); }
+
+/* ---- 圆角/阴影工具 ---- */
+.g-rounded-sm { border-radius: var(--radius-sm); }
+.g-rounded-md { border-radius: var(--radius-md); }
+.g-rounded-lg { border-radius: var(--radius-lg); }
+.g-rounded-xl { border-radius: var(--radius-xl); }
+.g-rounded-full { border-radius: var(--radius-round); }
+.g-shadow-sm { box-shadow: var(--shadow-sm); }
+.g-shadow-md { box-shadow: var(--shadow-md); }
+.g-shadow-primary { box-shadow: var(--shadow-primary-md); }
+
+/* ---- 安全区域 ---- */
+.g-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ---- 隐藏/显示 ---- */
+.g-hidden { display: none; }
+.g-invisible { visibility: hidden; }
+
+/* ---- 分割线 ---- */
+.g-divider {
+  height: 1rpx;
+  background: var(--color-divider-light);
+  width: 100%;
+}
+.g-divider-md {
+  height: 2rpx;
+  background: var(--color-divider);
+  width: 100%;
+}
+
+/* ---- 状态色块 ---- */
+.g-status-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  display: inline-block;
+}
+.g-status-dot-success { background: var(--color-success); }
+.g-status-dot-warning { background: var(--color-warning); }
+.g-status-dot-danger { background: var(--color-danger); }

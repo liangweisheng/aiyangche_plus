@@ -1,0 +1,74 @@
+<!--components/case-modal/case-modal.wxml-->
+<view class="case-mask" wx:if="{{visible}}" bindtap="onMaskTap">
+  <view class="case-dialog" catchtap="preventBubble">
+
+    <!-- 头部：标题 + 关闭 -->
+    <view class="case-header">
+      <view class="case-title-area">
+        <text class="case-icon">🏆</text>
+        <text class="case-main-title">标杆案例</text>
+      </view>
+      <text class="case-close-btn" bindtap="onClose">✕</text>
+    </view>
+
+    <!-- 副标题 -->
+    <view class="case-subtitle" wx:if="{{caseTitle}}">
+      <text>{{caseTitle}}</text>
+    </view>
+
+    <!-- 加载中 -->
+    <view class="case-loading-area" wx:if="{{imageLoading}}">
+      <view class="case-loading-spinner"></view>
+      <text class="case-loading-text">正在加载案例图片...</text>
+    </view>
+
+    <!-- 无图片提示（无数据） -->
+    <view class="case-empty" wx:elif="{{totalImages === 0 && !loadFailed}}">
+      <text class="case-empty-text">暂无案例图片</text>
+      <text class="case-empty-hint">后续版本将补充更多标杆案例</text>
+    </view>
+
+    <!-- 加载失败提示 -->
+    <view class="case-empty" wx:elif="{{loadFailed}}">
+      <text class="case-empty-text">图片加载失败</text>
+      <text class="case-empty-hint">请检查网络后重试</text>
+    </view>
+
+    <!-- 图片展示区 -->
+    <view class="case-image-area" wx:if="{{totalImages > 0 && !imageLoading}}">
+      <!-- 左箭头 -->
+      <view class="case-arrow case-prev" wx:if="{{totalImages > 1}}" bindtap="onPrev">
+        <text>‹</text>
+      </view>
+
+      <!-- 图片 -->
+      <image
+        class="case-image"
+        src="{{images[currentIndex]}}"
+        mode="widthFix"
+        binderror="onImageError"
+        show-menu-by-longpress="{{true}}"
+      />
+
+      <!-- 右箭头 -->
+      <view class="case-arrow case-next" wx:if="{{totalImages > 1}}" bindtap="onNext">
+        <text>›</text>
+      </view>
+
+      <!-- 指示器 -->
+      <view class="case-indicators" wx:if="{{totalImages > 1}}">
+        <text
+          class="case-dot {{currentIndex === index ? 'active' : ''}}"
+          wx:for="{{totalImages}}"
+          wx:key="index"
+        ></text>
+      </view>
+    </view>
+
+    <!-- 底部提示 -->
+    <view class="case-footer">
+      <text class="case-footer-text">长按图片可保存分享</text>
+    </view>
+
+  </view>
+</view>

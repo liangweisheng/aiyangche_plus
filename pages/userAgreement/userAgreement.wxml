@@ -1,0 +1,83 @@
+<view class="policy-container">
+  <view class="policy-title">用户服务协议</view>
+  <view class="policy-update">更新日期：2026年4月11日 | 生效日期：2026年4月11日</view>
+
+  <view class="policy-section">
+    <view class="section-head">提示条款</view>
+    <view class="section-body">在使用"AI养车"小程序（以下简称"本小程序"）提供的服务之前，请您务必仔细阅读并透彻理解本协议。您点击"同意"或实际使用本小程序服务，即表示您已充分理解并同意本协议的全部内容。如果您不同意本协议的任何内容，请不要使用本小程序的服务。</view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">一、服务说明</view>
+    <view class="section-body">
+      <text class="text-block">1. 本小程序为汽车维修/保养门店提供车辆档案管理、工单管理、会员权益登记、到期提醒等信息化管理工具。</text>
+      <text class="text-block">2. 本小程序的所有功能均面向门店经营管理人员使用，需通过门店注册后方可使用全部功能。</text>
+      <text class="text-block">3. 本小程序采用微信云开发技术，数据存储于腾讯云数据库，各门店数据相互隔离，仅注册门店可访问自身数据。</text>
+      <text class="text-block">4. 本小程序提供免费版和Pro版两种服务模式。免费版有使用数量限制，Pro版通过激活码解锁全部功能。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">二、用户注册</view>
+    <view class="section-body">
+      <text class="text-block">1. 您在注册时需要提供门店名称和联系电话，请确保所提供的信息真实、准确、完整。</text>
+      <text class="text-block">2. 每个微信号仅可注册一个门店账号，门店名称和联系电话不可与已注册门店重复。</text>
+      <text class="text-block">3. 您应妥善保管您的账号信息，因您自身原因导致账号信息泄露所引起的一切损失由您自行承担。</text>
+      <text class="text-block">4. 您不得将本小程序服务用于任何违法违规的经营活动。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">三、用户行为规范</view>
+    <view class="section-body">
+      <text class="text-block">您在使用本小程序时，应遵守以下规范：</text>
+      <text class="text-block">1. 遵守国家法律法规，不得利用本小程序从事违法犯罪活动。</text>
+      <text class="text-block">2. 不得利用本小程序发布、传播虚假信息或侵害他人合法权益的内容。</text>
+      <text class="text-block">3. 不得对本小程序进行反向工程、反编译或以其他方式尝试获取源代码。</text>
+      <text class="text-block">4. 不得利用技术手段干扰本小程序的正常运行。</text>
+      <text class="text-block">5. 录入的车辆信息、工单数据应真实反映门店实际经营情况。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">四、数据管理</view>
+    <view class="section-body">
+      <text class="text-block">1. 您录入的所有数据（包括车辆信息、工单记录、会员数据等）归您所有，您可以随时查看、修改或删除。</text>
+      <text class="text-block">2. 本小程序不会未经您的同意向任何第三方提供您的经营数据。</text>
+      <text class="text-block">3. 建议您定期备份重要数据。如因不可抗力（如服务器故障、网络中断等）导致数据丢失，我们将尽力协助恢复。</text>
+      <text class="text-block">4. 为保障服务质量，我们可能收集匿名化的使用统计数据用于功能优化。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">五、免责声明</view>
+    <view class="section-body">
+      <text class="text-block">1. 本小程序仅提供管理工具，不对门店的经营行为和经营结果承担任何责任。</text>
+      <text class="text-block">2. 因不可抗力、系统维护、网络波动等原因导致服务中断的，我们不承担赔偿责任，但会尽力减少中断时间。</text>
+      <text class="text-block">3. 您因使用本小程序而与第三方产生的纠纷，由您与第三方自行解决，我们不承担任何责任。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">六、知识产权</view>
+    <view class="section-body">
+      <text class="text-block">本小程序的所有内容，包括但不限于文字、图片、代码、界面设计、数据结构等，均受知识产权法律法规保护。未经我们书面许可，任何人不得以任何形式复制、传播或使用上述内容。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">七、协议变更</view>
+    <view class="section-body">
+      <text class="text-block">我们有权在必要时修改本协议内容。协议修改后，我们会在本小程序内通过适当方式通知您。如果您在协议修改后继续使用本小程序服务，即视为您同意修改后的协议内容。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">八、联系我们</view>
+    <view class="section-body">
+      <text class="text-block">如果您对本协议有任何疑问或建议，请通过以下方式联系我们：</text>
+      <text class="text-block">微信：liang-weisheng</text>
+      <text class="text-block">电话：17807725166</text>
+    </view>
+  </view>
+</view>

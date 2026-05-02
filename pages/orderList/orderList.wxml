@@ -1,0 +1,120 @@
+<!-- 历史工单列表 - 商用SaaS风格 -->
+<wxs src="../../utils/maskPlate.wxs" module="mask" />
+<view class="container">
+
+  <!-- 搜索栏 -->
+  <view class="search-section">
+    <view class="search-wrapper">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="搜索车牌号"
+        placeholder-class="search-placeholder"
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+        confirm-type="search"
+        bindconfirm="onSearch"
+      />
+      <view class="clear-btn" wx:if="{{searchKeyword}}" bindtap="onClearSearch">
+        <text class="clear-icon">✕</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 统计信息 + 状态筛选 -->
+  <view class="stats-section" wx:if="{{!loading && !isEmpty && orderList.length > 0}}">
+    <view class="stats-card">
+      <text class="stats-num">{{totalCount}}</text>
+      <text class="stats-label">总工单数</text>
+    </view>
+    <view class="filter-tabs">
+      <view
+        class="filter-tab {{statusFilter === item.value ? 'active' : ''}} {{item.style}}"
+        wx:for="{{filterOptions}}" wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="onFilterTap"
+      ><text>{{item.label}}</text></view>
+    </view>
+  </view>
+
+  <!-- 工单列表 -->
+  <view class="list-section">
+    <view class="order-list" wx:if="{{orderList.length > 0}}">
+      <view
+        class="order-card"
+        wx:for="{{orderList}}"
+        wx:key="_id"
+        data-id="{{item._id}}"
+        bindtap="onOrderTap"
+      >
+        <view class="card-header">
+          <text class="plate">{{mask.maskPlate(item.plate)}}</text>
+          <view class="member-badge" wx:if="{{item.isMember}}">
+            <text>会员</text>
+          </view>
+          <view class="header-badges">
+            <view class="status-badge status-{{item.status === '已完成' ? 'done' : item.status === '待结算' ? 'pending' : 'working'}}">
+              <text>{{item.status || '施工中'}}</text>
+            </view>
+            <view class="pay-badge pay-{{item.payMethod}}">
+              <text>{{item.payMethod === '1' ? '现付' : '挂账'}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="card-body">
+          <text class="service-text">{{item.serviceItems}}</text>
+        </view>
+        <view class="card-footer">
+          <view class="amount-info">
+            <view class="amount-row">
+              <text class="amount-label">金额：</text>
+              <text class="amount-value">¥{{item.totalAmount}}</text>
+              <text class="paid-label" wx:if="{{item.paidAmount > 0}}">（实收¥{{item.paidAmount}}）</text>
+            </view>
+          </view>
+          <text class="time-text">{{item.createTime}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{isEmpty && !loading}}">
+      <text class="empty-icon">📋</text>
+      <text class="empty-text">暂无工单记录</text>
+      <text class="empty-hint">开始为您的车辆创建工单吧</text>
+    </view>
+
+    <!-- 加载更多 / 没有更多 -->
+    <view class="load-more" wx:if="{{orderList.length > 0 && !loading}}">
+      <text class="load-more-text" wx:if="{{noMore}}">— 已加载全部 {{orderList.length}} 条 —</text>
+      <text class="load-more-text" wx:else>上拉加载更多</text>
+    </view>
+  </view>
+
+  <!-- 加载骨架（仅首次加载） -->
+  <view class="skeleton-section" wx:if="{{loading && orderList.length === 0}}">
+    <view class="skeleton-card">
+      <view class="skeleton-line skeleton-plate"></view>
+      <view class="skeleton-line skeleton-service"></view>
+      <view class="skeleton-line skeleton-amount"></view>
+    </view>
+    <view class="skeleton-card">
+      <view class="skeleton-line skeleton-plate"></view>
+      <view class="skeleton-line skeleton-service"></view>
+      <view class="skeleton-line skeleton-amount"></view>
+    </view>
+    <view class="skeleton-card">
+      <view class="skeleton-line skeleton-plate"></view>
+      <view class="skeleton-line skeleton-service"></view>
+      <view class="skeleton-line skeleton-amount"></view>
+    </view>
+  </view>
+
+  <!-- 加载更多loading -->
+  <view class="loading-more" wx:if="{{loading && orderList.length > 0}}">
+    <view class="loading-dot"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+</view>

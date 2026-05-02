@@ -1,0 +1,235 @@
+/* pages/carAdd/carAdd.wxss */
+/* 新增车辆档案页面 */
+
+.container {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 24rpx 24rpx 200rpx;
+}
+
+/* 表单组 */
+.form-group {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+.label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.label.required::before {
+  content: '*';
+  color: #ff4d4f;
+  margin-right: 6rpx;
+}
+
+/* 输入框 */
+.input {
+  width: 100%;
+  height: 80rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.plate-trigger {
+  width: 100%;
+  height: 80rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+}
+
+.plate-trigger .plate-display {
+  width: 100%;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  font-size: 34rpx;
+  font-weight: 600;
+  letter-spacing: 4rpx;
+  color: #333;
+}
+
+.plate-trigger .plate-display.placeholder {
+  color: #bbb;
+  font-weight: 400;
+  letter-spacing: 0;
+  font-size: 28rpx;
+}
+
+.placeholder {
+  color: #bbb;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* 文本域 */
+.textarea {
+  width: 100%;
+  height: 160rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+
+/* 颜色选择 */
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.color-toggle {
+  width: 80rpx;
+  height: 80rpx;
+  background: #1677ff;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.color-toggle:active {
+  opacity: 0.8;
+}
+
+.color-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.color-tag {
+  padding: 10rpx 28rpx;
+  background: #f7f8fa;
+  border-radius: 28rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.color-tag.active {
+  background: rgba(22, 119, 255, 0.1);
+  color: #1677ff;
+  font-weight: 600;
+}
+
+/* 带单位输入 */
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding-right: 24rpx;
+}
+
+.input-with-unit .input {
+  background: transparent;
+}
+
+.unit {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 12rpx;
+  flex-shrink: 0;
+}
+
+/* 日期选择器 */
+.picker-input {
+  width: 100%;
+  height: 80rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #333;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.picker-input.placeholder {
+  color: #bbb;
+}
+
+/* 底部按钮 */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #fff;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 展开/收起详细信息按钮 */
+.toggle-detail-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12rpx 0 20rpx;
+  padding: 20rpx 0;
+  background: #f0f7ff;
+  border-radius: 14rpx;
+  border: 2rpx dashed #91caff;
+}
+
+.toggle-detail-btn.collapse {
+  margin-bottom: 20rpx;
+}
+
+.toggle-text {
+  font-size: 27rpx;
+  color: #1677ff;
+  font-weight: 600;
+}
+
+.toggle-arrow {
+  font-size: 24rpx;
+  color: #1677ff;
+  margin-left: 8rpx;
+}
+
+.save-btn {
+  width: 100%;
+  height: 96rpx;
+  background: #1677ff;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 4rpx;
+  box-shadow: 0 4rpx 16rpx rgba(22, 119, 255, 0.3);
+}
+
+.save-btn:active {
+  background: #0958d9;
+}

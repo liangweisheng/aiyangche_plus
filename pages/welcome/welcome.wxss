@@ -1,0 +1,502 @@
+/* pages/welcome/welcome.wxss */
+page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #e8f4fd 0%, #f5f7fa 40%, #c3cfe2 100%);
+  overflow: hidden;
+}
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx 48rpx;
+  position: relative;
+}
+
+/* 装饰圆圈 */
+.deco-circle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.15;
+}
+
+.deco-1 {
+  width: 400rpx;
+  height: 400rpx;
+  background: radial-gradient(circle, #1677ff 0%, transparent 70%);
+  top: -100rpx;
+  right: -100rpx;
+}
+
+.deco-2 {
+  width: 300rpx;
+  height: 300rpx;
+  background: radial-gradient(circle, #0958d9 0%, transparent 70%);
+  bottom: -60rpx;
+  left: -80rpx;
+}
+
+/* Logo 区域 */
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 60rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.logo-icon {
+  width: 140rpx;
+  height: 140rpx;
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64rpx;
+  box-shadow: 0 16rpx 48rpx rgba(22, 119, 255, 0.35);
+  margin-bottom: 24rpx;
+}
+
+.app-name {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1677ff;
+  letter-spacing: 4rpx;
+}
+
+/* 欢迎卡片 */
+.welcome-card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 28rpx;
+  padding: 48rpx 36rpx;
+  box-shadow: 0 12rpx 48rpx rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.card-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+.card-desc {
+  font-size: 26rpx;
+  color: #999;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+/* 门店码输入 */
+.code-input {
+  letter-spacing: 16rpx;
+  font-size: 36rpx;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* 输入框 */
+.input-wrapper {
+  margin-bottom: 32rpx;
+}
+
+.input-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.name-input {
+  width: 100%;
+  height: 96rpx;
+  padding: 0 28rpx;
+  font-size: 30rpx;
+  background: #f5f7fa;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 16rpx;
+  box-sizing: border-box;
+  color: #333;
+  transition: all 0.3s;
+}
+
+.name-input:focus {
+  background: #ffffff;
+  border-color: #1677ff;
+  box-shadow: 0 0 0 4rpx rgba(22, 119, 255, 0.1);
+}
+
+/* 提交按钮 */
+.submit-btn {
+  width: 100%;
+  height: auto;
+  min-height: 96rpx;
+  line-height: 96rpx;
+  padding: 16rpx 0;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 20rpx;
+  border: none;
+  box-shadow: 0 10rpx 32rpx rgba(22, 119, 255, 0.35);
+  letter-spacing: 2rpx;
+  margin-top: 16rpx;
+}
+
+.submit-btn::after {
+  border: none;
+}
+
+.submit-btn[disabled] {
+  opacity: 0.45;
+  background: #d9d9d9;
+  box-shadow: none;
+}
+
+/* 底部提示 */
+.footer {
+  margin-top: 48rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.footer-text {
+  font-size: 24rpx;
+  color: #bbb;
+}
+
+/* 按钮行：登录+取消 并排 */
+.btn-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 16rpx;
+}
+
+.btn-flex {
+  flex: 1;
+}
+
+.cancel-btn {
+  flex: 1;
+  width: auto;
+  height: auto;
+  min-height: 96rpx;
+  line-height: 96rpx;
+  padding: 16rpx 0;
+  box-sizing: border-box;
+  background: #f5f7fa;
+  color: #666;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 20rpx;
+  border: none;
+  letter-spacing: 2rpx;
+}
+
+.cancel-btn::after {
+  border: none;
+}
+
+/* 按钮行内的提交按钮覆盖width和margin */
+.btn-row .submit-btn {
+  width: auto;
+  margin-top: 0;
+}
+
+/* 登录/注册切换链接 */
+.switch-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 32rpx;
+  gap: 8rpx;
+}
+
+.switch-text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.switch-action {
+  font-size: 26rpx;
+  color: #1677ff;
+  font-weight: 600;
+}
+
+/* 注册入口强化（登录页） */
+.register-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 28rpx;
+  padding: 20rpx 0;
+  gap: 8rpx;
+  background: #f0f7ff;
+  border-radius: 14rpx;
+  border: 2rpx dashed #91caff;
+}
+
+.register-entry-text {
+  font-size: 27rpx;
+  color: #666;
+}
+
+.register-entry-action {
+  font-size: 28rpx;
+  color: #1677ff;
+  font-weight: 700;
+}
+
+/* 忘记门店码提示 */
+.forgot-code-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12rpx;
+}
+
+.forgot-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.forgot-link {
+  font-size: 24rpx;
+  color: #1677ff;
+  margin-left: 4rpx;
+}
+
+/* 使用范围提示 */
+.login-scope-tip {
+  font-size: 26rpx;
+  color: #999;
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+/* 登录页 - 功能标签行 */
+.intro-tags {
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
+  margin-bottom: 28rpx;
+}
+
+.intro-tag {
+  font-size: 24rpx;
+  color: #666;
+  background: #f0f7ff;
+  padding: 10rpx 24rpx;
+  border-radius: 24rpx;
+  white-space: nowrap;
+}
+
+/* 手机号用途提示 */
+.phone-usage-tip {
+  display: flex;
+  align-items: flex-start;
+  background: #fff8e6;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 24rpx;
+  border-left: 6rpx solid #faad14;
+}
+
+.usage-tip-icon {
+  font-size: 28rpx;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+
+.usage-tip-text {
+  font-size: 22rpx;
+  color: #8c6d1f;
+  line-height: 1.6;
+}
+
+/* ===== 隐私确认弹窗样式 ===== */
+.privacy-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.privacy-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.privacy-modal {
+  position: relative;
+  width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 48rpx 40rpx 36rpx;
+  z-index: 10000;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.25);
+}
+
+.modal-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.modal-body {
+  margin-bottom: 32rpx;
+}
+
+.modal-desc {
+  font-size: 27rpx;
+  color: #666;
+  line-height: 1.7;
+  margin-bottom: 28rpx;
+}
+
+.modal-agreements {
+  background: #f5f7fa;
+  border-radius: 14rpx;
+  padding: 8rpx 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.modal-agreement-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  color: #1677ff;
+  font-weight: 500;
+}
+
+.modal-agreement-item:first-child {
+  border-bottom: 1rpx solid #e8e8e8;
+}
+
+.modal-arrow {
+  font-size: 32rpx;
+  color: #ccc;
+}
+
+.modal-tip {
+  font-size: 23rpx;
+  color: #bbb;
+  text-align: center;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.modal-agree-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: linear-gradient(135deg, #1677ff, #0958d9);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 18rpx;
+  border: none;
+  box-shadow: 0 10rpx 32rpx rgba(22, 119, 255, 0.35);
+  letter-spacing: 2rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.modal-agree-btn::after {
+  border: none;
+}
+
+.modal-cancel-btn {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  background: #fff;
+  color: #999;
+  font-size: 28rpx;
+  font-weight: 500;
+  border-radius: 18rpx;
+  border: 2rpx solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.modal-cancel-btn::after {
+  border: none;
+}
+
+/* 隐私条款勾选行 */
+.privacy-check-row {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0 10rpx;
+}
+
+.privacy-checkbox {
+  width: 36rpx;
+  height: 36rpx;
+  border: 2rpx solid #ccc;
+  border-radius: 6rpx;
+  margin-right: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.privacy-checkbox.checked {
+  background: #07c160;
+  border-color: #07c160;
+  color: #fff;
+  font-size: 24rpx;
+}
+
+.privacy-check-text {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* 同意按钮禁态 */
+.modal-agree-btn[disabled] {
+  background: #ccc !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+
+

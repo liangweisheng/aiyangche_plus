@@ -1,0 +1,207 @@
+<!-- 营收报表 -->
+<wxs src="../../utils/maskPlate.wxs" module="mask" />
+<view class="container">
+
+  <!-- 游客模式提示 -->
+  <view class="guest-banner" wx:if="{{isGuest}}">
+    <text class="guest-banner-text">当前为游客模式，数据仅为演示</text>
+  </view>
+
+  <!-- 未注册引导 -->
+  <view class="guide-section" wx:if="{{!registered && !loading}}">
+    <view class="guide-card">
+      <view class="guide-icon">📊</view>
+      <view class="guide-title">经营报表</view>
+      <view class="guide-desc">注册门店后即可查看营收趋势、服务排行等数据</view>
+      <button class="guide-btn" bindtap="onGoRegister">立即注册</button>
+    </view>
+  </view>
+
+  <!-- 已注册内容 -->
+  <block wx:if="{{registered}}">
+
+  <!-- 免费版限制提示 -->
+  <view class="pro-tip-banner" wx:if="{{!isPro}}">
+    <text class="pro-tip-text">当前为免费版，仅支持基础报表，升级Pro版获取更多分析</text>
+    <text class="pro-tip-action" bindtap="goToPro">升级 ›</text>
+  </view>
+
+  <!-- 日期范围切换 -->
+  <view class="date-tabs">
+    <view class="date-tab {{activeTab === 'today' ? 'active' : ''}}" data-tab="today" bindtap="onTabChange">今日</view>
+    <view class="date-tab {{activeTab === 'week' ? 'active' : ''}}" data-tab="week" bindtap="onTabChange">本周</view>
+    <view class="date-tab {{activeTab === 'month' ? 'active' : ''}}" data-tab="month" bindtap="onTabChange">本月</view>
+    <view class="date-tab {{activeTab === 'year' ? 'active' : ''}}" data-tab="year" bindtap="onTabChange">本年</view>
+  </view>
+
+  <!-- 缓存提示 -->
+  <view class="cache-tip-bar" wx:if="{{cacheTip}}">
+  <text class="cache-tip-text">提示：{{cacheTip}}</text>
+  </view>
+
+  <!-- 免费版高级报表限制提示 -->
+  <view class="pro-limit-card" wx:if="{{proLimitTip}}">
+    <view class="pro-limit-icon-wrap">
+      <text class="pro-limit-icon">🔒</text>
+    </view>
+    <view class="pro-limit-info">
+      <text class="pro-limit-title">高级报表功能</text>
+      <text class="pro-limit-desc">{{proLimitTip}}</text>
+    </view>
+    <button class="pro-limit-btn" bindtap="goToPro">立即升级</button>
+  </view>
+
+  <!-- 数据内容区：免费版被限制时隐藏 -->
+  <block wx:elif="{{!proLimitTip}}">
+
+  <!-- 汇总卡片 -->
+  <view class="summary-section">
+    <view class="summary-row">
+      <view class="summary-card blue">
+        <text class="summary-label">营收总额</text>
+        <text class="summary-value">¥{{totalRevenue}}</text>
+        <text class="summary-sub">{{dateLabel}}</text>
+      </view>
+      <view class="summary-card green">
+        <text class="summary-label">工单数</text>
+        <text class="summary-value">{{totalOrders}}<text class="summary-unit">单</text></text>
+        <text class="summary-sub">{{dateLabel}}</text>
+      </view>
+      <view class="summary-card orange">
+        <text class="summary-label">客单价</text>
+        <text class="summary-value">¥{{avgAmount}}</text>
+        <text class="summary-sub">平均金额</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 营收趋势图 -->
+  <view class="chart-section" wx:if="{{activeTab !== 'today'}}">
+    <view class="section-header">
+      <text class="section-title">营收趋势</text>
+      <text class="section-sub">{{dateLabel}}</text>
+    </view>
+    <view class="chart-card">
+      <view class="chart-area" wx:if="{{trendValues.length > 0}}">
+        <view class="chart-grid">
+          <!-- 网格参考线 -->
+          <view class="grid-line"></view>
+          <view class="grid-line"></view>
+          <view class="grid-line"></view>
+        </view>
+        <view class="chart-bars">
+          <view class="chart-col" wx:for="{{trendLabels}}" wx:key="*this">
+            <view class="chart-bar-wrap">
+              <text class="bar-tip" wx:if="{{trendValues[index] > 0}}">¥{{trendValues[index]}}</text>
+              <view class="chart-bar" style="height: {{trendValues[index] / maxTrendValue * 100}}%;"></view>
+            </view>
+            <text class="bar-label">{{item}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="chart-empty" wx:else>
+        <text class="empty-icon">📈</text>
+        <text class="empty-text">暂无数据</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付方式分布 -->
+  <view class="payment-section" wx:if="{{paymentStats.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">支付方式</text>
+    </view>
+    <view class="payment-card">
+      <view class="payment-item" wx:for="{{paymentStats}}" wx:key="name">
+        <view class="payment-left">
+          <view class="payment-icon {{item.name === '挂账' ? 'credit' : 'cash'}}">{{item.name === '挂账' ? '📋' : '💵'}}</view>
+          <view class="payment-info">
+            <text class="payment-name">{{item.name}}</text>
+            <text class="payment-amount">¥{{item.amount}}</text>
+          </view>
+        </view>
+        <view class="payment-right">
+          <text class="payment-percent">{{item.percent}}%</text>
+          <view class="payment-bar-bg">
+            <view class="payment-bar" style="width: {{item.percent}}%;"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 服务项目排行 -->
+  <view class="service-section" wx:if="{{serviceStats.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">服务项目排行</text>
+      <text class="section-sub">TOP{{serviceStats.length}}</text>
+    </view>
+    <view class="service-card">
+      <view class="service-item" wx:for="{{serviceStats}}" wx:key="name" wx:for-index="idx">
+        <view class="service-rank {{idx < 3 ? 'top' : ''}}">{{idx + 1}}</view>
+        <view class="service-info">
+          <text class="service-name">{{item.name}}</text>
+          <text class="service-count">{{item.count}}单</text>
+        </view>
+        <text class="service-revenue">¥{{item.revenue}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 今日订单清单 -->
+  <view class="order-list-section" wx:if="{{activeTab === 'today' && todayOrders.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">当日订单清单</text>
+      <text class="section-sub">{{todayOrders.length}}单</text>
+    </view>
+    <view class="order-list-card">
+      <view class="order-row" wx:for="{{todayOrders}}" wx:key="_id" bindtap="goToOrder" data-id="{{item._id}}">
+        <view class="order-row-plate">
+          <text class="plate-badge">{{mask.maskPlate(item.plate)}}</text>
+          <text class="order-row-status {{item.status === '已完成' ? 'done' : item.status === '待结算' ? 'pending' : ''}}">{{item.status}}</text>
+        </view>
+        <view class="order-row-right">
+          <text class="order-row-time">{{item.createTime}}</text>
+          <text class="order-row-amount">¥{{item.totalAmount}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 消费TOP20车主（本周/本月/本年） -->
+  <view class="customer-section" wx:if="{{activeTab !== 'today' && topCustomers.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">消费排行</text>
+      <text class="section-sub">TOP{{topCustomers.length}}车主</text>
+    </view>
+    <view class="customer-card">
+      <view class="customer-item" wx:for="{{topCustomers}}" wx:key="plate" wx:for-index="idx">
+        <view class="customer-rank {{idx < 3 ? 'top' : ''}}">{{idx + 1}}</view>
+        <view class="customer-plate-area">
+          <text class="customer-plate">{{mask.maskPlate(item.plate)}}</text>
+          <text class="customer-count">{{item.count}}单</text>
+        </view>
+        <text class="customer-total">¥{{item.total}}</text>
+      </view>
+      <view class="customer-more" wx:if="{{hasMoreCustomers && !showAllCustomers}}" bindtap="onShowAllCustomers">
+        <text>上拉显示更多</text>
+      </view>
+    </view>
+  </view>
+
+  </block>
+
+  </block>
+
+  <!-- 加载状态 -->
+  <view class="g-loading-overlay" wx:if="{{loading}}">
+    <view class="g-loading-spinner"></view>
+    <text class="g-loading-text">数据加载中...</text>
+  </view>
+
+  <!-- 隐藏Canvas：用于生成分享卡片 -->
+  <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:400px;"></canvas>
+  <canvas canvas-id="shareCanvasFallback" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:400px;"></canvas>
+
+</view>
+
