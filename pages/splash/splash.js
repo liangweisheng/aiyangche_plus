@@ -40,11 +40,19 @@ Page({
     var isGuest = !!(shopInfo.isGuest || shopInfo.phone === '13507720000' || wx.getStorageSync('isGuestMode'))
     var isRegistered = !!(shopInfo.phone && !isGuest)
 
+    // ★ v5.1.0 多端模式：未注册用户必须走登录页（不能直接进 dashboard）
+    var _isMultiEnd = (app.globalData && app.globalData._isMultiEndMode)
+    if (_isMultiEnd && !isRegistered) {
+      console.log('[splash] 多端模式+未注册 → 跳转登录页')
+      wx.reLaunch({ url: '/pages/welcome/welcome?mode=login' })
+      return
+    }
+
     if (isRegistered) {
       // 已注册用户 → dashboard
       wx.switchTab({ url: '/pages/dashboard/dashboard' })
     } else {
-      // 新用户/游客 → dashboard（游客模式）或 welcome
+      // 新用户/游客 → dashboard（游客模式）
       wx.switchTab({ url: '/pages/dashboard/dashboard' })
     }
   }

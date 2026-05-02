@@ -24,18 +24,58 @@ var _cloudInitPromise = null
  */
 function _isMultiEndMode() {
   try {
-    // Donut 多端框架特征：存在 miniapp 全局对象且非微信内置环境
-    var systemInfo = wx.getSystemInfoSync()
-    // 在真机微信小程序中 platform 为 'ios' 或 'android'，但有完整的微信环境
-    // Donut 编译的 App 中可能缺少部分微信特有能力
-    if (typeof __wxConfig !== 'undefined' && __wxConfig.appLaunchInfo) {
-      // 有 appLaunchInfo 说明是原生小程序环境
-      return false
+    // 方式1（最可靠）：Donut 框架注入的 miniapp 全局对象
+    if (typeof miniapp !== 'undefined' && miniapp) {
+      console.log('[_isMultiEndMode] 检测到 miniapp 全局对象 → 多端模式')
+      return true
     }
-    // 兜底：通过检查是否在多端容器中运行
-    // Donut 框架会注入特定标记或改变运行时特征
-    return false // 默认返回false，待实际编译测试后调整
+
+    var systemInfo = wx.getSystemInfoSync()
+
+    // 方式2：检查系统信息中的多端标记
+    if (systemInfo && systemInfo.miniappVersion) {
+      console.log('[_isMultiEndMode] 检测到 miniappVersion → 多端模式')
+      return true
+    }
+
+    // 方式3（修正版）：排除法 - 真正的微信小程序一定有完整的环境信息
+    if (typeof __wxConfig !== 'undefined') {
+      // ★ 开发者工具（含真机调试）platform 一定是 "devtools"
+
+      // ★ 核心判断（修正版）：使用 getAccountInfoSync 区分微信环境 vs 多端应用
+      // 官方文档：多端应用独有 host / miniapp 对象，微信小程序无此字段
+      var accountInfo = null
+      try {
+        accountInfo = wx.getAccountInfoSync()
+      } catch(e) {}
+
+      var isRealDevice = systemInfo.platform === 'ios' || systemInfo.platform === 'android'
+
+      if (isRealDevice) {
+        if (accountInfo) {
+          // ★ 方式1：检测 host 对象（多端应用独有字段，100%可靠）
+          if (accountInfo.host && (accountInfo.host.miniappId || accountInfo.host.moduleId)) {
+            return true
+          }
+          // ★ 方式2：检测 miniapp 对象（新版SDK补充）
+          if (accountInfo.miniapp && accountInfo.miniapp.miniappId) {
+            return true
+          }
+          // ★ 方式3：有有效的小程序账号信息 → 微信环境（含真机调试+正式发布）
+          if (accountInfo.miniProgram && accountInfo.miniProgram.appId 
+              && accountInfo.miniProgram.appId !== '<Undefined>') {
+            return false
+          }
+        }
+      // 兜底：真机但无法获取账号信息 → 保守判定为小程序（安全侧）
+      return false
+      }
+    }
+
+    // 兜底：默认返回 false（保持小程序原有行为）
+    return false
   } catch (e) {
+    console.warn('[_isMultiEndMode] 检测异常:', e)
     return false
   }
 }
@@ -57,7 +97,6 @@ App({
     // ★ 多端平台检测（启动时一次性确定，后续不再重复判断）
     _platformDetected = _isMultiEndMode()
     app.globalData._isMultiEndMode = _platformDetected
-    console.log('[app] 平台模式:', _platformDetected ? '多端(App)' : '小程序')
 
     if (_platformDetected) {
       // ====== 多端模式：必须显式指定 AppID 和环境ID ======
@@ -71,7 +110,6 @@ App({
       // 多端模式下直接使用 wx.cloud.database()，不需要跨账号
       _resourceDb = wx.cloud.database()
       _cloudReady = true
-      console.log('[app] 多端云环境已初始化, appid:', RESOURCE_APPID)
     } else {
       // ====== 小程序模式：原有逻辑不变 ======
       wx.cloud.init({ traceUser: true })
@@ -99,7 +137,6 @@ App({
   _initResourceCloud() {
     // 多端模式已在 onLaunch 中直接初始化，无需跨账号
     if (_platformDetected) {
-      console.log('[_initResourceCloud] 多端模式，跳过跨账号初始化')
       return
     }
 
@@ -114,8 +151,18 @@ App({
         _cloudReady = true
         resolve()
       }).catch(function (err) {
-        console.error('跨账号资源共享初始化失败', err)
+        console.error('资源方云环境初始化失败', err)
+        _cloudReady = false
+        _resourceDb = null
         reject(err)
+        // ★ 延迟提示用户（等 app.onLaunch 完成后再弹）
+        setTimeout(function () {
+          wx.showToast({
+            title: '网络异常，请检查网络后重试',
+            icon: 'none',
+            duration: 3000
+          })
+        }, 1500)
       })
     })
   },
@@ -127,13 +174,10 @@ App({
    * @returns {Object|null} wx.cloud.Database 实例，未就绪时返回 null
    */
   db: function () {
-    // 多端模式：直接使用已初始化的云环境
-    if (_platformDetected) {
-      return _resourceDb || wx.cloud.database()
-    }
-    // 小程序模式：使用跨账号实例
-    if (!_cloudReady) {
-      console.warn('[db] 跨账号云环境尚未就绪，返回 null')
+    // ★ 强制使用资源方云环境，无 fallback
+    if (!_cloudReady || !_resourceDb) {
+      console.error('[db] 资源方云环境未就绪，无法连接服务器')
+      return null
     }
     return _resourceDb
   },
@@ -181,13 +225,14 @@ App({
    * @returns {Promise<Object>}
    */
   callFunction: function (name, data) {
-    var cloud
-    // 多端模式或小程序无跨账号时，直接用 wx.cloud
-    if (_platformDetected || !this._resourceCloud) {
-      cloud = wx.cloud
-    } else {
-      cloud = this._resourceCloud
+    var app = this
+    // ★ 强制使用资源方云环境，无法连接则返回 rejected Promise
+    if (!_cloudReady || !this._resourceCloud) {
+      console.error('[callFunction] 资源方云环境未就绪，无法调用云函数:', name)
+      return Promise.reject(new Error('网络异常，无法连接服务器'))
     }
+
+    var cloud = this._resourceCloud
     return new Promise(function (resolve, reject) {
       cloud.callFunction({
         name: name,
@@ -287,9 +332,22 @@ App({
   _autoLogin() {
     var app = this
 
-    // 如果本地已有非游客的有效 shopInfo（刚登录完成），先信任本地缓存
+    // ★ 多端模式优先判断（必须在"快速信任缓存"之前）
+    // 原因：防止残留的错误缓存被直接信任恢复
+    if (_platformDetected) {
+      return app._autoLoginMultiEnd()
+    }
+
+    // 如果本地已有非游客的有效 shopInfo（小程序模式才走此快速路径）
     var cachedShopInfo = wx.getStorageSync('shopInfo') || {}
-    if (cachedShopInfo.phone && !cachedShopInfo.isGuest && !wx.getStorageSync('isGuestMode')) {
+    // ★ 新增：验证缓存来源标记（防止多端残留缓存被误恢复）
+    var isCacheFromMultiEnd = cachedShopInfo._platform === 'multiend'
+    if (
+      !isCacheFromMultiEnd &&
+      cachedShopInfo.phone &&
+      !cachedShopInfo.isGuest &&
+      !wx.getStorageSync('isGuestMode')
+    ) {
       app.globalData.shopName = cachedShopInfo.name || ''
       app.globalData.shopPhone = cachedShopInfo.shopPhone || cachedShopInfo.phone || ''
       app.globalData.shopInfo = cachedShopInfo
@@ -300,12 +358,7 @@ App({
       return Promise.resolve()
     }
 
-    // ====== 多端模式分支 ======
-    if (_platformDetected) {
-      return app._autoLoginMultiEnd()
-    }
-
-    // ====== 小程序原有逻辑不变 ↓=====
+    // ====== 小程序原有逻辑 ↓=====
     return app.getOpenId().then(function (openid) {
       if (!openid) {
         // openid 获取失败 → 进入游客模式
@@ -334,13 +387,34 @@ App({
 
     // 尝试从本地缓存恢复（用户之前已登录过）
     var cachedShopInfo = wx.getStorageSync('shopInfo') || {}
-    if (cachedShopInfo.phone && !cachedShopInfo.isGuest && !wx.getStorageSync('isGuestMode')) {
+
+    // ★ 新增：验证缓存来源标记（只恢复多端模式自己写入的缓存）
+    var cachePlatform = cachedShopInfo._platform || 'unknown'
+    console.log('[_autoLoginMultiEnd] 缓存检查:', {
+      hasPhone: !!cachedShopInfo.phone,
+      isGuest: cachedShopInfo.isGuest,
+      isGuestMode: !!wx.getStorageSync('isGuestMode'),
+      cachePlatform: cachePlatform
+    })
+
+    if (
+      cachedShopInfo.phone &&
+      !cachedShopInfo.isGuest &&
+      !wx.getStorageSync('isGuestMode') &&
+      (cachePlatform === 'multiend' || cachePlatform === 'unknown')
+    ) {
       // 有有效缓存 → 直接恢复全局状态
-      console.log('[_autoLoginMultiEnd] 从本地缓存恢复, phone:', cachedShopInfo.phone)
+      console.log('[_autoLoginMultiEnd] 从本地缓存恢复, name:', cachedShopInfo.name, ', phone:', cachedShopInfo.phone)
       app._loadGlobalShopInfo()
       // 后台验证缓存是否仍有效（不阻塞进入）
       app._validateMultiEndCache(cachedShopInfo).catch(function () {})
       return Promise.resolve()
+    }
+
+    // ★ 新增：检测到小程序模式残留缓存，输出警告并忽略
+    if (cachedShopInfo.phone && cachePlatform === 'miniprogram') {
+      console.warn('[_autoLoginMultiEnd] ⚠️ 检测到小程序模式残留缓存(name=' +
+        cachedShopInfo.name + ', phone=' + cachedShopInfo.phone + ')，已忽略')
     }
 
     // 无有效缓存 → 跳转到登录页（手机号+门店码）
@@ -485,7 +559,9 @@ App({
       createTime: record.createTime || '',
       cloudRecord: record,
       role: record.role || 'admin',
-      shopPhone: shopPhone
+      shopPhone: shopPhone,
+      // ★ 新增：标记缓存来源（用于跨模式隔离）
+      _platform: _platformDetected ? 'multiend' : 'miniprogram'
     }
     wx.setStorageSync('shopInfo', shopInfo)
     wx.setStorageSync('shopName', shopName)
@@ -617,7 +693,8 @@ App({
             shopCode: guestCode,
             createTime: '',
             cloudRecord: null,
-            isGuest: true
+            isGuest: true,
+            _platform: 'miniprogram'
           }
           wx.setStorageSync('shopInfo', fallbackShopInfo)
           wx.setStorageSync('shopName', 'AI养车(体验)')
@@ -637,7 +714,8 @@ App({
           shopCode: guestCode,
           createTime: record.createTime || '',
           cloudRecord: record,
-          isGuest: true
+          isGuest: true,
+          _platform: 'miniprogram'
         }
         wx.setStorageSync('shopInfo', shopInfo)
         wx.setStorageSync('shopName', record.name || 'AI养车(体验)')
@@ -658,7 +736,8 @@ App({
           shopCode: guestCode,
           createTime: '',
           cloudRecord: null,
-          isGuest: true
+          isGuest: true,
+          _platform: 'miniprogram'
         }
         wx.setStorageSync('shopInfo', fallbackShopInfo)
         wx.setStorageSync('shopName', 'AI养车(体验)')

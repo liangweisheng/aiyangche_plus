@@ -32,13 +32,18 @@ Page({
       page._guestMode = null
     }
     // 已有正式账号（非游客）且有 phone → 直接进 dashboard
-    if (shopInfo && shopInfo.phone && !wasGuest && initMode !== 'force') {
+    // ★ 多端模式例外：必须强制走登录页验证（不能信任本地缓存自动跳过）
+    var _isMultiEnd = getApp().globalData._isMultiEndMode
+    if (shopInfo && shopInfo.phone && !wasGuest && initMode !== 'force' && !_isMultiEnd) {
       wx.reLaunch({ url: '/pages/dashboard/dashboard' })
       return
     }
 
     // 设置 mode
-    page.setData({ mode: initMode === 'register' ? 'register' : 'login' })
+    page.setData({
+      mode: initMode === 'register' ? 'register' : 'login',
+      _isMultiEnd: _isMultiEnd
+    })
 
     // login 模式且未同意过隐私 → 自动弹出隐私确认弹窗
     if (!agreed && initMode !== 'register') {
@@ -75,9 +80,17 @@ Page({
     this.setData({ privacyChecked: !this.data.privacyChecked })
   },
 
-  // 弹窗内取消 / 点击蒙层 → 返回游客模式
+  // 弹窗内取消 / 点击蒙层 → 小程序回退游客 / 多端模式关闭弹窗留页
   onCancelPrivacyModal() {
     var page = this
+    var _isMultiEnd = getApp().globalData._isMultiEndMode
+    // ★ 多端模式：仅关闭弹窗，留在登录页
+    if (_isMultiEnd) {
+      page.setData({ showPrivacyModal: false })
+      return
+    }
+
+    // 小程序模式：恢复游客缓存并回退到 dashboard
     page.setData({ showPrivacyModal: false })
     // 恢复游客缓存（如果之前是游客）
     if (page._guestShopInfo) {
@@ -94,9 +107,16 @@ Page({
     this.onCancelPrivacyModal()
   },
 
-  // 取消登录 → 返回游客模式
+  // 取消登录 → 小程序回退游客 / 多端模式留在登录页
   onCancelLogin() {
-    // 恢复游客缓存（如果之前是游客）
+    var _isMultiEnd = getApp().globalData._isMultiEndMode
+    // ★ 多端模式：不允许取消/跳过，必须登录
+    if (_isMultiEnd) {
+      app.toastFail('App端需要登录后才能使用')
+      return
+    }
+
+    // 小程序模式：恢复游客缓存并回退
     if (this._guestShopInfo) {
       wx.setStorageSync('shopInfo', this._guestShopInfo)
       if (this._guestMode) wx.setStorageSync('isGuestMode', this._guestMode)
@@ -172,28 +192,33 @@ Page({
         .limit(1).get()
     ]).then(function (results) {
       var record = null
-      // 优先匹配管理员（phone+shopCode 都对）→ 必须 openid 匹配
+      // 优先匹配管理员（phone+shopCode 都对）
       if (results[0].data && results[0].data.length > 0) {
         var adminRecord = results[0].data[0]
         if (adminRecord.shopCode === shopCode) {
-          // 安全校验：管理员账号登录必须 openid 匹配
-          var cachedOpenid = wx.getStorageSync('openid') || ''
+          // ★ 多端模式：跳过 openid 安全校验（多端无法获取微信openid）
+          //    直接信任 phone+shopCode 匹配结果
+          var _isMultiEndLogin = getApp().globalData._isMultiEndMode
+          if (!_isMultiEndLogin) {
+            // 小程序模式：安全校验 - 管理员账号登录必须 openid 匹配
+            var cachedOpenid = wx.getStorageSync('openid') || ''
 
-          // 已绑定 openid → 必须严格匹配，不匹配直接拒绝
-          if (adminRecord.openid && cachedOpenid && adminRecord.openid !== cachedOpenid) {
-            page.setData({ submitting: false })
-            app.hideLoading()
-            // 延迟显示toast，避免与hideLoading时序冲突
-            setTimeout(function () {
-              app.toastFail('该账号已注册，请使用注册时的微信号登录')
-            }, 100)
-            return Promise.resolve({ record: null, isStaff: false, _toastShown: true })
-          }
+            // 已绑定 openid → 必须严格匹配，不匹配直接拒绝
+            if (adminRecord.openid && cachedOpenid && adminRecord.openid !== cachedOpenid) {
+              page.setData({ submitting: false })
+              app.hideLoading()
+              setTimeout(function () {
+                app.toastFail('该账号已注册，请使用注册时的微信号登录')
+              }, 100)
+              return Promise.resolve({ record: null, isStaff: false, _toastShown: true })
+            }
 
-          // 未绑定 openid 但已注册过(有 createTime) → 仅允许首次绑定（此微信号）
-          if (!adminRecord.openid && adminRecord.createTime && cachedOpenid) {
-            util.callRepair('updateOpenid', { docId: adminRecord._id }).catch(function () {})
+            // 未绑定 openid 但已注册过(有 createTime) → 仅允许首次绑定（此微信号）
+            if (!adminRecord.openid && adminRecord.createTime && cachedOpenid) {
+              util.callRepair('updateOpenid', { docId: adminRecord._id }).catch(function () {})
+            }
           }
+          // ★ 多端模式到此结束，不执行上述 openid 校验
 
           record = adminRecord
         }

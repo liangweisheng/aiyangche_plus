@@ -1,0 +1,1 @@
+{"permissions": {"openapi": []}, "triggers": [{"name": "monthlyReportTrigger", "type": "timer", "config": "0 5 1 * * *"}]}

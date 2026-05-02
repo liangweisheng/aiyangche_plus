@@ -1,7 +1,7 @@
 {
   "miniVersion": "v2",
-  "name": "%name%",
-  "version": "0.0.1",
+  "name": "汽修店小管家",
+  "version": "5.1.0",
   "versionCode": 100,
   "i18nFilePath": "i18n",
   "mini-ohos": {
@@ -19,10 +19,10 @@
       "xweb": false
     },
     "icons": {
-      "hdpi": "",
-      "xhdpi": "",
-      "xxhdpi": "",
-      "xxxhdpi": ""
+      "hdpi": "images/logo_mini.png",
+      "xhdpi": "images/logo_mini.png",
+      "xxhdpi": "images/logo_mini.png",
+      "xxxhdpi": "images/logo_mini.png"
     },
     "splashscreen": {
       "hdpi": "",

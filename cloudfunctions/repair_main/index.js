@@ -1182,8 +1182,11 @@ async function generateMonthlyReport(event, openid) {
   }
 
   // 鉴权：验证调用者属于该门店（店主或员工）
-  var hasAccess = await _checkShopAccess(openid, shopPhone)
-  if (!hasAccess) return { code: -3, msg: '无权访问该门店数据' }
+  // 空 openid 表示系统内部调用（如定时触发器批量生成），跳过鉴权
+  if (openid) {
+    var hasAccess = await _checkShopAccess(openid, shopPhone)
+    if (!hasAccess) return { code: -3, msg: '无权访问该门店数据' }
+  }
 
   try {
     // 解析月份起止时间
@@ -1619,6 +1622,124 @@ async function updateStaffOpenid(event, openid) {
 }
 
 // ============================
+// batchGenerateMonthlyReports - 批量生成所有门店的月度报告（定时触发器入口）
+// 每月1日自动调用，遍历上月有订单的活跃门店逐个生成报告
+// 幂等安全：已存在该月报告的门店会更新而非重复创建
+// ============================
+async function batchGenerateMonthlyReports(event, openid) {
+  console.log('[batchGenerateMonthlyReports] 开始批量生成月报...')
+
+  try {
+    // 1. 计算上个月份
+    var now = new Date()
+    var currentMonth = now.getMonth() + 1 // 1-12
+    var currentYear = now.getFullYear()
+
+    // 上月（1月执行时，上月为去年12月）
+    var prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
+    var prevYear = currentMonth === 1 ? currentYear - 1 : currentYear
+    var yearMonth = prevYear + '-' + String(prevMonth).padStart(2, '0')
+
+    console.log('[batchGenerateMonthlyReports] 目标月份:', yearMonth)
+
+    // 2. 计算上月时间范围
+    var monthStart = new Date(prevYear, prevMonth - 1, 1)
+    var monthEnd = new Date(prevYear, prevMonth, 0, 23, 59, 59, 999)
+
+    // 3. 查询上月有订单的活跃门店（分页获取全部）
+    var allActiveShopPhones = []
+    var countRes = await db.collection('repair_orders')
+      .where({
+        isVoided: _.neq(true),
+        createTime: _.gte(monthStart).and(_.lte(monthEnd))
+      })
+      .field({ shopPhone: true })
+      .count()
+
+    var totalOrders = countRes.total
+    if (totalOrders === 0) {
+      console.log('[batchGenerateMonthlyReports] 上月无订单数据，跳过')
+      return { code: 0, msg: '上月无经营数据', data: { success: 0, failed: 0, yearMonth: yearMonth } }
+    }
+
+    // 分页获取所有订单的 shopPhone
+    var batchIdx = 0
+    while (batchIdx * MAX_LIMIT < totalOrders) {
+      var ordersBatch = await db.collection('repair_orders')
+        .where({
+          isVoided: _.neq(true),
+          createTime: _.gte(monthStart).and(_.lte(monthEnd))
+        })
+        .field({ shopPhone: true })
+        .skip(batchIdx * MAX_LIMIT)
+        .limit(MAX_LIMIT)
+        .get()
+
+      if (ordersBatch.data) {
+        ordersBatch.data.forEach(function (o) {
+          if (o.shopPhone) allActiveShopPhones.push(o.shopPhone)
+        })
+      }
+      batchIdx++
+    }
+
+    // 4. 去重
+    var uniqueShops = []
+    var seen = {}
+    allActiveShopPhones.forEach(function (p) {
+      if (!seen[p]) {
+        seen[p] = true
+        uniqueShops.push(p)
+      }
+    })
+
+    console.log('[batchGenerateMonthlyReports] 发现', uniqueShops.length, '家活跃门店')
+
+    // 5. 串行逐个生成（避免数据库并发压力，单次云函数超时60s足够处理数百家门店）
+    var results = { success: 0, failed: 0, errors: [], skipped: 0 }
+
+    for (var i = 0; i < uniqueShops.length; i++) {
+      var sp = uniqueShops[i]
+      try {
+        // 调用已有的 generateMonthlyReport（传入空 openid 表示系统触发）
+        var result = await generateMonthlyReport(
+          { shopPhone: sp, yearMonth: yearMonth },
+          ''  // 定时触发器无真实 openid，generateMonthlyReport 内部会跳过鉴权
+        )
+        if (result.code === 0) {
+          results.success++
+        } else if (result.code === -2) {
+          // 该月暂无经营数据（有订单但可能被作废等情况），不算失败
+          results.skipped++
+        } else {
+          results.failed++
+          results.errors.push({ shopPhone: sp, msg: result.msg })
+        }
+      } catch (err) {
+        results.failed++
+        results.errors.push({ shopPhone: sp, error: err.message || String(err) })
+      }
+
+      // 每处理10家打印一次进度
+      if ((i + 1) % 10 === 0) {
+        console.log('[batchGenerateMonthlyReport 进度]', (i + 1) + '/' + uniqueShops.length)
+      }
+    }
+
+    console.log('[batchGenerateMonthlyReport 完成] 成功:', results.success, ' 失败:', results.failed, ' 跳过:', results.skipped)
+
+    return {
+      code: 0,
+      msg: '批量生成完成',
+      data: Object.assign(results, { yearMonth: yearMonth, totalShops: uniqueShops.length })
+    }
+  } catch (err) {
+    console.error('[batchGenerateMonthlyReport] 致命错误:', err)
+    return { code: -99, msg: '批量生成失败: ' + (err.message || '未知错误') }
+  }
+}
+
+// ============================
 // 路由入口
 // ============================
 exports.main = async (event, context) => {
@@ -1658,7 +1779,8 @@ exports.main = async (event, context) => {
     getMonthlyReport: getMonthlyReport,
     listRecentReports: listRecentReports,
     updateShopProfile: updateShopProfile,
-    getShopProfile: getShopProfile
+    getShopProfile: getShopProfile,
+    batchGenerateMonthlyReports: batchGenerateMonthlyReports
   }
 
   if (!handler[action]) {

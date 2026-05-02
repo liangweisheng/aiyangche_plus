@@ -47,11 +47,11 @@ Page({
 
   onLoad: function () {
     var page = this
-    // 先从本地缓存快速判断游客模式（多条件兜底）
-    var shopInfo = wx.getStorageSync('shopInfo') || {}
-    var isGuest = !!(shopInfo.isGuest || shopInfo.phone === '13507720000' || wx.getStorageSync('isGuestMode'))
+    // 统一用 shopPhone 判断游客模式（与 dashboard 保持一致）
+    var sp = (app.getShopPhone && app.getShopPhone()) || ''
+    var isGuest = (sp === '13507720000')
     if (isGuest) {
-      page.setData({ isGuest: true, isAdmin: false, shopPhone: (shopInfo.phone || '游客') + ' (演示账号)' })
+      page.setData({ isGuest: true, isAdmin: false, shopPhone: '135****0000 (演示账号)' })
     }
     app.whenCloudReady().then(function () {
       page.loadShopInfo()
@@ -71,11 +71,11 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init(3)
     }
-    // 同步刷新游客状态（多条件兜底）
-    var shopInfo = wx.getStorageSync('shopInfo') || {}
-    var isGuest = !!(shopInfo.isGuest || shopInfo.phone === '13507720000' || wx.getStorageSync('isGuestMode'))
+    // 同步刷新游客状态（与 dashboard 判断逻辑一致）
+    var sp2 = (app.getShopPhone && app.getShopPhone()) || ''
+    var isGuest = (sp2 === '13507720000')
     if (isGuest && !this.data.isGuest) {
-      page.setData({ isGuest: true, isAdmin: false, shopPhone: (shopInfo.phone || '游客') + ' (演示账号)' })
+      page.setData({ isGuest: true, isAdmin: false, shopPhone: '135****0000 (演示账号)' })
     }
     app.whenCloudReady().then(function () {
       page.loadShopInfo()
@@ -162,8 +162,16 @@ Page({
     }
 
     // 2. 从云数据库读取最新值（一次请求获取门店信息 + Pro状态）
+    // ★ v5.1.0 多端模式安全检查：无有效 openid 时跳过云端查询，
+    // 防止 query={ type:'free' } 返回别人的门店记录导致误显示
     try {
       var openid = wx.getStorageSync('openid') || ''
+      var _isMultiEnd = (app.globalData && app.globalData._isMultiEndMode)
+      if (_isMultiEnd && !openid) {
+        console.log('[loadShopInfo] 多端模式无openid，跳过云端查询（防止误加载他人数据）')
+        return
+      }
+
       var query = { type: 'free' }
       if (openid) {
         query.openid = openid

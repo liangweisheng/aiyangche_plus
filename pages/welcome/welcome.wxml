@@ -42,12 +42,12 @@
       </view>
     </view>
 
-    <!-- 按钮行：登录 + 取消 -->
+    <!-- 按钮行：登录 + 取消（多端App隐藏取消按钮，强制必须登录） -->
     <view class="btn-row">
       <button class="submit-btn btn-flex" bindtap="onLogin">
         {{submitting ? '登录中...' : '登录'}}
       </button>
-      <button class="cancel-btn" bindtap="onCancelLogin">取消</button>
+      <button class="cancel-btn" wx:if="{{!_isMultiEnd}}" bindtap="onCancelLogin">取消</button>
     </view>
 
     <!-- #ifdef MP-WEIXIN -->
@@ -117,7 +117,7 @@
       </view>
       <view class="modal-actions">
         <button class="modal-agree-btn" bindtap="onAgreeFromModal" disabled="{{!privacyChecked}}">同意并继续</button>
-        <button class="modal-cancel-btn" bindtap="onCancelPrivacyModal">暂不登录</button>
+        <button class="modal-cancel-btn" wx:if="{{!_isMultiEnd}}" bindtap="onCancelPrivacyModal">暂不登录</button>
       </view>
     </view>
   </view>
