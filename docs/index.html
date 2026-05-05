@@ -3,90 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI养车门店管理系统</title>
+    <title>AI养车门店管理系统 - 官网</title>
+    <meta name="description" content="AI养车门店管理系统是专为汽车维修门店打造的数字化经营管理工具，支持工单管理、车辆档案、会员管理、经营报表、AI诊断等核心功能，基于微信云开发构建，支持小程序和App多端运行。">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; }
-        .header { background: linear-gradient(135deg, #1677ff, #0958d9); color: white; padding: 60px 20px; text-align: center; }
-        .header h1 { font-size: 28px; margin-bottom: 10px; }
-        .header p { opacity: 0.9; font-size: 16px; }
-        .container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
-        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .card h2 { color: #1677ff; font-size: 18px; margin-bottom: 12px; border-left: 4px solid #1677ff; padding-left: 12px; }
-        .feature-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-        .feature-list li { background: #f0f5ff; padding: 10px 14px; border-radius: 8px; font-size: 14px; }
-        .flow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-        .flow-step { text-align: center; flex: 1; min-width: 120px; }
-        .flow-step .num { width: 36px; height: 36px; background: #1677ff; color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 6px; }
-        .footer { text-align: center; padding: 30px; color: #999; font-size: 13px; }
-        .tag { display: inline-block; background: #e6f7ff; color: #1677ff; padding: 2px 10px; border-radius: 12px; font-size: 12px; margin-right: 6px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f7fa; color: #333; line-height: 1.7; }
+        
+        /* Header */
+        .header { background: linear-gradient(135deg, #1677ff 0%, #0958d9 50%, #003a8c 100%); color: white; padding: 70px 20px; text-align: center; position: relative; overflow: hidden; }
+        .header::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%); }
+        .header h1 { font-size: 32px; margin-bottom: 12px; position: relative; letter-spacing: 1px; }
+        .header p { opacity: 0.92; font-size: 17px; max-width: 600px; margin: 0 auto; position: relative; }
+        .tags { margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; position: relative; }
+        .tag { display: inline-block; background: rgba(255,255,255,0.18); color: white; padding: 5px 16px; border-radius: 20px; font-size: 13px; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
+
+        /* Container */
+        .container { max-width: 900px; margin: 36px auto; padding: 0 20px; }
+        .card { background: white; border-radius: 14px; padding: 30px; margin-bottom: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); transition: box-shadow 0.3s; }
+        .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .card h2 { color: #1677ff; font-size: 20px; margin-bottom: 16px; border-left: 4px solid #1677ff; padding-left: 14px; }
+        .card h3 { color: #333; font-size: 16px; margin: 18px 0 10px; }
+
+        /* Feature Grid */
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; list-style: none; }
+        .feature-grid li { background: linear-gradient(135deg, #f0f5ff, #e6f4ff); padding: 16px 18px; border-radius: 10px; font-size: 14px; border-left: 3px solid #1677ff; }
+        .feature-grid li strong { color: #1677ff; display: block; margin-bottom: 4px; font-size: 15px; }
+
+        /* Scenario Cards */
+        .scenario-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; list-style: none; }
+        .scenario-list li { background: #fafafa; padding: 18px; border-radius: 10px; text-align: center; border: 1px solid #eee; }
+        .scenario-list li .icon { font-size: 28px; margin-bottom: 8px; }
+        .scenario-list li strong { display: block; color: #333; margin-bottom: 4px; }
+        .scenario-list li span { font-size: 13px; color: #888; }
+
+        /* Flow Steps */
+        .flow-steps { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+        .flow-step { text-align: center; flex: 1; min-width: 140px; }
+        .flow-step .num { width: 44px; height: 44px; background: linear-gradient(135deg, #1677ff, #0958d9); color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin-bottom: 10px; box-shadow: 0 3px 10px rgba(22,119,255,0.3); }
+        .flow-step .label { font-weight: 600; font-size: 14px; color: #333; }
+        .flow-step .desc { font-size: 12px; color: #888; margin-top: 4px; }
+        .flow-arrow { font-size: 24px; color: #ccc; align-self: center; margin-top: -20px; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+        th { background: #f5f7fa; padding: 12px 14px; text-align: left; color: #555; font-weight: 600; border-bottom: 2px solid #e8e8e8; }
+        td { padding: 11px 14px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover td { background: #fafafa; }
+
+        /* Contact Cards */
+        .contact-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+        .contact-card { background: linear-gradient(135deg, #f0f5ff, #fff); padding: 20px; border-radius: 10px; border: 1px solid #d6e8ff; text-align: center; }
+        .contact-card .c-icon { font-size: 28px; margin-bottom: 8px; }
+        .contact-card strong { display: block; color: #1677ff; font-size: 15px; margin-bottom: 4px; }
+        .contact-card span { font-size: 13px; color: #666; }
+
+        /* FAQ */
+        .faq-item { border-bottom: 1px solid #f0f0f0; padding: 14px 0; }
+        .faq-item:last-child { border-bottom: none; }
+        .faq-q { font-weight: 600; color: #333; margin-bottom: 6px; cursor: pointer; }
+        .faq-q::before { content: 'Q '; color: #1677ff; font-weight: bold; }
+        .faq-a { color: #666; font-size: 14px; padding-left: 18px; }
+        .faq-a::before { content: 'A '; color: #52c41a; font-weight: bold; }
+
+        /* Footer */
+        .footer { background: #2c2c2c; color: #aaa; text-align: center; padding: 36px 20px; margin-top: 40px; }
+        .footer a { color: #69b1ff; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        .footer-links { margin-bottom: 12px; }
+        .footer-links a { margin: 0 12px; font-size: 13px; }
+
+        /* Highlight */
+        .highlight { background: linear-gradient(120deg, #e6f7ff 0%, #bae7ff 100%); border-left: 4px solid #1677ff; padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+
+        @media (max-width: 600px) {
+            .header h1 { font-size: 24px; }
+            .container { margin: 20px auto; }
+            .card { padding: 20px; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .flow-arrow { display: none; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>AI养车门店管理系统</h1>
-        <p>专为汽车维修门店打造的数字化经营工具</p>
-        <div style="margin-top:16px;">
-            <span class="tag">工单管理</span>
-            <span class="tag">车辆档案</span>
-            <span class="tag">会员管理</span>
-            <span class="tag">经营报表</span>
-            <span class="tag">AI诊断</span>
+
+<div class="header">
+    <h1>AI养车门店管理系统</h1>
+    <p>专为汽车后市场门店打造的智能数字化经营工具 —— 工单、车辆、会员、报表、AI诊断，一站搞定</p>
+    <div class="tags">
+        <span class="tag">微信小程序</span>
+        <span class="tag">Android App</span>
+        <span class="tag">iOS App</span>
+        <span class="tag">云端同步</span>
+        <span class="tag">AI 经营诊断</span>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- 产品简介 -->
+    <div class="card">
+        <h2>关于 AI养车门店管理系统</h2>
+        <p><strong>AI养车门店管理系统</strong>（以下简称"本应用"）是一款专为<strong>汽车维修门店、美容快修店、轮胎专营店、4S店售后部门</strong>等汽车后市场经营者打造的轻量级 SaaS 管理工具。</p>
+        <div class="highlight">
+            核心价值：让每一家中小型汽修门店都能用上数字化管理系统，无需购买服务器、无需 IT 运维人员，打开手机即可管理全店业务。
         </div>
+        <p style="margin-top: 12px;">本应用基于<strong>微信云开发平台</strong>（Serverless 架构）构建，数据存储于腾讯云数据库，支持多端运行——包括<strong>微信小程序、Android App、iOS App</strong>，多端数据实时同步。</p>
+        <p style="margin-top: 10px;">本应用通过 AI 能力为门店提供<strong>月度经营诊断报告</strong>，涵盖客源分析、维保结构、客单价趋势、健康评分等维度，帮助店主科学决策、提升经营效率。</p>
     </div>
 
-    <div class="container">
-        <div class="card">
-            <h2>产品简介</h2>
-            <p>AI养车门店管理系统是一款面向汽车维修门店的轻量级经营管理工具，基于微信云开发构建，支持多端运行（微信小程序、Android App、iOS App）。</p>
-            <p style="margin-top:8px;">帮助门店实现工单数字化、车辆档案电子化、会员管理精细化、经营数据可视化，并通过 AI 能力提供月度经营诊断报告。</p>
-        </div>
+    <!-- 核心功能 -->
+    <div class="card">
+        <h2>核心功能</h2>
+        <ul class="feature-grid">
+            <li><strong>📋 工单管理</strong>快速开单、项目录入、核销结算、作废退款，全流程数字化跟踪</li>
+            <li><strong>🚗 车辆档案</strong>车牌识别、车型记录、维修历史、电子查车单</li>
+            <li><strong>👥 会员管理</strong>会员登记、积分权益、消费记录、标签分组</li>
+            <li><strong>📊 经营报表</strong>今日/本周/本月/本年多维度数据统计与可视化</li>
+            <li><strong>🤖 AI 月度诊断</strong>自动生成月度经营报告 + 行业对标 + 改进建议</li>
+            <li><strong>👨‍💼 多角色权限</strong>管理员 / 店员分级权限，保障数据安全</li>
+            <li><strong>📱 多端同步</strong>小程序 + App 多端运行，数据实时云同步</li>
+            <li><strong>☁️ 零运维成本</strong>基于微信云开发 Serverless，免服务器维护</li>
+            <li><strong>🔐 数据安全</strong>微信云数据库加密存储，支持员工账号隔离</li>
+            <li><strong>📈 Dashboard 仪表盘</strong>首页实时展示今日核心经营指标概览</li>
+        </ul>
+    </div>
 
-        <div class="card">
-            <h2>核心功能</h2>
-            <ul class="feature-list">
-                <li>工单开单/核销/作废</li>
-                <li>车辆档案管理</li>
-                <li>会员信息与权益</li>
-                <li>日/周/月/年报表</li>
-                <li>AI月度经营诊断</li>
-                <li>多角色权限管理</li>
-                <li>电子查车单</li>
-                <li>数据导出</li>
-            </ul>
-        </div>
+    <!-- 适用场景 -->
+    <div class="card">
+        <h2>适用场景</h2>
+        <ul class="scenario-list">
+            <li><div class="icon">🔧</div><strong>综合维修厂</strong><span>维修保养一体化管理</span></li>
+            <li><div class="icon">✨</div><strong>美容快修店</strong><span>快速接单、会员营销</span></li>
+            <li><div class="icon">🛞</div><strong>轮胎专营店</strong><span>库存+安装+客户档案</span></li>
+            <li><div class="icon">🏢</div><strong>4S店售后</strong><span>售后服务工单数字化</span></li>
+        </ul>
+    </div>
 
-        <div class="card">
-            <h2>运行流程</h2>
-            <div class="flow">
-                <div class="flow-step"><div class="num">1</div><div>启动应用</div></div>
-                <div class="flow-step"><div class="num">2</div><div>手机号登录</div></div>
-                <div class="flow-step"><div class="num">3</div><div>进入主界面</div></div>
-                <div class="flow-step"><div class="num">4</div><div>使用各功能模块</div></div>
-                <div class="flow-step"><div class="num">5</div><div>数据云端同步</div></div>
+    <!-- 使用流程 -->
+    <div class="card">
+        <h2>使用流程</h2>
+        <div class="flow-steps">
+            <div class="flow-step">
+                <div class="num">1</div>
+                <div class="label">下载并打开应用</div>
+                <div class="desc">微信搜索或应用商店下载</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="num">2</div>
+                <div class="label">手机号注册/登录</div>
+                <div class="desc">新用户完成门店注册</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="num">3</div>
+                <div class="label">进入仪表盘首页</div>
+                <div class="desc">查看今日经营概况</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="num">4</div>
+                <div class="label">使用各功能模块</div>
+                <div class="desc">开单/查车/管会员/看报表</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="num">5</div>
+                <div class="label">数据云端自动同步</div>
+                <div class="desc">多设备数据一致</div>
             </div>
         </div>
 
-        <div class="card">
-            <h2>技术架构</h2>
-            <p><strong>前端框架：</strong>微信原生小程序 + Donut 多端框架</p>
-            <p style="margin-top:6px;"><strong>后端服务：</strong>微信云开发（云函数 + 云数据库）</p>
-            <p style="margin-top:6px;"><strong>数据存储：</strong>微信云数据库（无需自建服务器）</p>
-        </div>
+        <h3>详细操作说明</h3>
+        <table>
+            <tr><th style="width:140px;">步骤</th><th>操作说明</th></tr>
+            <tr><td>注册登录</td><td>首次使用需用手机号注册，填写门店名称、联系方式等基础信息完成开店设置</td></tr>
+            <tr><td>添加车辆</td><td>在「车辆管理」中录入客户车辆信息（车牌号、品牌、车型等），建立电子档案</td></tr>
+            <tr><td>创建工单</td><td>选择车辆 → 选择服务项目 → 录入金额 → 生成工单 → 服务完成后核销</td></tr>
+            <tr><td>会员管理</td><td>将客户设为会员，享受专属权益和优惠，记录消费轨迹</td></tr>
+            <tr><td>查看报表</td><td>在「报表中心」查看日/周/月/年营收趋势、客源分析、热门项目排行</td></tr>
+            <tr><td>A I 诊断</td><td>每月初自动生成上月经营诊断报告，含健康评分和改进建议</td></tr>
+            <tr><td>团队协作</td><td>管理员可邀请店员加入，分配角色权限，共同管理门店</td></tr>
+        </table>
+    </div>
 
-        <div class="card">
-            <h2>应用平台</h2>
-            <table style="width:100%;border-collapse:collapse;font-size:14px;">
-                <tr style="background:#f5f5f5;"><th style="padding:8px;text-align:left;">平台</th><th style="padding:8px;text-align:left;">状态</th></tr>
-                <tr><td style="padding:8px;border-bottom:1px solid #eee;">微信小程序</td><td style="padding:8px;border-bottom:1px solid #eee;color:#52c41a;">已上线</td></tr>
-                <tr><td style="padding:8px;border-bottom:1px solid #eee;">Android App</td><td style="padding:8px;border-bottom:1px solid #eee;color:#1677ff;">开发中</td></tr>
-                <tr><td style="padding:8px;">iOS App</td><td style="padding:8px;color:#1677ff;">开发中</td></tr>
-            </table>
+    <!-- 技术优势 -->
+    <div class="card">
+        <h2>技术优势</h2>
+        <table>
+            <tr><th style="width:160px;">特性</th><th>说明</th></tr>
+            <tr><td>Serverless 架构</td><td>基于微信云开发，无需自建服务器，按量付费，成本低廉</td></tr>
+            <tr><td>多端统一</td><td>一套代码编译为小程序 / Android / iOS 三端，体验一致</td></tr>
+            <tr><td>数据安全</td><td>腾讯云数据库加密存储，传输链路 HTTPS 加密</td></tr>
+            <tr><td>离线可用</td><td>本地缓存策略，弱网络环境下仍可正常使用基础功能</td></tr>
+            <tr><td>极速启动</td><td>原生渲染引擎，冷启动时间 &lt; 2 秒</td></tr>
+        </table>
+    </div>
+
+    <!-- 应用状态 -->
+    <div class="card">
+        <h2>应用发布状态</h2>
+        <table>
+            <tr><th style="width:180px;">平台</th><th>版本状态</th><th>说明</th></tr>
+            <tr><td>微信小程序</td><td style="color:#52c41a;font-weight:600;">✅ 已上线运营</td><td>可在微信内搜索"AI养车"使用</td></tr>
+            <tr><td>Android App</td><td style="color:#1677ff;font-weight:600;">🔵 开发中</td><td>正在申请开放平台移动应用审核</td></tr>
+            <tr><td>iOS App</td><td style="color:#999;font-weight:600;">⚪ 规划中</td><td>待 Android 版本稳定后开发</td></tr>
+        </table>
+    </div>
+
+    <!-- 服务与支持 -->
+    <div class="card">
+        <h2>服务与支持</h2>
+        <div class="contact-grid">
+            <div class="contact-card">
+                <div class="c-icon">📞</div>
+                <strong>客服电话</strong>
+                <span>178-0772-5166</span>
+            </div>
+            <div class="contact-card">
+                <div class="c-icon">📧</div>
+                <strong>客服邮箱</strong>
+                <span>lws_online@163.com</span>
+            </div>
+            <div class="contact-card">
+                <div class="c-icon">🕐</div>
+                <strong>服务时间</strong>
+                <span>周一至周六 9:00-21:00</span>
+            </div>
+            <div class="contact-card">
+                <div class="c-icon">📝</div>
+                <strong>反馈渠道</strong>
+                <span>应用内反馈 / 邮件</span>
+            </div>
         </div>
     </div>
 
-    <div class="footer">
-        <p>&copy; 2026 AI养车门店管理系统 &middot; 基于微信云开发构建</p>
+    <!-- FAQ -->
+    <div class="card">
+        <h2>常见问题</h2>
+        <div class="faq-item">
+            <div class="faq-q">AI养车门店管理系统收费吗？</div>
+            <div class="faq-a">本应用提供免费基础版和 Pro 专业版。免费版可满足日常基本需求；Pro 版提供更多高级功能如 AI 月度诊断、员工管理等。具体请以应用内说明为准。</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">我的数据安全吗？存在哪里？</div>
+            <div class="faq-a">所有数据存储在微信云数据库（由腾讯云计算有限公司托管），采用企业级加密方案，传输全程 HTTPS。我们不会将您的经营数据用于任何第三方用途。</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">可以在多台设备上同时使用吗？</div>
+            <div class="faq-a">可以。同一账号支持在微信小程序、Android App、iOS App 上同时登录，所有数据实时云端同步，多端一致。</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">如何给员工开通账号？</div>
+            <div class="faq-a">管理员（店主）在应用内的「我的」页面可进入员工管理，通过手机号邀请员工，并设置店员或管理员角色权限。</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">AI 月度诊断报告是什么？</div>
+            <div class="faq-a">系统每月自动分析您门店的上月经营数据（客流量、客单价、复购率、维保比例等），生成包含行业对标、健康评分、改进建议的智能诊断报告（Pro 功能）。</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">没有网络时能用吗？</div>
+            <div class="faq-a">可以。应用内置本地缓存机制，离线状态下可查看已有数据、浏览车辆档案。联网后会自动同步最新数据到云端。</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">如何联系客服获取帮助？</div>
+            <div class="faq-a">您可以通过以下方式联系我们：客服电话 178-0772-5166（工作日 9:00-21:00），或发送邮件至 lws_online@163.com，我们会在 24 小时内回复。</div>
+        </div>
     </div>
+
+    <!-- 关于我们 -->
+    <div class="card">
+        <h2>关于我们</h2>
+        <p>AI养车门店管理系统致力于为中国数百万中小型汽车后市场门店提供<strong>简单、高效、低成本</strong>的数字化管理解决方案。</p>
+        <p style="margin-top: 10px;">我们相信，每一一家门店都值得拥有专业的管理工具。不需要昂贵的软件费用、不需要专业的 IT 团队，只需一部手机，即可实现门店经营的全面数字化转型。</p>
+        <div class="highlight" style="margin-top: 16px;">
+            愿景：让中国每一家汽修门店都能轻松实现数字化经营
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">
+    <div class="footer-links">
+        <a href="index.html">首页</a>
+        <a href="privacy.html">隐私政策</a>
+    </div>
+    <p>&copy; 2026 AI养车门店管理系统 · 基于微信云开发平台构建</p>
+    <p style="margin-top:6px;font-size:12px;">客服电话：178-0772-5166 · 客服邮箱：lws_online@163.com</p>
+</div>
+
 </body>
 </html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI养车门店管理系统 - 应用运行流程图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .flowchart-wrapper {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+            padding: 40px 50px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        /* 标题区 */
+        .fc-header {
+            text-align: center;
+            margin-bottom: 36px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #1677ff;
+        }
+        .fc-header h1 {
+            font-size: 26px;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+        .fc-header p {
+            color: #888;
+            font-size: 14px;
+        }
+
+        /* 流程图主体 */
+        .flowchart { display: flex; flex-direction: column; align-items: center; }
+
+        /* 节点通用样式 */
+        .node {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-weight: 600;
+            text-align: center;
+            transition: transform 0.15s;
+            cursor: default;
+        }
+        .node:hover { transform: translateY(-1px); }
+
+        .node-main {
+            width: 220px;
+            height: 58px;
+            background: linear-gradient(135deg, #1677ff, #0958d9);
+            color: white;
+            font-size: 17px;
+            border-radius: 29px;
+            box-shadow: 0 4px 14px rgba(22,119,255,0.35);
+        }
+
+        .node-process {
+            width: 200px;
+            height: 54px;
+            background: linear-gradient(135deg, #e6f4ff, #d6eaff);
+            color: #1677ff;
+            font-size: 15px;
+            border: 2px solid #91caff;
+            border-radius: 10px;
+        }
+
+        /* 菱形判断框 - 加大尺寸 */
+        .node-decision {
+            width: 200px;
+            height: 80px;
+            background: linear-gradient(135deg, #fffbe6, #fff1b8);
+            color: #ad6800;
+            font-size: 15px;
+            border: 2px dashed #ffd666;
+            clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .node-decision:hover { transform: scale(1.03); }
+
+        .node-action {
+            min-width: 160px;
+            max-width: 200px;
+            height: 48px;
+            padding: 0 18px;
+            background: white;
+            color: #444;
+            font-size: 14px;
+            border: 2px solid #d9d9d9;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .node-action:hover { border-color: #1677ff; color: #1677ff; }
+
+        .node-success {
+            background: linear-gradient(135deg, #f6ffed, #d9f7be);
+            color: #389e0d;
+            border-color: #95de64;
+        }
+        .node-success:hover { border-color: #52c41a; }
+
+        /* 连接线 - 加大间距 */
+        .connector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #bbb;
+            font-size: 22px;
+            line-height: 1;
+            user-select: none;
+        }
+        .connector-down { height: 32px; }
+        .connector-down-lg { height: 42px; }
+
+        /* 判断区域整体包装 */
+        .decision-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            margin: 10px 0;
+        }
+        .decision-row-labels {
+            display: flex;
+            width: 520px;
+            justify-content: space-between;
+            padding: 0 20px;
+            margin-top: 6px;
+        }
+        .decision-label {
+            font-size: 13px;
+            color: #888;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .decision-label.left { text-align: left; }
+        .decision-label.right { text-align: right; }
+
+        /* 分支布局 - 加大间距 */
+        .branch-container {
+            display: flex;
+            gap: 60px;
+            position: relative;
+            margin: 16px 0;
+        }
+        .branch-line-v {
+            width: 2px;
+            height: 28px;
+            background: #ccc;
+            margin: 0 auto;
+        }
+        .branch-line-h {
+            height: 2px;
+            background: #ccc;
+            position: absolute;
+            top: -14px;
+            left: calc(50% - calc(var(--blw) / 2));
+            width: var(--blw);
+        }
+        .branch-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .branch-col .connector:first-child { height: 26px; }
+        .branch-arrow {
+            font-size: 18px;
+            color:#999;
+            margin: 4px 0;
+        }
+
+        /* 模块分组 */
+        .module-group {
+            border: 2px solid #e8e8e8;
+            border-radius: 14px;
+            padding: 30px 24px 24px;
+            margin: 12px 0;
+            background: #fafbfc;
+            position: relative;
+            width: 100%;
+            max-width: 920px;
+        }
+        .module-title {
+            position: absolute;
+            top: -14px;
+            left: 24px;
+            background: white;
+            padding: 3px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1677ff;
+            border: 2px solid #1677ff;
+            border-radius: 12px;
+        }
+        .module-inner {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        /* 汇合线 */
+        .merge-line-h {
+            height: 2px;
+            background: #ccc;
+            width: var(--mlw);
+        }
+        .merge-line-v {
+            width: 2px;
+            height: 28px;
+            background: #ccc;
+            margin: 0 auto;
+        }
+
+        /* 终点 */
+        .node-end {
+            width: 240px;
+            height: 56px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            font-size: 15px;
+            border-radius: 28px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+
+        /* 图例 */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            justify-content: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+        .legend-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 5px;
+            border: 2px solid;
+            flex-shrink: 0;
+        }
+
+        /* 页脚信息 */
+        .fc-footer {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px dashed #ddd;
+            color: #aaa;
+            font-size: 12px;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .flowchart-wrapper { box-shadow: none; padding: 20px; }
+            .node:hover { transform: none; }
+        }
+
+        @media (max-width: 800px) {
+            .flowchart-wrapper { padding: 20px; }
+            .branch-container { flex-direction: column; gap: 16px; align-items: center; }
+            .module-group { padding: 30px 16px; }
+            .module-inner { flex-direction: column; align-items: center; }
+            .decision-row-labels { width: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="flowchart-wrapper">
+
+    <!-- 标题 -->
+    <div class="fc-header">
+        <h1>🚗 AI养车门店管理系统 — 业务运行流程图</h1>
+        <p>用户视角 · 主线业务流程（版本 v5.2.0 | 更新日期：2026-05-05）</p>
+    </div>
+
+    <div class="flowchart">
+
+        <!-- ========== 阶段1：启动与登录 ========== -->
+        <div class="node node-main">📱 打开应用</div>
+
+        <div class="connector connector-down">▼</div>
+
+        <div class="node node-process">🔐 手机号登录 / 注册</div>
+
+        <div class="connector connector-down-lg">▼</div>
+
+        <!-- 判断节点：新/老用户 -->
+        <div class="decision-wrapper">
+            <div class="node node-decision">新 / 老用户 ?</div>
+            <div class="decision-row-labels">
+                <span class="decision-label left">← 老用户</span>
+                <span class="decision-label right">新用户 →</span>
+            </div>
+        </div>
+
+        <div class="branch-line-v"></div>
+
+        <div class="branch-container">
+
+            <!-- 左分支：新用户 -->
+            <div class="branch-col">
+                <div class="branch-arrow">↙</div>
+                <div class="node node-action">自动注册门店账号</div>
+                <div class="connector connector-down">▼</div>
+                <div class="node node-action">填写门店基本信息</div>
+                <div class="connector connector-down">▼</div>
+                <div class="node node-action">激活 Pro 版本（可选）</div>
+                <div class="connector connector-down">▼</div>
+                <div class="node node-action node-success">✅ 完成开店设置</div>
+            </div>
+
+            <!-- 右分支：老用户 -->
+            <div class="branch-col">
+                <div class="branch-arrow">↘</div>
+                <div class="node node-action node-success">识别身份<br><span style="font-weight:normal;color:#888;font-size:11px;">管理员 / 店员 / 游客</span></div>
+            </div>
+        </div>
+
+        <div class="merge-line-h" style="--mlw:320px;"></div>
+        <div class="merge-line-v"></div>
+
+        <!-- ========== 阶段2：进入主界面 ========== -->
+        <div class="node node-main">🏠 进入首页仪表盘</div>
+
+        <div class="connector connector-down">▼</div>
+
+        <div class="node node-action" style="min-width:320px;">查看今日经营概览（营收 | 工单数 | 新增会员）</div>
+
+        <div class="connector connector-down-lg">▼</div>
+
+        <!-- ========== 阶段3：四大功能模块 ========== -->
+        <div class="module-group" style="--blw:840px;">
+            <div class="module-title">选择功能模块</div>
+            <div class="module-inner">
+
+                <!-- 模块1：工单管理 -->
+                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                    <div class="node node-process">📋 工单管理</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">新建工单</div>
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">编辑 / 核销 / 作废</div>
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">填写电子查车单</div>
+                    </div>
+                </div>
+
+                <!-- 模块2：车辆档案 -->
+                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                    <div class="node node-process">🚗 车辆档案</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">添加车辆信息</div>
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">查询维修历史</div>
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">车牌选择器</div>
+                    </div>
+                </div>
+
+                <!-- 模块3：会员管理 -->
+                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                    <div class="node node-process">👥 会员管理</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">新增会员登记</div>
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">权益核销使用</div>
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">消费记录查询</div>
+                    </div>
+                </div>
+
+                <!-- 模块4：报表中心 -->
+                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                    <div class="node node-process">📊 报表中心</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">今日实时报表</div>
+                        <div class="node node-action" style="height:36px;padding:0 12px;font-size:13px;">周 / 月 / 年报表</div>
+                        <div class="node node-action node-success" style="height:36px;padding:0 12px;font-size:13px;">🤖 AI 月度诊断报告</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="branch-line-v"></div>
+
+        <!-- ========== 阶段4：数据同步 ========== -->
+        <div class="node node-process">☁️ 数据云端同步存储</div>
+
+        <div class="connector connector-down">▼</div>
+
+        <div class="node node-action" style="min-width:340px;border-color:#95de64;background:#f6ffed;">
+            ✅ 多端数据一致 &nbsp;|&nbsp; 小程序 · Android · iOS
+        </div>
+
+        <div class="connector connector-down">▼</div>
+
+        <!-- 终点 -->
+        <div class="node node-end">🎉 流程结束 — 数据已安全保存至云端</div>
+
+    </div>
+
+    <!-- 图例 -->
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#1677ff,#0958d9);border-color:#1677ff;"></div>主要步骤</div>
+        <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#e6f4ff,#d6eaff);border-color:#91caff;"></div>处理过程</div>
+        <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#fffbe6,#fff1b8);border-color:#ffd666;"></div>判断分支</div>
+        <div class="legend-item"><div class="legend-dot" style="background:white;border-color:#d9d9d9;"></div>具体操作</div>
+        <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#f6ffed,#d9f7be);border-color:#95de64;"></div>完成状态</div>
+        <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-color:#1a1a2e;"></div>流程终点</div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="fc-footer">
+        AI养车门店管理系统 v5.2.0 · 基于微信云开发平台构建 · 联系方式：178-0772-5166 / lws_online@163.com
+    </div>
+
+</div>
+
+</body>
+</html>
