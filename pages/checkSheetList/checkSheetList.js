@@ -78,6 +78,9 @@ Page({
       .limit(page.PAGE_SIZE)
       .get({
         success: function (res) {
+          // 检查项 key 列表（与 checkSheetDetail / checkSheet 保持一致）
+          var checkKeys = ['exterior', 'tire', 'oil', 'battery', 'brake', 'light', 'chassis', 'other']
+
           var items = res.data.map(function (item) {
             if (item.createTime) {
               var d = new Date(item.createTime)
@@ -85,6 +88,24 @@ Page({
               item.dateStr = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
               item.timeStr = pad(d.getHours()) + ':' + pad(d.getMinutes())
             }
+            // 计算每条查车单的三态统计
+            var s = { normal: 0, abnormal: 0, pending: 0 }
+            var ci = item.checkItems
+            if (ci) {
+              for (var k = 0; k < checkKeys.length; k++) {
+                var v = ci[checkKeys[k]]
+                if (v && v.normal === true) {
+                  s.normal++
+                } else if (v && v.value && v.value !== '该项未检查') {
+                  s.abnormal++
+                } else {
+                  s.pending++
+                }
+              }
+            } else {
+              s.pending = 8
+            }
+            item._stats = s
             return item
           })
 

@@ -181,9 +181,11 @@ Page({
         reportData = page._enrichReportData(reportData)
 
         // ★ 获取最新门店配置用于基准文案（reportData中的shopProfile是历史快照）
+        var myOpenid = app.globalData._openid || (wx.getStorageSync('shopInfo') || {}).openid || ''
         return app.callFunction('repair_main', {
           action: 'getShopProfile',
-          shopPhone: shopPhone
+          shopPhone: shopPhone,
+          clientOpenid: myOpenid   // ★ 传入 openid 做鉴权（修复 -3 "未登录" bug）
         }).then(function (profileRes) {
           // 用最新配置覆盖报告中的旧快照（仅影响benchmarkText展示）
           if (profileRes.code === 0 && profileRes.data && profileRes.data.bayCount !== undefined) {

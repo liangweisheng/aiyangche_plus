@@ -6,7 +6,13 @@
     <view class="card-header">
       <view class="plate-header-left">
         <text class="plate">{{carInfo.plate}}</text>
-        <text class="owner-name" wx:if="{{carInfo.ownerName}}">{{carInfo.ownerName}}</text>
+        <view class="owner-stats" wx:if="{{carInfo._totalAmount >= 0}}">
+          <text class="stat-label">累计消费</text>
+          <text class="stat-value">¥{{carInfo._totalAmount || 0}}</text>
+          <text class="stat-divider">|</text>
+          <text class="stat-label">工单数</text>
+          <text class="stat-value">{{carInfo._orderCount || 0}}单</text>
+        </view>
       </view>
       <view class="plate-tag">车辆档案</view>
     </view>
@@ -24,6 +30,10 @@
         <view class="info-item">
           <text class="info-label">里程</text>
           <text class="info-value">{{carInfo.mileage || 0}}km</text>
+        </view>
+        <!-- 无会员时：添加会员权益入口 -->
+        <view class="add-member-btn" wx:if="{{!memberInfo}}" bindtap="onGoMemberBenefit">
+          <text>+ 新增会员权益</text>
         </view>
       </view>
       <view class="info-row" wx:if="{{carInfo.vin}}">
@@ -78,7 +88,7 @@
       <view class="info-row-card" wx:if="{{carInfo.phone}}" data-phone="{{carInfo.phone}}" bindtap="onPhoneTap">
         <text class="label">车主电话</text>
         <view class="phone-action">
-          <text class="value">{{carInfo.phone}}</text>
+          <text class="value">{{carInfo._maskedPhone}}</text>
           <text class="phone-tap-hint">点击拨打</text>
         </view>
       </view>
@@ -124,69 +134,6 @@
     </view>
   </view>
 
-  <!-- 会员权益 -->
-  <view class="info-section" wx:if="{{memberInfo}}">
-    <view class="section-title-row">
-      <text class="section-title">会员权益</text>
-      <text class="edit-btn" style="color:#722ed1;background:rgba(114,46,209,0.08);" bindtap="onGoMemberBenefit">+ 登记权益</text>
-    </view>
-    <!-- 多权益列表 -->
-    <block wx:if="{{memberInfo.benefits && memberInfo.benefits.length > 0}}">
-      <view class="benefit-card" wx:for="{{memberInfo.benefits}}" wx:key="index" style="margin-bottom: 16rpx;">
-        <view class="benefit-header">
-          <view class="benefit-left">
-            <text class="benefit-name-tag">🎫</text>
-            <text class="benefit-title">{{item.name}}</text>
-          </view>
-          <view class="use-btn" bindtap="onUseBenefit" data-index="{{index}}">使用1次</view>
-        </view>
-        <view class="benefit-body">
-          <view class="benefit-stat">
-            <text class="stat-num">{{item.total || 0}}</text>
-            <text class="stat-label">总次数</text>
-          </view>
-          <view class="benefit-divider-v"></view>
-          <view class="benefit-stat">
-            <text class="stat-num remain">{{item.remain || 0}}</text>
-            <text class="stat-label">剩余次数</text>
-          </view>
-        </view>
-      <view class="benefit-footer" wx:if="{{(item.remain || 0) <= 0}}">
-        <text class="benefit-expired">权益次数已用完</text>
-        <text class="benefit-del-btn" bindtap="onRemoveBenefit" data-index="{{index}}">删除此权益</text>
-      </view>
-    </view>
-    </block>
-    <!-- 兼容旧数据：单权益 -->
-    <view class="benefit-card" wx:elif="{{memberInfo.benefitName}}">
-      <view class="benefit-header">
-        <view class="benefit-left">
-          <text class="benefit-name-tag">🎫</text>
-          <text class="benefit-title">{{memberInfo.benefitName}}</text>
-        </view>
-        <view class="use-btn" bindtap="onUseBenefit" data-index="{{0}}">使用1次</view>
-      </view>
-      <view class="benefit-body">
-        <view class="benefit-stat">
-          <text class="stat-num">{{memberInfo.benefitTotal || 0}}</text>
-          <text class="stat-label">总次数</text>
-        </view>
-        <view class="benefit-divider-v"></view>
-        <view class="benefit-stat">
-          <text class="stat-num remain">{{memberInfo.benefitRemain || 0}}</text>
-          <text class="stat-label">剩余次数</text>
-        </view>
-      </view>
-      <view class="benefit-footer" wx:if="{{(memberInfo.benefitRemain || 0) <= 0}}">
-        <text class="benefit-expired">权益次数已用完</text>
-        <text class="benefit-del-btn" bindtap="onRemoveBenefit" data-index="{{0}}">删除此权益</text>
-      </view>
-    </view>
-    <view class="info-card" wx:else>
-      <text class="no-benefit-hint">该会员尚未登记权益套餐</text>
-    </view>
-  </view>
-
   <!-- 功能入口 -->
   <view class="actions-section">
     <view class="section-title">快捷操作</view>
@@ -214,8 +161,87 @@
     </view>
   </view>
 
+  <!-- 会员权益 -->
+  <view class="info-section" wx:if="{{memberInfo}}">
+    <view class="section-title-row">
+      <text class="section-title">会员权益</text>
+      <text class="edit-btn" style="color:#722ed1;background:rgba(114,46,209,0.08);" bindtap="onGoMemberBenefit">+ 登记权益</text>
+    </view>
+    <!-- 多权益列表 -->
+    <block wx:if="{{memberInfo.benefits && memberInfo.benefits.length > 0}}">
+      <view class="benefit-card" wx:for="{{memberInfo.benefits}}" wx:key="index" style="margin-bottom: 16rpx;">
+        <view class="benefit-header">
+          <view class="benefit-left">
+            <text class="benefit-name-tag">🎫</text>
+            <text class="benefit-title">{{item.name}}</text>
+          </view>
+          <view class="use-btn" bindtap="onUseBenefit" data-index="{{index}}">使用1次</view>
+        </view>
+        <view class="benefit-body">
+          <view class="benefit-stat">
+            <text class="stat-num">{{item.total || 0}}</text>
+            <text class="stat-label">总次数</text>
+          </view>
+          <view class="benefit-divider-v"></view>
+          <view class="benefit-stat">
+            <text class="stat-num remain">{{item.remain || 0}}</text>
+            <text class="stat-label">剩余次数</text>
+          </view>
+        </view>
+        <view class="benefit-added-time" wx:if="{{item.addedTimeFormatted || memberInfo.operatorPhone}}">
+          <text wx:if="{{memberInfo.operatorPhone}}">开卡人：{{memberInfo._maskedOperatorPhone}}</text>
+          <text wx:if="{{memberInfo.operatorPhone && item.addedTimeFormatted}}" style="margin-left:24rpx;"></text>
+          <text wx:if="{{item.addedTimeFormatted}}">开卡时间：{{item.addedTimeFormatted}}</text>
+        </view>
+        <view class="benefit-remark" wx:if="{{item.remark}}">
+          <text>备注：{{item.remark}}</text>
+        </view>
+      <view class="benefit-footer" wx:if="{{(item.remain || 0) <= 0}}">
+        <text class="benefit-expired">权益次数已用完</text>
+        <text class="benefit-del-btn" bindtap="onRemoveBenefit" data-index="{{index}}">删除此权益</text>
+      </view>
+    </view>
+    </block>
+    <!-- 兼容旧数据：单权益 -->
+    <view class="benefit-card" wx:elif="{{memberInfo.benefitName}}">
+      <view class="benefit-header">
+        <view class="benefit-left">
+          <text class="benefit-name-tag">🎫</text>
+          <text class="benefit-title">{{memberInfo.benefitName}}</text>
+        </view>
+        <view class="use-btn" bindtap="onUseBenefit" data-index="{{0}}">使用1次</view>
+      </view>
+      <view class="benefit-body">
+        <view class="benefit-stat">
+          <text class="stat-num">{{memberInfo.benefitTotal || 0}}</text>
+          <text class="stat-label">总次数</text>
+        </view>
+        <view class="benefit-divider-v"></view>
+        <view class="benefit-stat">
+          <text class="stat-num remain">{{memberInfo.benefitRemain || 0}}</text>
+          <text class="stat-label">剩余次数</text>
+        </view>
+      </view>
+      <view class="benefit-added-time" wx:if="{{(memberInfo.benefits && memberInfo.benefits[0] && memberInfo.benefits[0].addedTimeFormatted) || memberInfo.operatorPhone}}">
+        <text wx:if="{{memberInfo.operatorPhone}}">开卡人：{{memberInfo._maskedOperatorPhone}}</text>
+        <text wx:if="{{memberInfo.operatorPhone && (memberInfo.benefits && memberInfo.benefits[0] && memberInfo.benefits[0].addedTimeFormatted)}}" style="margin-left:24rpx;"></text>
+        <text wx:if="{{memberInfo.benefits && memberInfo.benefits[0] && memberInfo.benefits[0].addedTimeFormatted}}">开卡时间：{{memberInfo.benefits[0].addedTimeFormatted}}</text>
+      </view>
+      <view class="benefit-remark" wx:if="{{memberInfo.benefitRemark}}">
+        <text>备注：{{memberInfo.benefitRemark}}</text>
+      </view>
+      <view class="benefit-footer" wx:if="{{(memberInfo.benefitRemain || 0) <= 0}}">
+        <text class="benefit-expired">权益次数已用完</text>
+        <text class="benefit-del-btn" bindtap="onRemoveBenefit" data-index="{{0}}">删除此权益</text>
+      </view>
+    </view>
+    <view class="info-card" wx:else>
+      <text class="no-benefit-hint">该会员尚未登记权益套餐</text>
+    </view>
+  </view>
+
   <!-- 提醒事项 -->
-  <view class="info-section">
+  <view class="info-section alert-section">
     <view class="section-title-row">
       <text class="section-title">提醒事项</text>
       <text class="edit-btn" bindtap="onEditAlert">编辑</text>
@@ -259,19 +285,25 @@
       <view class="modal-body">
         <view class="modal-row">
           <text class="modal-label">🔧 保养到期</text>
-          <picker mode="date" value="{{alertForm.maintainDate}}" bindchange="onAlertDatePick" data-field="maintainDate">
-            <view class="modal-picker {{alertForm.maintainDate ? '' : 'placeholder'}}">
-              <text>{{alertForm.maintainDate || '选择日期'}}</text>
-            </view>
-          </picker>
+          <view class="picker-with-clear">
+            <picker mode="date" value="{{alertForm.maintainDate}}" bindchange="onAlertDatePick" data-field="maintainDate">
+              <view class="modal-picker {{alertForm.maintainDate ? '' : 'placeholder'}}">
+                <text>{{alertForm.maintainDate || '选择日期'}}</text>
+              </view>
+            </picker>
+            <text class="picker-clear-btn" wx:if="{{alertForm.maintainDate}}" catchtap="onClearAlertDate" data-field="maintainDate">✕</text>
+          </view>
         </view>
         <view class="modal-row">
           <text class="modal-label">🛡️ 车险到期</text>
-          <picker mode="date" value="{{alertForm.insuranceDate}}" bindchange="onAlertDatePick" data-field="insuranceDate">
-            <view class="modal-picker {{alertForm.insuranceDate ? '' : 'placeholder'}}">
-              <text>{{alertForm.insuranceDate || '选择日期'}}</text>
-            </view>
-          </picker>
+          <view class="picker-with-clear">
+            <picker mode="date" value="{{alertForm.insuranceDate}}" bindchange="onAlertDatePick" data-field="insuranceDate">
+              <view class="modal-picker {{alertForm.insuranceDate ? '' : 'placeholder'}}">
+                <text>{{alertForm.insuranceDate || '选择日期'}}</text>
+              </view>
+            </picker>
+            <text class="picker-clear-btn" wx:if="{{alertForm.insuranceDate}}" catchtap="onClearAlertDate" data-field="insuranceDate">✕</text>
+          </view>
         </view>
         <view class="modal-divider"></view>
         <view class="modal-row">
@@ -280,11 +312,14 @@
         </view>
         <view class="modal-row">
           <text class="modal-label">📅 更换日期</text>
-          <picker mode="date" value="{{alertForm.partReplaceDate}}" bindchange="onAlertDatePick" data-field="partReplaceDate">
-            <view class="modal-picker {{alertForm.partReplaceDate ? '' : 'placeholder'}}">
-              <text>{{alertForm.partReplaceDate || '选择日期'}}</text>
-            </view>
-          </picker>
+          <view class="picker-with-clear">
+            <picker mode="date" value="{{alertForm.partReplaceDate}}" bindchange="onAlertDatePick" data-field="partReplaceDate">
+              <view class="modal-picker {{alertForm.partReplaceDate ? '' : 'placeholder'}}">
+                <text>{{alertForm.partReplaceDate || '选择日期'}}</text>
+              </view>
+            </picker>
+            <text class="picker-clear-btn" wx:if="{{alertForm.partReplaceDate}}" catchtap="onClearAlertDate" data-field="partReplaceDate">✕</text>
+          </view>
         </view>
       </view>
       <view class="modal-footer">

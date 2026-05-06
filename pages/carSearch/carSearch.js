@@ -32,7 +32,7 @@ Page({
     db.collection('repair_cars')
       .where(whereCondition)
       .orderBy('createTime', 'desc')
-      .limit(10)
+      .limit(12)
       .get({
         success: function (res) {
           var cars = res.data || []

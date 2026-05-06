@@ -28,7 +28,8 @@ Page({
     // v5.0.0 月报
     latestReport: null,
     reportLoading: false,
-    showShopGuide: false  // 门店信息引导弹窗
+    showShopGuide: false,  // 门店信息引导弹窗
+    _shopProfileCache: null  // 云端已保存的门店配置缓存（用于判断是否跳过引导弹窗）
   },
 
   onLoad() {
@@ -443,6 +444,8 @@ Page({
           latestReport: res.data.list[0],
           reportLoading: false
         })
+        // ★ 预取门店配置（用于引导弹窗判断是否需要弹出）
+        page._prefetchShopProfile()
       } else {
         // 无报告数据，尝试触发生成上月报告
         page._tryGenerateReport()
@@ -472,7 +475,9 @@ Page({
     }).then(function (res) {
       if (res.code === 0 && res.data) {
         page.setData({ latestReport: res.data, reportLoading: false })
-        // 不再自动弹引导，由用户点击"经营诊断"卡片时触发
+      } else if (res.code === -2) {
+        // 数据不足/新店/未达门槛 — 静默处理，不展示空报告卡片
+        page.setData({ latestReport: null, reportLoading: false })
       } else {
         page.setData({ latestReport: null, reportLoading: false })
       }
@@ -501,12 +506,19 @@ Page({
       needGuide = !wx.getStorageSync('monthlyReportGuideShown')
     } catch (e) {}
 
-    if (needGuide && (!report.shopProfile || !report.shopProfile.bayCount)) {
-      // 未配置门店信息且从未引导过 → 弹窗拦截（不跳转）
-      setTimeout(function () {
-        this.setData({ showShopGuide: true })
-      }.bind(this), 300)
-      return
+    if (needGuide) {
+      // ★ 三重判断：报告内配置 > 预缓存的云端配置 > 弹窗引导
+      var hasConfigInReport = !!(report.shopProfile && report.shopProfile.bayCount)
+      var cachedProfile = this.data._shopProfileCache || {}
+      var hasConfigInCloud = !!cachedProfile.bayCount
+
+      if (!hasConfigInReport && !hasConfigInCloud) {
+        // 云端也未配置且从未引导过 → 弹窗拦截
+        setTimeout(function () {
+          this.setData({ showShopGuide: true })
+        }.bind(this), 300)
+        return
+      }
     }
 
     // 已有配置或已引导过 → 直接跳转月报页
@@ -534,6 +546,26 @@ Page({
     setTimeout(function () {
       page.setData({ showShopGuide: true })
     }, 1500)
+  },
+
+  /**
+   * 预取云端门店经营诊断配置（静默缓存）
+   * 用于 _onReportCardTap 判断：用户已在 proUnlock 页面保存过工位数 → 跳过引导弹窗
+   * 即使报告数据中无 shopProfile 字段，只要云端有配置就不弹窗
+   */
+  _prefetchShopProfile() {
+    var page = this
+    var sp = page.data.isGuest ? '13507720000' : page.data.shopPhone
+    if (!sp) return
+
+    app.callFunction('repair_main', {
+      action: 'getShopProfile',
+      shopPhone: sp
+    }).then(function (res) {
+      if (res.code === 0 && res.data && res.data.bayCount) {
+        page.setData({ _shopProfileCache: res.data })
+      }
+    }).catch(function () { /* 静默 */ })
   },
 
   // 引导弹窗确认回调

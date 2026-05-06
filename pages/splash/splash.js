@@ -2,10 +2,12 @@
 // Splash 启动页：品牌 Logo + 等待自动登录完成 → 跳转对应页面
 
 var app = getApp()
+var constants = require('../../utils/constants')
 
 Page({
   data: {
-    statusText: '正在加载...'
+    statusText: '正在加载...',
+    version: constants.APP_VERSION
   },
 
   onLoad() {

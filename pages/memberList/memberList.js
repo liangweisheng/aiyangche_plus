@@ -16,7 +16,8 @@ Page({
     isGuest: false,
     isPro: !!wx.getStorageSync('isPro'),
     memberLimitReached: false,
-    shareImagePath: '' // 分享卡片图片路径
+    shareImagePath: '', // 分享卡片图片路径
+    searchTimer: null // 搜索防抖定时器
   },
 
   onLoad(options) {
@@ -68,11 +69,32 @@ Page({
   },
 
   onSearchInput(e) {
-    this.setData({ searchKeyword: e.detail.value })
+    var page = this
+    var val = e.detail.value
+    page.setData({ searchKeyword: val })
+
+    if (page.data.searchTimer) {
+      clearTimeout(page.data.searchTimer)
+      page.setData({ searchTimer: null })
+    }
+
+    if (!val || val.trim().length < 3) {
+      return
+    }
+
+    page.setData({
+      searchTimer: setTimeout(function () {
+        page.setData({ searchTimer: null })
+        page._resetAndFetch()
+      }, 500)
+    })
   },
 
   onClearSearch() {
-    this.setData({ searchKeyword: '' })
+    if (this.data.searchTimer) {
+      clearTimeout(this.data.searchTimer)
+    }
+    this.setData({ searchKeyword: '', searchTimer: null })
     this._resetAndFetch()
   },
 

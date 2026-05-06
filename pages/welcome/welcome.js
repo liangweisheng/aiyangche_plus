@@ -231,14 +231,14 @@ Page({
         // 查询员工所属店主的 shopCode
         return db.collection('repair_activationCodes')
           .where({ type: 'free', phone: staffRecord.shopPhone })
-          .field({ shopCode: true, name: true })
+          .field({ shopCode: true, name: true, shopTel: true, shopAddr: true })
           .limit(1)
           .get()
           .then(function (ownerRes) {
             var owner = ownerRes.data && ownerRes.data[0]
             var ownerShopCode = (owner && owner.shopCode) || ''
             if (ownerShopCode === shopCode) {
-              return { record: staffRecord, isStaff: true, ownerName: (owner && owner.name) || '' }
+              return { record: staffRecord, isStaff: true, ownerName: (owner && owner.name) || '', ownerTel: (owner && owner.shopTel) || '', ownerAddr: (owner && owner.shopAddr) || '' }
             }
             return { record: null, isStaff: false }
           })
@@ -278,16 +278,24 @@ Page({
           name: isStaff ? (result.ownerName || '') : (record.name || ''),
           phone: record.phone || '',
           openid: openid || record.openid || '',
+          staffOpenid: record.staffOpenid || '',
           shopCode: record.shopCode || shopCode,
           createTime: record.createTime || '',
           cloudRecord: record,
           role: isStaff ? (record.role || 'staff') : 'admin',
           shopPhone: isStaff ? (record.shopPhone || '') : (record.phone || ''),
-          addedBy: record.addedBy || ''
+          addedBy: record.addedBy || '',
+          shopTel: isStaff ? (result.ownerTel || '') : (record.shopTel || ''),
+          shopAddr: isStaff ? (result.ownerAddr || '') : (record.shopAddr || ''),
+          // 标记平台来源（多端模式需注入 clientPhone 供服务端鉴权）
+          _platform: getApp().globalData._isMultiEndMode ? 'multiend' : 'miniprogram'
         }
         wx.setStorageSync('shopInfo', shopInfo)
         wx.setStorageSync('shopName', shopInfo.name || '')
         wx.setStorageSync('roleLabel', roleText)
+        // 同步门店联系方式到独立缓存（proUnlock 等页面直接读取）
+        if (shopInfo.shopTel) { wx.setStorageSync('shopTel', shopInfo.shopTel) }
+        if (shopInfo.shopAddr) { wx.setStorageSync('shopAddr', shopInfo.shopAddr) }
         wx.removeStorageSync('isGuestMode')
         if (openid) {
           wx.setStorageSync('openid', openid)

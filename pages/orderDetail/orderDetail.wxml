@@ -73,6 +73,10 @@
         <text class="detail-label">门店电话</text>
         <text class="detail-value link" bindtap="onCallPhone">{{order.shopPhone}}</text>
       </view>
+      <view class="detail-row" wx:if="{{order.operatorPhone}}">
+        <text class="detail-label">开单人</text>
+        <text class="detail-value">{{order.operatorPhone}}</text>
+      </view>
     </view>
   </view>
 

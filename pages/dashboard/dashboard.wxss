@@ -30,7 +30,7 @@
 .container {
   min-height: 100vh;
   background: linear-gradient(180deg, #f0f7ff 0%, #f5f7fa 100%);
-  padding-bottom: 40rpx;
+  padding-bottom: 180rpx;   /* 给自定义TabBar留足空间 */
 }
 
 /* 顶部欢迎 */

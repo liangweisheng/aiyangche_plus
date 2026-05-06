@@ -110,25 +110,36 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 56rpx;
-  height: 56rpx;
+  width: 72rpx;
+  height: 72rpx;
   border-radius: 50%;
-  background: rgba(255,255,255,0.9);
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.15);
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,.2);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
+  border: 2rpx solid rgba(22,119,255,.25);
+  transition: all .15s ease;
 }
 
-.case-prev { left: 8rpx; }
-.case-next { right: 8rpx; }
+.case-arrow:active {
+  background: #1677ff;
+  transform: translateY(-50%) scale(.9);
+  box-shadow: 0 2rpx 8rpx rgba(22,119,255,.35);
+}
+
+.case-arrow:active text { color: #fff; }
+
+.case-prev { left: -8rpx; }
+.case-next { right: -8rpx; }
 
 .case-arrow text {
-  font-size: 36rpx;
-  color: #333;
+  font-size: 44rpx;
+  color: #1677ff;
   line-height: 1;
-  font-weight: 300;
+  font-weight: 400;
+  margin-top: -4rpx;
 }
 
 /* ====== 指示器 ====== */

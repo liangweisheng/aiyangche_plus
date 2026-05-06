@@ -63,6 +63,12 @@
   padding: 20rpx 24rpx;
 }
 
+/* 筛选区域（独立于统计卡片，始终显示） */
+.filter-section {
+  padding: 0 24rpx;
+  margin-bottom: 20rpx;
+}
+
 /* 状态筛选标签 */
 .filter-tabs {
   display: flex;

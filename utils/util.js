@@ -483,13 +483,36 @@ function padZero(n) {
 function callRepair(action, data) {
   var app = getApp()
   var cloud = app._resourceCloud || wx.cloud
+  var shopInfo = wx.getStorageSync('shopInfo') || {}
   return new Promise(function (resolve, reject) {
-    var params = Object.assign({ action: action, shopPhone: app.getShopPhone(), clientOpenid: wx.getStorageSync('openid') || '' }, data || {})
+    // ★ 自动注入通用参数：shopPhone + 身份标识
+    // 小程序模式：clientOpenid（用于服务端 _checkShopAccess）
+    // 多端模式：clientPhone（用于服务端 _validateWriteAccess 验证员工 status='active'）
+    var baseParams = {
+      action: action,
+      shopPhone: app.getShopPhone(),
+      clientOpenid: wx.getStorageSync('openid') || ''
+    }
+    // 多端模式 + 游客模式：注入 clientPhone 供服务端鉴权
+    if (shopInfo.phone && (shopInfo._platform === 'multiend' || shopInfo.isGuest)) {
+      baseParams.clientPhone = shopInfo.phone
+    }
+    // 兜底：全局检测为多端模式但缓存未标记时，也注入 clientPhone（防御性编程）
+    if (!baseParams.clientPhone && getApp().globalData._isMultiEndMode && shopInfo.phone) {
+      baseParams.clientPhone = shopInfo.phone
+    }
+    var params = Object.assign(baseParams, data || {})
     cloud.callFunction({
       name: 'repair_main',
       data: params,
-      success: function (res) { resolve(res.result) },
-      fail: function (err) { reject(err) }
+      success: function (res) {
+        console.log('[callRepair] 返回 res.result=', JSON.stringify(res.result))
+        resolve(res.result)
+      },
+      fail: function (err) {
+        console.error('[callRepair] 网络失败', err)
+        reject(err)
+      }
     })
   })
 }

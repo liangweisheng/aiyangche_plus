@@ -4,16 +4,20 @@
 
 const app = getApp()
 const util = require('../../utils/util')
+const constants = require('../../utils/constants')
 
 Page({
   data: {
     activationCode: '',
     isPro: false,
+    proActivatedCount: '...',
+    proProgressPercent: 0,
     isAdmin: false,
     usedCount: 0,
     unlocking: false,
     shopName: '',
     shopPhone: '',
+    myPhone: '',       // 员工自身登录手机号（非店主手机号）
     shopCode: '',
     versionLabel: '免费版',
     expireLabel: '无',
@@ -28,6 +32,7 @@ Page({
     contactExpanded: false,    // 联系客服折叠状态
     shopCodeExpanded: false,   // 门店码折叠状态
     isOwner: false,            // 是否超级管理员（注册者本人）
+    isStaff: false,            // 是否员工身份
     // 员工管理
     staffExpanded: false,
     staffList: [],
@@ -49,10 +54,13 @@ Page({
     var page = this
     // 统一用 shopPhone 判断游客模式（与 dashboard 保持一致）
     var sp = (app.getShopPhone && app.getShopPhone()) || ''
-    var isGuest = (sp === '13507720000')
+    var isGuest = (sp === constants.GUEST_PHONE)
     if (isGuest) {
-      page.setData({ isGuest: true, isAdmin: false, shopPhone: '135****0000 (演示账号)' })
+      page.setData({ isGuest: true, isAdmin: false, shopPhone: constants.GUEST_MASKED_PHONE })
     }
+    // 注入多端模式标记（用于 WXML 条件渲染）
+    var _isMultiEnd = !!(app.globalData && app.globalData._isMultiEndMode)
+    page.setData({ _isMultiEnd: _isMultiEnd })
     app.whenCloudReady().then(function () {
       page.loadShopInfo()
       if (!page.data.isGuest) {
@@ -73,9 +81,9 @@ Page({
     }
     // 同步刷新游客状态（与 dashboard 判断逻辑一致）
     var sp2 = (app.getShopPhone && app.getShopPhone()) || ''
-    var isGuest = (sp2 === '13507720000')
+    var isGuest = (sp2 === constants.GUEST_PHONE)
     if (isGuest && !this.data.isGuest) {
-      page.setData({ isGuest: true, isAdmin: false, shopPhone: '135****0000 (演示账号)' })
+      page.setData({ isGuest: true, isAdmin: false, shopPhone: constants.GUEST_MASKED_PHONE })
     }
     app.whenCloudReady().then(function () {
       page.loadShopInfo()
@@ -152,6 +160,26 @@ Page({
     if (localPhone) {
       page.setData({ shopPhone: util.maskPhone(localPhone) })
     }
+    // 非超级管理员账号：设置登录手机号（员工用自身手机号，店主无openid时也需显示）
+    var _cachedShop = wx.getStorageSync('shopInfo') || {}
+    if (_cachedShop.addedBy && (_cachedShop.phone || _cachedShop.shopPhone)) {
+      // 员工账号：显示员工自己的手机号
+      page.setData({ myPhone: util.maskPhone(_cachedShop.phone || _cachedShop.shopPhone) })
+    } else if ((_cachedShop.staffOpenid || _cachedShop.phone !== _cachedShop.shopPhone) && _cachedShop.phone) {
+      // 兜底：有 staffOpenid 或 登录号≠店主号 → 视为非店主，显示自身手机号
+      page.setData({ myPhone: util.maskPhone(_cachedShop.phone), addedBy: _cachedShop.addedBy || true })
+    } else if (_cachedShop.phone && !_cachedShop.openid) {
+      // 店主但 openid 为空（多端/Craft模式）：也需要显示登录账号
+      page.setData({ myPhone: util.maskPhone(_cachedShop.phone) })
+    }
+    // 预读门店联系方式
+    var _cachedTel = shopInfo.shopTel || wx.getStorageSync('shopTel') || ''
+    if (_cachedTel) {
+      page.setData({ shopTel: _cachedTel })
+    }
+    if (shopInfo.shopAddr || wx.getStorageSync('shopAddr')) {
+      page.setData({ shopAddr: shopInfo.shopAddr || wx.getStorageSync('shopAddr') || '' })
+    }
     // 从本地缓存的云端记录预判Pro状态（code有值即已激活，与checkProFromRecord一致）
     if (localRecord && localRecord.code) {
       var localPro = page.checkProFromRecord(localRecord)
@@ -168,7 +196,6 @@ Page({
       var openid = wx.getStorageSync('openid') || ''
       var _isMultiEnd = (app.globalData && app.globalData._isMultiEndMode)
       if (_isMultiEnd && !openid) {
-        console.log('[loadShopInfo] 多端模式无openid，跳过云端查询（防止误加载他人数据）')
         return
       }
 
@@ -184,6 +211,19 @@ Page({
           success: function (res) {
             if (res.data && res.data.length > 0) {
               var record = res.data[0]
+
+              // 员工身份：主动拉取自身手机号
+              if (page.data.isStaff) {
+                app.db().collection('repair_activationCodes')
+                  .where({ openid: app.globalData.openid })
+                  .get({
+                    success: function (staffRes) {
+                      if (staffRes.data && staffRes.data.length > 0 && staffRes.data[0].phone) {
+                        page.setData({ myPhone: util.maskPhone(staffRes.data[0].phone) })
+                      }
+                    }
+                  })
+              }
 
               // 读取门店名称
               if (record.name) {
@@ -210,20 +250,26 @@ Page({
               // 读取门店联系信息
               if (record.shopTel) {
                 page.setData({ shopTel: record.shopTel })
+                wx.setStorageSync('shopTel', record.shopTel)
               }
               if (record.shopAddr) {
                 page.setData({ shopAddr: record.shopAddr })
+                wx.setStorageSync('shopAddr', record.shopAddr)
               }
 
               // 缓存云端记录到本地（避免重复请求）
               var cachedShopInfo = wx.getStorageSync('shopInfo') || {}
-              var isStaffUser = cachedShopInfo.role === 'staff'
+              // ★ 方案B：用 addedBy 替代 type/role 判断员工身份
+              var isStaffUser = !!cachedShopInfo.addedBy
               cachedShopInfo.name = record.name || cachedShopInfo.name
               // 员工不覆盖 phone（record 是店主记录，phone 是店主手机号）
               if (!isStaffUser) {
                 cachedShopInfo.phone = record.phone || cachedShopInfo.phone
               }
               cachedShopInfo.cloudRecord = record
+              // 同步门店联系方式到 shopInfo 缓存
+              cachedShopInfo.shopTel = record.shopTel || cachedShopInfo.shopTel || ''
+              cachedShopInfo.shopAddr = record.shopAddr || cachedShopInfo.shopAddr || ''
               wx.setStorageSync('shopInfo', cachedShopInfo)
 
               // ★ Pro激活判断：code 有值 && expireTime 未过期
@@ -231,6 +277,13 @@ Page({
 
               // 更新页面状态
               page.setData({ isPro: isPro, isAdmin: app.isAdmin() })
+
+              // ★ 预加载门店经营诊断配置（工位数/开业年份）
+              // 在用户展开"AI诊断设置"前静默拉取云端已保存的值，
+              // 避免展开时短暂显示默认值（工位数2/开业年份2026）后再跳变
+              if (page.data.isOwner) {
+                page._loadShopProfile()
+              }
 
               // 同步本地Pro缓存
               wx.setStorageSync('isPro', isPro)
@@ -249,7 +302,44 @@ Page({
                 wx.setNavigationBarTitle({ title: 'Pro版升级' })
                 page.setData({ showRenew: false })
               }
+            } else if ((wx.getStorageSync('shopInfo') || {}).addedBy) {
+              // ★ 员工账号：{type:'free'} 查不到自身记录（员工是 type:'staff'）
+              // 通过 shopPhone 反查店主记录，获取 shopTel / shopAddr
+              var _staffShopInfo = wx.getStorageSync('shopInfo') || {}
+              var _sp = _staffShopInfo.shopPhone || _staffShopInfo.phone || ''
+              if (_sp) {
+                db.collection('repair_activationCodes')
+                  .where({ type: 'free', phone: _sp })
+                  .field({ shopTel: true, shopAddr: true, name: true, code: true, expireTime: true, createTime: true, shopCode: true })
+                  .limit(1)
+                  .get({
+                    success: function (ownerRes) {
+                      if (ownerRes.data && ownerRes.data.length > 0) {
+                        var or = ownerRes.data[0]
+                        if (or.shopTel) { page.setData({ shopTel: or.shopTel }); wx.setStorageSync('shopTel', or.shopTel) }
+                        if (or.shopAddr) { page.setData({ shopAddr: or.shopAddr }); wx.setStorageSync('shopAddr', or.shopAddr) }
+                        if (or.name) { page.setData({ shopName: or.name }); wx.setStorageSync('shopName', or.name) }
+                        if (or.createTime) { page.setData({ registerDate: util.formatDate(or.createTime) }) }
+                        if (or.shopCode) { page.setData({ shopCode: or.shopCode }) }
+                        // 同步到 shopInfo 缓存
+                        _staffShopInfo.shopTel = or.shopTel || _staffShopInfo.shopTel || ''
+                        _staffShopInfo.shopAddr = or.shopAddr || _staffShopInfo.shopAddr || ''
+                        _staffShopInfo.name = or.name || _staffShopInfo.name || ''
+                        _staffShopInfo.cloudRecord = or
+                        wx.setStorageSync('shopInfo', _staffShopInfo)
+                        // Pro 状态从店主记录判断
+                        var _sPro = page.checkProFromRecord(or)
+                        page.setData({ isPro: _sPro, isAdmin: false })
+                        wx.setStorageSync('isPro', _sPro)
+                        page.updateVersionLabels(or)
+                      }
+                    },
+                    fail: function () { /* 静默 */ }
+                  })
+              }
             }
+            // 加载 Pro 激活数量
+            page._loadProActivatedCount()
           },
           fail: function (err) {
             console.error('加载门店信息失败', err)
@@ -290,15 +380,15 @@ Page({
    */
   updateVersionLabels: function (record) {
     var isPro = this.data.isPro
-    var versionLabel = '免费版'
+    var ver = constants.APP_VERSION
+    var versionLabel = ver + ' 免费版'
     var expireLabel = '无'
 
     if (isPro) {
+      versionLabel = ver + ' Pro版'
       if (record && record.expireTime) {
-        versionLabel = 'Pro版'
         expireLabel = util.formatDateTime(record.expireTime)
       } else {
-        versionLabel = 'Pro版'
         expireLabel = '永久有效'
       }
     }
@@ -468,6 +558,10 @@ Page({
 
   // 编辑门店联系电话
   onEditShopTel: function () {
+    if (!this.data.isOwner) {
+      wx.showToast({ title: '仅超级管理员可修改', icon: 'none' })
+      return
+    }
     var page = this
     wx.showModal({
       title: '门店联系电话',
@@ -487,6 +581,10 @@ Page({
 
   // 编辑门店地址
   onEditShopAddr: function () {
+    if (!this.data.isOwner) {
+      wx.showToast({ title: '仅超级管理员可修改', icon: 'none' })
+      return
+    }
     var page = this
     wx.showModal({
       title: '门店地址',
@@ -506,8 +604,15 @@ Page({
 
   // 更新云端门店字段
   _updateShopField: function (field, value) {
-    util.callRepair('updateShopInfo', { field: field, value: value })
-    wx.showToast({ title: '已保存', icon: 'success' })
+    util.callRepair('updateShopInfo', { field: field, value: value }).then(res => {
+      if (res && res.code === 0) {
+        wx.showToast({ title: '已保存', icon: 'success' })
+      } else {
+        wx.showToast({ title: res?.msg || '保存失败', icon: 'none' })
+      }
+    }).catch(() => {
+      wx.showToast({ title: '网络异常', icon: 'none' })
+    })
   },
 
   // 跳转数据导出页（仅 Pro+超级管理员可用）
@@ -539,7 +644,7 @@ Page({
   // 复制微信号到剪贴板
   onCopyWechat: function () {
     wx.setClipboardData({
-      data: 'liang-weisheng',
+      data: constants.SERVICE_WECHAT,
       success: function () {
         wx.showToast({ title: '微信号已复制', icon: 'success' })
       }
@@ -549,10 +654,10 @@ Page({
   // 拨打客服电话（失败时复制号码）
   onCallPhone: function () {
     wx.makePhoneCall({
-      phoneNumber: '17807725166',
+      phoneNumber: constants.SERVICE_PHONE,
       fail: function () {
         wx.setClipboardData({
-          data: '17807725166',
+          data: constants.SERVICE_PHONE,
           success: function () {
             wx.showToast({ title: '电话号码已复制', icon: 'success' })
           }
@@ -571,7 +676,7 @@ Page({
     wx.reLaunch({ url: '/pages/welcome/welcome' })
   },
 
-  // 跳转视频号使用帮助
+  // 跳转视频号使用帮助（小程序端）
   onGoVideoHelp: function () {
     wx.openChannelsUserProfile({
       finderUserName: 'sphcnacQ1SzOvLi',
@@ -582,6 +687,11 @@ Page({
     })
   },
 
+  // 多端端使用帮助提示（视频号仅小程序可用）
+  onGoVideoHelpMultiEnd: function () {
+    wx.showToast({ title: '仅小程序端可用', icon: 'none' })
+  },
+
   // ===========================
   // 账号类型标签
   // ===========================
@@ -589,7 +699,14 @@ Page({
   _updateRoleLabel: function () {
     var shopInfo = wx.getStorageSync('shopInfo') || {}
     var role = app.getRole()
-    var isOwner = !!(shopInfo.openid && !shopInfo.addedBy)
+    var _addedBy = !!shopInfo.addedBy
+    // ★ 方案B：用 addedBy 替代 type 判断员工身份（type 未写入缓存，addedBy 已正确缓存）
+    var _isStaffType = _addedBy
+    // 判断依据：openid(店主标识) / staffOpenid(员工标识) / addedBy(被添加标记) / role(角色)
+    var hasIdentity = !!(shopInfo.openid || shopInfo.staffOpenid)
+    var isOwner = !!(hasIdentity && !_addedBy && !_isStaffType)
+    var isStaff = _addedBy || _isStaffType
+    this.setData({ isOwner: isOwner, isStaff: isStaff, addedBy: isStaff })
     if (isOwner) {
       this.setData({ roleLabel: '超级管理员', roleTagClass: 'tag-super-admin' })
     } else if (role === 'admin') {
@@ -604,8 +721,13 @@ Page({
    */
   _updateOwnerFlag: function () {
     var shopInfo = wx.getStorageSync('shopInfo') || {}
-    var isOwner = !!(shopInfo.openid && !shopInfo.addedBy && shopInfo.role === 'admin')
-    this.setData({ isOwner: isOwner })
+    var _addedBy2 = !!shopInfo.addedBy
+    // ★ 方案B：用 addedBy 替代 type 判断员工身份（type 未写入缓存，addedBy 已正确缓存）
+    var _isStaffType2 = _addedBy2
+    // 判断依据：openid(店主标识) / staffOpenid(员工标识) / addedBy(被添加标记) / role(角色)
+    var hasIdentity2 = !!(shopInfo.openid || shopInfo.staffOpenid)
+    var isOwner = !!(hasIdentity2 && !_addedBy2 && !_isStaffType2 && shopInfo.role === 'admin')
+    this.setData({ isOwner: isOwner, addedBy: _addedBy2 || _isStaffType2 })
   },
 
   // ===========================
@@ -792,6 +914,57 @@ Page({
     }).catch(function () {
       page.setData({ shopProfileSaving: false })
       app.toastFail('网络异常')
+    })
+  },
+
+  // ===========================
+  // Pro 激活数量查询（体验价进度条）
+  // ===========================
+
+  _loadProActivatedCount: function () {
+    var page = this
+    try {
+      var db = app.db()
+      db.collection('repair_activationCodes')
+        .where({ code: db.command.exists(true) })
+        .count({
+          success: function (res) {
+            var count = res.total || 0
+            // 显示数量 = 100 + 实际激活数
+            var displayCount = (100 + count).toString()
+            // 进度百分比，最大100%
+            var percent = Math.min(100, Math.round(((100 + count) / 300) * 100))
+            page.setData({
+              proActivatedCount: displayCount,
+              proProgressPercent: percent
+            })
+          },
+          fail: function () {
+            // 兜底显示
+            page.setData({
+              proActivatedCount: '100+',
+              proProgressPercent: 33
+            })
+          }
+        })
+    } catch (e) {
+      page.setData({
+        proActivatedCount: '100+',
+        proProgressPercent: 33
+      })
+    }
+  },
+
+  // ===========================
+  // #11 下载APP入口
+  // ===========================
+
+  onDownloadApp: function () {
+    wx.showModal({
+      title: '下载手机APP',
+      content: '请联系客服下载和安装。',
+      showCancel: false,
+      confirmText: '我知道了'
     })
   }
 })

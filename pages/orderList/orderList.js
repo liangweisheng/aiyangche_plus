@@ -19,7 +19,8 @@ Page({
     loading: false,
     isEmpty: false,
     noMore: false,
-    totalCount: 0
+    totalCount: 0,
+    searchTimer: null          // 搜索防抖定时器
   },
 
   onLoad(options) {
@@ -39,11 +40,35 @@ Page({
   },
   
   onSearchInput(e) {
-    this.setData({ searchKeyword: e.detail.value })
+    var page = this
+    var val = e.detail.value
+    page.setData({ searchKeyword: val })
+
+    // 清除之前的定时器
+    if (page.data.searchTimer) {
+      clearTimeout(page.data.searchTimer)
+      page.setData({ searchTimer: null })
+    }
+
+    // 少于3字符时不自动搜索（保留手动搜索能力）
+    if (!val || val.trim().length < 3) {
+      return
+    }
+
+    // 输入满3位后，500ms防抖自动搜索
+    page.setData({
+      searchTimer: setTimeout(function () {
+        page.setData({ searchTimer: null })
+        page._resetAndFetch()
+      }, 500)
+    })
   },
 
   onClearSearch() {
-    this.setData({ searchKeyword: '' })
+    if (this.data.searchTimer) {
+      clearTimeout(this.data.searchTimer)
+    }
+    this.setData({ searchKeyword: '', searchTimer: null })
     this._resetAndFetch()
   },
 

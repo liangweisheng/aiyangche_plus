@@ -337,7 +337,9 @@ Page({
           if (existingBenefits.length === 0 && member.benefitName) {
             existingBenefits = [{ name: member.benefitName, total: member.benefitTotal || 0, remain: member.benefitRemain || 0 }]
           }
-          var mergedBenefits = existingBenefits.concat(benefits)
+          var mergedBenefits = existingBenefits.concat(
+            benefits.map(function(b) { return { name: b.name, total: b.total, remain: b.remain, remark: remark || '', addedTime: new Date().toISOString() } })
+          )
 
           var updateData = {
             benefits: mergedBenefits,
@@ -348,6 +350,7 @@ Page({
           if (name) updateData.ownerName = name
           if (name) updateData.name = name
           if (phone) updateData.phone = phone
+          if (remark) updateData.remark = remark
 
           return util.callRepair('updateMember', { docId: member._id, updateData: updateData })
             .then(function (res) {
@@ -366,8 +369,11 @@ Page({
           plate: plate,
           ownerName: name || '未填写',
           phone: phone || '无',
-          benefits: benefits,
-          remark: remark || ''
+          benefits: benefits.map(function(b) {
+            return { name: b.name, total: b.total, remain: b.remain, addedTime: new Date().toISOString() }
+          }),
+          remark: remark || '',
+          operatorPhone: app.getOperatorPhone()
         }).then(function (res) {
           if (res && res.code === 0 && carId && (name || phone)) {
             var carUpdateData = {}

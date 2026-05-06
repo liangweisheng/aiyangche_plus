@@ -99,9 +99,18 @@ async function activatePro(event, openid) {
   var inputCode = code.trim()
 
   try {
+    var query = { type: 'free' }
+    var shopPhone = event.shopPhone || ''
+    if (shopPhone) {
+      query.phone = shopPhone                          // 多端：按 phone 查
+    } else if (openid) {
+      query.openid = openid                            // 小程序：按 openid 兜底
+    } else {
+      return { code: -2, msg: '未找到门店信息' }
+    }
     var records = await db.collection('repair_activationCodes')
-      .where({ type: 'free', openid: openid })
-      .orderBy('createTime', 'desc')
+      .where(query)
+      .orderBy('createTime', 'desc')                   // 保留：防御重复 phone
       .limit(1)
       .get()
 
@@ -264,6 +273,13 @@ async function addMember(event, openid) {
     }
 
     var safeBenefits = Array.isArray(benefits) ? benefits : []
+    safeBenefits = safeBenefits.map(function(b) {
+      return {
+        name: b.name || '', total: Number(b.total) || 0,
+        remain: Number(b.remain) || 0,
+        addedTime: b.addedTime || db.serverDate()
+      }
+    })
     var memberData = {
       carNumber: plateTrim,
       plate: plateTrim,
@@ -280,6 +296,7 @@ async function addMember(event, openid) {
     }
     if (shopPhone) memberData.shopPhone = shopPhone
     if (openid) memberData._openid = openid
+    if (event.operatorPhone) memberData.operatorPhone = event.operatorPhone
 
     var addResult = await db.collection('repair_members').add({ data: memberData })
 
@@ -341,6 +358,7 @@ async function createOrder(event, openid) {
     }
     if (shopPhone) orderData.shopPhone = shopPhone
     if (openid) orderData._openid = openid
+    if (event.operatorPhone) orderData.operatorPhone = event.operatorPhone
 
     var orderResult = await db.collection('repair_orders').add({ data: orderData })
 
@@ -381,8 +399,8 @@ async function createOrder(event, openid) {
       data: { orderId: orderResult._id, paidAmount: Number(paidAmount) || 0 }
     }
   } catch (err) {
-    console.error('createOrder 错误:', err)
-    return { code: -99, msg: '保存失败，请重试' }
+    console.error('createOrder 失败:', err.message || err.errMsg)
+    return { code: -99, msg: '保存失败:' + (err.message || '未知') }
   }
 }
 
@@ -515,7 +533,7 @@ async function saveCheckSheet(event, openid) {
     var carData = (carRes.data && carRes.data.length > 0) ? carRes.data[0] : {}
 
     var checkItemsData = {}
-    var defaultKeys = ['exterior', 'tire', 'oil', 'battery', 'brake', 'light']
+    var defaultKeys = ['exterior', 'tire', 'oil', 'battery', 'brake', 'light', 'chassis', 'other']
     defaultKeys.forEach(function (key) {
       if (checkItems[key]) {
         checkItemsData[key] = checkItems[key]
@@ -538,6 +556,7 @@ async function saveCheckSheet(event, openid) {
     }
     if (shopPhone) sheetData.shopPhone = shopPhone
     if (openid) sheetData._openid = openid
+    if (event.operatorPhone) sheetData.operatorPhone = event.operatorPhone
 
     var addResult = await db.collection('repair_checkSheets').add({ data: sheetData })
 
@@ -765,7 +784,14 @@ async function updateShopInfo(event, openid) {
 
   try {
     var query = { type: 'free' }
-    if (openid) query.openid = openid
+    var shopPhone = event.shopPhone || ''
+    if (shopPhone) {
+      query.phone = shopPhone                          // 多端：按 phone 查
+    } else if (openid) {
+      query.openid = openid                            // 小程序：按 openid 兜底
+    } else {
+      return { code: -2, msg: '缺少门店标识' }          // 兜底报错
+    }
     var records = await db.collection('repair_activationCodes')
       .where(query).orderBy('createTime', 'desc').limit(1).get()
     if (!records.data || records.data.length === 0) {
@@ -935,7 +961,20 @@ async function getCustomerRanking(event, openid) {
 // 兼容店主(type='free')和被授权的管理员员工(type='staff', role='admin')
 // 返回店主的记录（包含正确的 phone/code/expireTime），或 null
 // ============================
-async function getCallerAdminInfo(openid) {
+async function getCallerAdminInfo(openid, shopPhone) {
+  // ★ 多端模式：shopPhone 优先（openid 为空）
+  if (shopPhone && !openid) {
+    var byPhone = await db.collection('repair_activationCodes')
+      .where({ phone: shopPhone, type: 'free', role: 'admin' })
+      .limit(1)
+      .get()
+    if (byPhone.data && byPhone.data.length > 0) {
+      return byPhone.data[0]                       // 直接返回店主记录
+    }
+    return null                                     // 未找到管理员
+  }
+
+  // 小程序模式：按 openid 查（兼容店主和员工管理员）
   var caller = await db.collection('repair_activationCodes')
     .where(_.or([
       { openid: openid, role: 'admin' },
@@ -970,12 +1009,13 @@ async function getCallerAdminInfo(openid) {
 // 返回 true/false
 // ============================
 async function _checkShopAccess(openid, shopPhone) {
-  if (!openid || !shopPhone) return false
+  if (!shopPhone) return false             // 必须有 shopPhone
+  if (!openid) return true                 // 空 openid 信任 shopPhone（多端模式）
   try {
     var res = await db.collection('repair_activationCodes')
       .where(_.or([
         { openid: openid, phone: shopPhone },
-        { staffOpenid: openid, shopPhone: shopPhone }
+        { staffOpenid: openid, shopPhone: shopPhone, status: 'active' }  // ★ 员工必须 status=active
       ]))
       .limit(1)
       .get()
@@ -1003,10 +1043,7 @@ async function addStaff(event, openid) {
 
   try {
     // 1. 验证调用者是管理员（兼容店主和员工管理员）
-    var callerAdmin = await getCallerAdminInfo(openid)
-    if (!callerAdmin) {
-      return { code: -2, msg: '仅管理员可添加员工' }
-    }
+    var callerAdmin = await getCallerAdminInfo(openid, event.shopPhone)
     var realShopPhone = callerAdmin.phone || shopPhone
 
     // 2. 验证门店是 Pro 版
@@ -1016,21 +1053,25 @@ async function addStaff(event, openid) {
       return { code: -3, msg: '仅Pro版可使用员工管理功能' }
     }
 
-    // 3. 检查员工手机号是否已被本店或其他店添加
-    var existCheck = await db.collection('repair_activationCodes')
-      .where({ phone: staffPhone, role: _.neq('admin') })
+    // 3. 检查员工手机号是否已有 type='staff' 的员工记录（含被移除的，用 type 而非 role 区分）
+    var existStaffCheck = await db.collection('repair_activationCodes')
+      .where({ phone: staffPhone, type: 'staff' })
       .limit(1).get()
-    if (existCheck.data && existCheck.data.length > 0) {
-      var existStaff = existCheck.data[0]
-      if (existStaff.status === 'active') {
+    if (existStaffCheck.data && existStaffCheck.data.length > 0) {
+      var existStaff = existStaffCheck.data[0]
+      if (existStaff.status === 'active' && existStaff.shopPhone !== realShopPhone) {
         return { code: -4, msg: '该手机号已是其他门店的员工' }
       }
-      // 历史离职员工，重新激活
+      if (existStaff.status === 'active' && existStaff.shopPhone === realShopPhone) {
+        return { code: -6, msg: '该员工已在本店中' }
+      }
+      // 历史离职员工（status='removed'），重新激活
       await db.collection('repair_activationCodes').doc(existStaff._id).update({
         data: {
           role: staffRole,
           shopPhone: realShopPhone,
           staffOpenid: '',
+          newAccount: true,       // ★ 标记待首次登录绑定
           addedBy: openid,
           addedTime: db.serverDate(),
           status: 'active',
@@ -1040,9 +1081,9 @@ async function addStaff(event, openid) {
       return { code: 0, msg: '员工已重新激活', data: { _id: existStaff._id } }
     }
 
-    // 4. 检查是否是其他店主（phone 已有 admin 记录）
+    // 4. 检查是否是其他店主（type='free' 且有完整注册信息的记录）
     var ownerCheck = await db.collection('repair_activationCodes')
-      .where({ phone: staffPhone, role: 'admin' })
+      .where({ type: 'free', phone: staffPhone })
       .limit(1).get()
     if (ownerCheck.data && ownerCheck.data.length > 0) {
       return { code: -5, msg: '该手机号已是门店管理员' }
@@ -1063,6 +1104,7 @@ async function addStaff(event, openid) {
         shopPhone: realShopPhone,
         role: staffRole,
         staffOpenid: '',
+        newAccount: true,         // ★ 标记待首次登录绑定
         addedBy: openid,
         addedTime: db.serverDate(),
         status: 'active',
@@ -1089,15 +1131,15 @@ async function removeStaff(event, openid) {
 
   try {
     // 验证调用者是管理员（兼容店主和员工管理员）
-    var callerAdmin = await getCallerAdminInfo(openid)
+    var callerAdmin = await getCallerAdminInfo(openid, event.shopPhone)
     if (!callerAdmin) {
       return { code: -2, msg: '仅管理员可移除员工' }
     }
     var realShopPhone = callerAdmin.phone || shopPhone
 
-    // 标记为离职
+    // 标记为离职 + 清空 staffOpenid（双保险防止已登录状态继续访问）
     await db.collection('repair_activationCodes').doc(staffDocId).update({
-      data: { status: 'removed', updateTime: db.serverDate() }
+      data: { status: 'removed', staffOpenid: '', updateTime: db.serverDate() }
     })
 
     return { code: 0, msg: '已移除' }
@@ -1122,7 +1164,7 @@ async function updateStaffRole(event, openid) {
 
   try {
     // 验证调用者是管理员（兼容店主和员工管理员）
-    var callerAdmin = await getCallerAdminInfo(openid)
+    var callerAdmin = await getCallerAdminInfo(openid, event.shopPhone)
     if (!callerAdmin) {
       return { code: -2, msg: '仅管理员可修改角色' }
     }
@@ -1146,7 +1188,7 @@ async function listStaffs(event, openid) {
 
   try {
     // 验证调用者是管理员（兼容店主和员工管理员）
-    var callerAdmin = await getCallerAdminInfo(openid)
+    var callerAdmin = await getCallerAdminInfo(openid, event.shopPhone)
     if (!callerAdmin) {
       return { code: -2, msg: '仅管理员可查看员工列表' }
     }
@@ -1201,8 +1243,28 @@ async function generateMonthlyReport(event, openid) {
     var ordersRes = await fetchAllOrders(baseWhere, { plate: true, totalAmount: true, serviceItems: true, createTime: true })
     var allOrdersRes = await fetchAllOrders({ shopPhone: shopPhone, isVoided: _.neq(true) }, { plate: true, createTime: true })
 
+    // ====== 三重前置校验 ======
+
+    // 【守卫1】完全无数据（原逻辑）
     if (ordersRes.length === 0 && allOrdersRes.length === 0) {
       return { code: -2, msg: '该月份暂无经营数据' }
+    }
+
+    // 【守卫2】新店/新注册门店 — 请求月份早于首单时间
+    // 场景：5月6日注册的新店，4月份根本不存在，不应生成4月月报
+    var firstOrderTime = null
+    for (var fi = 0; fi < allOrdersRes.length; fi++) {
+      var ot = new Date(allOrdersRes[fi].createTime)
+      if (!firstOrderTime || ot < firstOrderTime) firstOrderTime = ot
+    }
+    if (firstOrderTime && firstOrderTime > monthEnd) {
+      return { code: -2, msg: '该月份门店尚未开业' }
+    }
+
+    // 【守卫3】数据量不足 — 当月工单少于阈值（样本太少统计意义低）
+    var MIN_REPORT_ORDERS = 20
+    if (ordersRes.length < MIN_REPORT_ORDERS) {
+      return { code: -2, msg: '本月工单数(' + ordersRes.length + ')未达报告生成门槛(' + MIN_REPORT_ORDERS + '单)' }
     }
 
     // ====== 基础指标计算 ======
@@ -1470,7 +1532,30 @@ async function getMonthlyReport(event, openid) {
       return { code: 0, data: res.data[0] }
     }
 
-    return { code: -2, msg: '该月暂无报告' }
+    // ★ 兜底前轻量前置检查：避免对明显不符合条件的门店浪费生成资源
+    var _rmParts = yearMonth.split('-')
+    var _rmStart = new Date(Number(_rmParts[0]), Number(_rmParts[1]) - 1, 1)
+    var _rmEnd = new Date(Number(_rmParts[0]), Number(_rmParts[1]), 0, 23, 59, 59)
+    var _quickCheck = await db.collection('repair_orders')
+      .where({ shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.gte(_rmStart).and(_.lte(_rmEnd)) })
+      .count()
+    if (_quickCheck.total < MIN_REPORT_ORDERS) {
+      console.log('[getMonthlyReport] 前置拦截：' + yearMonth + ' 工单数(' + _quickCheck.total + ')未达门槛(' + MIN_REPORT_ORDERS + ')')
+      return { code: -2, msg: '该月份工单数(' + _quickCheck.total + ')未达报告生成门槛(' + MIN_REPORT_ORDERS + '单)' }
+    }
+
+    // ★ 兜底：未找到报告时，尝试按需自动生成一次
+    console.log('[getMonthlyReport] 未找到 ' + yearMonth + ' 报告，尝试按需生成... shopPhone=' + shopPhone)
+    var genResult = await generateMonthlyReport({ shopPhone: shopPhone, yearMonth: yearMonth }, openid)
+
+    if (genResult.code === 0) {
+      console.log('[getMonthlyReport] 按需生成成功')
+      return genResult
+    }
+
+    // 生成失败（数据不足等原因），返回具体原因
+    console.log('[getMonthlyReport] 按需生成失败:', genResult.msg)
+    return genResult
   } catch (err) {
     console.error('[getMonthlyReport] 错误:', err)
     return { code: -99, msg: '查询失败' }
@@ -1521,7 +1606,7 @@ async function updateShopProfile(event, openid) {
 
   try {
     // 验证调用者是管理员
-    var callerAdmin = await getCallerAdminInfo(openid)
+    var callerAdmin = await getCallerAdminInfo(openid, event.shopPhone)
     if (!callerAdmin) {
       return { code: -2, msg: '仅管理员可修改门店配置' }
     }
@@ -1612,7 +1697,10 @@ async function updateStaffOpenid(event, openid) {
   if (!staffDocId || !newOpenid) return { code: -1, msg: '参数不完整' }
   try {
     await db.collection('repair_activationCodes').doc(staffDocId).update({
-      data: { staffOpenid: newOpenid }
+      data: { 
+        staffOpenid: newOpenid,
+        newAccount: false     // ★ 清除标记：已登录绑定完成
+      }
     })
     return { code: 0, msg: '更新成功' }
   } catch (err) {
@@ -1745,6 +1833,17 @@ async function batchGenerateMonthlyReports(event, openid) {
 exports.main = async (event, context) => {
   var action = event.action || ''
 
+  // 定时触发器自动路由到批量生成月报
+  if (!action && context.TriggerSource === 'timer') {
+    var now = new Date()
+    var lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    var ym = lastMonth.getFullYear() + '-' + String(lastMonth.getMonth() + 1).padStart(2, '0')
+    event.action = 'batchGenerateMonthlyReports'
+    event.yearMonth = ym
+    action = event.action
+    console.log('[定时触发] 自动路由 → batchGenerateMonthlyReports, yearMonth:', ym)
+  }
+
   if (!action) {
     return { code: -1, msg: '缺少 action 参数' }
   }
@@ -1787,6 +1886,90 @@ exports.main = async (event, context) => {
     return { code: -1, msg: '未知的 action: ' + action }
   }
 
+  // ============================
+  // 统一写入鉴权：所有写入型操作必须验证调用者身份
+  // 防止被删除/离职员工通过本地缓存继续操作门店数据
+  // ============================
+  var WRITE_ACTIONS = [
+    'createOrder',      // 开单
+    'addCar',           // 新增车辆
+    'addMember',        // 新增会员
+    'editOrder',        // 编辑工单
+    'voidOrder',        // 作废工单
+    'useBenefit',       // 使用权益
+    'saveCheckSheet',   // 保存查车单
+    'updateCarInfo',    // 更新车辆信息
+    'updateMember'      // 更新会员信息
+  ]
+
+  if (WRITE_ACTIONS.indexOf(action) !== -1) {
+    var authResult = await _validateWriteAccess(event, openid)
+    if (!authResult.valid) {
+      console.log('[AUTH] 拦截非法写入:', action, '原因:', authResult.msg, 'openid:', openid, 'clientPhone:', event.clientPhone)
+      return { code: -403, msg: authResult.msg }
+    }
+  }
+
   console.log('[repair_main] action:', action, 'openid:', openid)
   return handler[action](event, openid)
+}
+
+// ============================
+// _validateWriteAccess - 统一写入鉴权（多端 + 小程序兼容）
+// 多端模式：通过 clientPhone 验证员工 status='active'
+// 小程序模式：通过 openid 验证属于该门店（店主或有效员工）
+// 返回 { valid: true/false, msg: '...' }
+// ============================
+async function _validateWriteAccess(event, openid) {
+  var shopPhone = event.shopPhone || ''
+  if (!shopPhone) return { valid: false, msg: '缺少门店标识' }
+
+  // 小程序模式：有有效 openid
+  if (openid && openid.length > 5) {
+    var hasAccess = await _checkShopAccess(openid, shopPhone)
+    if (hasAccess) return { valid: true }
+    // ★ fallback：openid 鉴权失败时，如有 clientPhone 则降级到分支2重试
+    // （兼容游客模式临时 openid、多端模式等"有 openid 但无效"的场景）
+    if (!event.clientPhone) {
+      return { valid: false, msg: '账号已失效，请重新登录' }
+    }
+    // 不 return，继续走到分支2 用 clientPhone 鉴权
+  }
+
+  if (event.clientPhone) {
+    var clientPhone = event.clientPhone
+
+    // 1. 先查是否是该门店的有效员工（status='active'）
+    var staffRes = await db.collection('repair_activationCodes')
+      .where({
+        phone: clientPhone,
+        shopPhone: shopPhone,
+        status: 'active'
+      })
+      .limit(1)
+      .get()
+
+    if (staffRes.data && staffRes.data.length > 0) {
+      return { valid: true }
+    }
+
+    // 2. 再查是否是店主本人（type='free' 且 phone 匹配 shopPhone）
+    var ownerRes = await db.collection('repair_activationCodes')
+      .where({ type: 'free', phone: clientPhone })
+      .limit(1)
+      .get()
+
+    if (ownerRes.data && ownerRes.data.length > 0) {
+      var owner = ownerRes.data[0]
+      // 店主的 phone 必须与当前操作的 shopPhone 一致（防止跨店操作）
+      if (owner.phone === shopPhone || event._isOwner) {
+        return { valid: true }
+      }
+    }
+
+    // 3. 都不是 → 账号已失效（被删除/离职/不存在）
+    return { valid: false, msg: '账号已失效，请重新登录' }
+  }
+
+  return { valid: false, msg: '登录状态异常，请重新登录' }
 }

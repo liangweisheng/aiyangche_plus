@@ -4,7 +4,7 @@
 .container {
   min-height: 100vh;
   background: linear-gradient(180deg, #f0f7ff 0%, #f5f7fa 100%);
-  padding: 24rpx 24rpx 140rpx;
+  padding: 24rpx 24rpx 220rpx;   /* 140rpx → 180rpx，给悬浮按钮留足空间 */
 }
 
 /* 车牌卡片 */
@@ -363,6 +363,7 @@
   align-items: center;
   padding: 16rpx 0;
   border-bottom: 1rpx solid #f7f7f7;
+  gap: 16rpx;        /* ← 新增：列间距 */
 }
 
 .svc-row:last-of-type {
@@ -458,15 +459,15 @@
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
 }
 
-.textarea {
+/* 备注信息 - 单行输入框 */
+.remark-input {
   width: 100%;
-  min-height: 60rpx;
+  height: 72rpx;
   background: #f7f8fa;
-  border-radius: 20rpx;
-  padding: 24rpx;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
   font-size: 28rpx;
   color: #333;
-  line-height: 1.6;
   box-sizing: border-box;
 }
 
@@ -575,10 +576,11 @@
   flex: 1;
   background: #fff;
   border-radius: 20rpx;
-  padding: 24rpx 16rpx;
+  padding: 20rpx 16rpx;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;       /* 改为横向排列：icon + label 同一行 */
   align-items: center;
+  justify-content: center;
   position: relative;
   border: 2rpx solid transparent;
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
@@ -596,8 +598,8 @@
 }
 
 .pay-icon {
-  font-size: 48rpx;
-  margin-bottom: 12rpx;
+  font-size: 36rpx;
+  margin-right: 8rpx;    /* 横向排列时的间距 */
 }
 
 .pay-label {
@@ -660,7 +662,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 999;
+  z-index: 1000;          /* 低于键盘1100，避免遮挡键盘同时不被普通元素覆盖 */
   background: #fff;
   padding: 20rpx 32rpx;
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
@@ -757,6 +759,31 @@
 
 .alert-picker.placeholder {
   color: #bbb;
+}
+
+/* 日期选择器 + 清除按钮 */
+.picker-with-clear {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex: 1;
+}
+
+.picker-clear-btn {
+  width: 44rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff0f0;
+  border-radius: 50%;
+  font-size: 24rpx;
+  color: #ff4d4f;
+  flex-shrink: 0;
+}
+
+.picker-clear-btn:active {
+  background: #ffd6d6;
 }
 
 .alert-input {

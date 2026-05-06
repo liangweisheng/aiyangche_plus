@@ -186,6 +186,9 @@
       <view class="customer-more" wx:if="{{hasMoreCustomers && !showAllCustomers}}" bindtap="onShowAllCustomers">
         <text>上拉显示更多</text>
       </view>
+      <view class="load-more-tip" wx:if="{{topCustomers.length > 0 && (!hasMoreCustomers || showAllCustomers)}}">
+        <text class="load-more-tip-text">— 已加载全部 {{topCustomers.length}} 条 —</text>
+      </view>
     </view>
   </view>
 

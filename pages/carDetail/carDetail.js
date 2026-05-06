@@ -46,6 +46,15 @@ Page({
     }
   },
 
+  // 从子页面（memberAdd/orderAdd等）返回时刷新数据
+  onShow() {
+    var plate = this.data.carInfo && this.data.carInfo.plate
+    if (plate) {
+      this.fetchCarDetail(plate)
+      this.fetchMemberInfo(plate)
+    }
+  },
+
   // 按 _id 直接读取车辆记录
   fetchCarById(id) {
     var page = this
@@ -60,14 +69,64 @@ Page({
           var pad = function (n) { return n < 10 ? '0' + n : '' + n }
           carData.createTime = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds())
         }
+        carData._maskedPhone = util.maskPhone(carData.phone)
         page.setData({ carInfo: carData })
         page.fetchMemberInfo(carData.plate)
+        page._fetchCarStats(carData.plate)
       },
       fail: function () {
         wx.hideLoading()
         wx.showToast({ title: '加载失败', icon: 'none' })
       }
     })
+  },
+
+  // 按车牌聚合查询：累计消费金额 + 工单数
+  _fetchCarStats(plate) {
+    var page = this
+    var db = app.db()
+    var whereCondition = app.shopWhere({ plate: plate, status: '已完成' })
+    db.collection('repair_orders')
+      .where(whereCondition)
+      .field({ totalAmount: true })
+      .count()
+      .then(function (countRes) {
+        var orderCount = countRes.total || 0
+        if (orderCount === 0) {
+          page.setData({
+            'carInfo._totalAmount': 0,
+            'carInfo._orderCount': 0
+          })
+          return
+        }
+        // 分批读取所有已完工单的 totalAmount（每次最多20条）
+        var tasks = []
+        var batchCount = Math.ceil(orderCount / 20)
+        for (var i = 0; i < batchCount; i++) {
+          tasks.push(
+            db.collection('repair_orders')
+              .where(whereCondition)
+              .field({ totalAmount: true })
+              .skip(i * 20)
+              .limit(20)
+              .get()
+          )
+        }
+        Promise.all(tasks).then(function (results) {
+          var totalAmount = 0
+          results.forEach(function (batch) {
+            if (batch.data) {
+              batch.data.forEach(function (order) {
+                totalAmount += Number(order.totalAmount) || 0
+              })
+            }
+          })
+          page.setData({
+            'carInfo._totalAmount': totalAmount,
+            'carInfo._orderCount': orderCount
+          })
+        }).catch(function () { /* 静默失败 */ })
+      }).catch(function () { /* 静默失败 */ })
   },
 
   // 获取车辆详情（按门店手机号隔离）
@@ -93,7 +152,9 @@ Page({
               var pad = function (n) { return n < 10 ? '0' + n : '' + n }
               carData.createTime = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds())
             }
+            carData._maskedPhone = util.maskPhone(carData.phone)
             page.setData({ carInfo: carData })
+            page._fetchCarStats(carData.plate)
           }
         },
         fail: function () {
@@ -113,7 +174,23 @@ Page({
       .get({
         success: function (res) {
           if (res.data.length > 0) {
-            page.setData({ memberInfo: res.data[0] })
+            var info = res.data[0]
+            // 格式化每条权益的新增时间
+            if (info.benefits && info.benefits.length > 0) {
+              var pad2 = function(n) { return n < 10 ? '0' + n : '' + n }
+              info.benefits = info.benefits.map(function(b) {
+                if (b.addedTime) {
+                  try {
+                    var d = new Date(b.addedTime)
+                    b.addedTimeFormatted = d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate())
+                      + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes())
+                  } catch(e) { /* 保留原始值 */ }
+                }
+                return b
+              })
+            }
+            info._maskedOperatorPhone = util.maskPhone(info.operatorPhone)
+            page.setData({ memberInfo: info })
             return
           }
           // 车牌未匹配 → 按车主手机号查
@@ -126,7 +203,9 @@ Page({
               db.collection('repair_members').where(memberPhoneWhere).get({
                 success: function (memberRes) {
                   if (memberRes.data.length > 0) {
-                    page.setData({ memberInfo: memberRes.data[0] })
+                    var mInfo = memberRes.data[0]
+                    mInfo._maskedOperatorPhone = util.maskPhone(mInfo.operatorPhone)
+                    page.setData({ memberInfo: mInfo })
                   }
                 }
               })
@@ -492,6 +571,12 @@ Page({
   onAlertDatePick(e) {
     var field = e.currentTarget.dataset.field
     this.setData({ ['alertForm.' + field]: e.detail.value })
+  },
+
+  // 清除提醒事项日期
+  onClearAlertDate(e) {
+    var field = e.currentTarget.dataset.field
+    this.setData({ ['alertForm.' + field]: '' })
   },
 
   onAlertInput(e) {

@@ -525,6 +525,12 @@ Page({
     this.setData({ ['form.' + field]: e.detail.value })
   },
 
+  // 清除到期提醒日期
+  onClearDateField(e) {
+    var field = e.currentTarget.dataset.field
+    this.setData({ ['form.' + field]: '' })
+  },
+
   onInput(e) {
     var field = e.currentTarget.dataset.field
     this.setData({ ['form.' + field]: e.detail.value })
@@ -691,7 +697,8 @@ Page({
       status: status || '施工中',
       setMaintainDate: form.setMaintainDate || '',
       setPartName: form.setPartName || '',
-      setPartDate: form.setPartDate || ''
+      setPartDate: form.setPartDate || '',
+      operatorPhone: app.getOperatorPhone()
     }
 
     var carDocId = (page.data.carInfo && page.data.carInfo._id) || ''

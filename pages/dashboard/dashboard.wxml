@@ -93,7 +93,7 @@
   <!-- 到期提醒 -->
   <view class="alert-section">
     <view class="section-title-row">
-      <text class="section-title">到期提醒</text>
+      <text class="section-title">💡 生意机会</text>
       <text class="alert-badge" wx:if="{{alertList.length > 0}}">{{alertList.length}}条</text>
     </view>
 
@@ -116,7 +116,7 @@
 
     <view class="alert-empty" wx:else>
       <text class="alert-empty-icon">✅</text>
-      <text class="alert-empty-text">近45天暂无到期提醒</text>
+      <text class="alert-empty-text">近45天暂无商机提醒</text>
     </view>
   </view>
 

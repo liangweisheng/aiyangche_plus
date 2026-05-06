@@ -35,7 +35,14 @@
           </view>
         </view>
         <view class="card-footer">
-          <text class="car-type-text">{{item.carType || '未知车型'}} {{item.carColor ? '| ' + item.carColor : ''}}</text>
+          <view class="footer-left">
+            <text class="car-type-text">{{item.carType || '未知车型'}} {{item.carColor ? '| ' + item.carColor : ''}}</text>
+            <view class="check-stats" wx:if="{{item._stats}}">
+              <text class="cs-normal">● {{item._stats.normal}}</text>
+              <text class="cs-abnormal">● {{item._stats.abnormal}}</text>
+              <text class="cs-pending">○ {{item._stats.pending}}</text>
+            </view>
+          </view>
           <text class="arrow">›</text>
         </view>
       </view>

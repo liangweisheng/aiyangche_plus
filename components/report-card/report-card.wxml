@@ -17,7 +17,7 @@
   <!-- 加载态 -->
   <view class="card-loading" wx:elif="{{loading}}">
     <text class="loading-icon">⏳</text>
-    <text class="loading-text">正在生成报告...</text>
+    <text class="loading-text">加载中...</text>
   </view>
 
   <!-- 有数据态 -->

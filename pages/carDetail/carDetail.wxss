@@ -12,7 +12,7 @@
   background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
   border-radius: 28rpx;
   padding: 36rpx 28rpx;
-  margin-bottom: 28rpx;
+  margin-bottom: 58rpx;
   box-shadow: 0 12rpx 48rpx rgba(22, 119, 255, 0.25);
 }
 
@@ -34,11 +34,26 @@
   gap: 4rpx;
 }
 
-.owner-name {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 500;
-  letter-spacing: 2rpx;
+.owner-stats {
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.6);
+  margin-right: 4rpx;
+}
+
+.stat-value {
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
+
+.stat-divider {
+  color: rgba(255, 255, 255, 0.3);
+  margin: 0 12rpx;
 }
 
 .plate {
@@ -115,7 +130,12 @@
 
 /* 详细信息 */
 .info-section {
-  margin-bottom: 28rpx;
+  margin-bottom: 58rpx;
+}
+
+/* 提醒事项底部留白，避免被浮动按钮遮挡 */
+.alert-section {
+  padding-bottom: 320rpx;
 }
 
 .section-title {
@@ -192,7 +212,7 @@
 
 /* 功能入口 */
 .actions-section {
-  margin-bottom: 28rpx;
+  margin-bottom: 58rpx;
 }
 
 /* 会员权益卡片 */
@@ -297,6 +317,25 @@
   color: #ff4d4f;
   font-weight: 500;
   padding: 6rpx 16rpx;
+}
+
+/* 权益新增时间 / 开卡信息 */
+.benefit-added-time {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid rgba(114, 46, 209, 0.1);
+  display: flex;
+  flex-wrap: nowrap;
+  font-size: 20rpx;
+  color: #999;
+}
+
+/* 权益备注 */
+.benefit-remark {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #e8634b;
+  word-break: break-all;
 }
 
 .no-benefit-hint {
@@ -449,6 +488,25 @@
   font-size: 26rpx;
 }
 
+/* 添加会员权益按钮（无会员时显示） */
+.add-member-btn {
+  display: flex;
+  align-items: center;
+  padding: 10rpx 24rpx;
+  background: linear-gradient(135deg, #722ed1, #9254de);
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-left: auto;
+  box-shadow: 0 4rpx 12rpx rgba(114, 46, 209, 0.3);
+}
+.add-member-btn:active {
+  opacity: 0.8;
+  transform: scale(0.96);
+}
+
 /* 编辑提醒弹窗 */
 .modal-mask {
   position: fixed;
@@ -509,6 +567,31 @@
 
 .modal-picker.placeholder {
   color: #bbb;
+}
+
+/* 日期选择器 + 清除按钮 */
+.picker-with-clear {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex: 1;
+}
+
+.picker-clear-btn {
+  width: 44rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff0f0;
+  border-radius: 50%;
+  font-size: 24rpx;
+  color: #ff4d4f;
+  flex-shrink: 0;
+}
+
+.picker-clear-btn:active {
+  background: #ffd6d6;
 }
 
 .modal-input {

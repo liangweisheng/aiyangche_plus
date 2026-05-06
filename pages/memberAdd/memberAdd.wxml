@@ -1,4 +1,5 @@
 <!--pages/memberAdd/memberAdd.wxml-->
+<wxs src="../../utils/maskPlate.wxs" module="mask" />
 <view class="container">
 
   <!-- 第一步：车牌搜索 -->
@@ -31,7 +32,7 @@
         data-name="{{item.ownerName}}"
         data-phone="{{item.phone}}"
       >
-        <text class="dropdown-plate">{{item.plate}}</text>
+        <text class="dropdown-plate">{{mask.maskPlate(item.plate)}}</text>
         <text class="dropdown-owner" wx:if="{{item.ownerName}}">{{item.ownerName}}</text>
         <text class="dropdown-owner" wx:else>未知车主</text>
       </view>
@@ -53,7 +54,7 @@
           data-plate="{{item.plate}}"
           bindtap="onRecentTap"
         >
-          <text class="recent-plate">{{item.plate}}</text>
+          <text class="recent-plate">{{mask.maskPlate(item.plate)}}</text>
           <text class="recent-owner" wx:if="{{item.ownerName}}">{{item.ownerName}}</text>
         </view>
       </view>

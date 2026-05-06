@@ -30,24 +30,43 @@ var CLOUD_DIR = 'carRepair'
 //           右键复制 fileID 格式如:
 //           cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/xxx.jpg
 var CLOUD_FILE_LIST = [
-  // ====== new_customer - 新客获取类 ======
-  // 'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_01.jpg',
-  // 'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_02.jpg',
+  // ====== maintenance - 维保业务类 (4张) ======
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_maintain_01.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_maintain_02.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_maintain_03.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_maintain_04.jpg',
 
-  // ====== value_added - 增值服务类 ======
-  // 'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_value_01.png',
+  // ====== excellent - 综合优秀类 (5张) ======
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_excellent_01.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_excellent_02.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_excellent_03.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_excellent_04.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_excellent_05.jpg',
 
-  // ====== retention - 客户留存类 ======
-  // 'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_retain_01.png',
+  // ====== retention - 客户留存类 (5张) ======
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_retain_01.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_retain_02.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_retain_03.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_retain_04.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_retain_05.jpg',
 
-  // ====== maintenance - 维保业务类 ======
-  // 'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_maintain_01.jpg',
+  // ====== new_customer - 新客获取类 (8张) ======
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_01.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_02.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_03.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_04.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_05.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_06.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_07.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_new_08.jpg',
 
-  // ====== ticket - 客单价类 ======
-  // 'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_ticket_01.jpg',
+  // ====== value_added - 增值服务类 (2张) ======
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_value_01.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_value_02.jpg',
 
-  // ====== excellent - 综合优秀类 ======
-  // 'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_excellent_01.jpg'
+  // ====== ticket - 客单价类 (2张) ======
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_ticket_01.jpg',
+  'cloud://cloud1-2gwoxtay6a4d8181.636c-cloud1-2gwoxtay6a4d8181-1258182356/carRepair/case_ticket_02.jpg'
 ]
 
 // ============================
@@ -115,7 +134,9 @@ var _cachedMap = _buildCaseImageMap()
  */
 function getCaseImages(tag) {
   if (!tag || typeof tag !== 'string') return []
-  return _cachedMap[tag] || []
+  // 兼容带 case_ 前缀的标签（如 case_retention → retention）
+  var normalizedTag = tag.replace(/^case_/, '')
+  return _cachedMap[normalizedTag] || []
 }
 
 /**

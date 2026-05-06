@@ -1,5 +1,6 @@
 // custom-tab-bar/index.js
 // v4.0.0 自定义 TabBar：根据角色动态显示/隐藏 tab
+// v5.2.0 增强：切换 Tab 时校验账号有效性
 
 var app = getApp()
 
@@ -19,7 +20,8 @@ var STAFF_LIST = [
 Component({
   data: {
     selected: 0,
-    list: []
+    list: [],
+    _validating: false // ★ 防重复验证标记
   },
 
   methods: {
@@ -30,9 +32,37 @@ Component({
     },
 
     switchTab(e) {
+      var page = this
       var index = e.currentTarget.dataset.index
       var item = this.data.list[index]
       if (!item) return
+
+      // ★ TabBar 切换时校验账号有效性（仅小程序端，非游客模式）
+      if (!page.data._validating && app.globalData._isMultiEndMode !== true) {
+        var cachedShopInfo = wx.getStorageSync('shopInfo') || {}
+        if (cachedShopInfo.phone && !cachedShopInfo.isGuest && !wx.getStorageSync('isGuestMode')) {
+          page.setData({ _validating: true })
+
+          app._validateMiniProgramCache(cachedShopInfo).catch(function(err) {
+            if (err && (err.message === 'ACCOUNT_INVALID' || err.message === 'NO_OPENID')) {
+              console.warn('[TabBar] 账号验证失败，清除缓存并切换游客模式')
+              wx.showModal({
+                title: '账号已失效',
+                content: '您的登录状态已失效，将切换为游客模式浏览',
+                showCancel: false,
+                confirmText: '我知道了',
+                success: function() {
+                  app._forceLogoutAndEnterGuest()
+                  wx.switchTab({ url: '/pages/dashboard/dashboard' })
+                }
+              })
+            }
+          }).finally(function() {
+            page.setData({ _validating: false })
+          })
+        }
+      }
+
       wx.switchTab({ url: item.pagePath })
     }
   }

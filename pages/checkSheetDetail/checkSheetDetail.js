@@ -12,8 +12,11 @@ Page({
       { key: 'oil', label: '机油检查', icon: '💧' },
       { key: 'battery', label: '电瓶检查', icon: '🔋' },
       { key: 'brake', label: '刹车检查', icon: '🛑' },
-      { key: 'light', label: '灯光检查', icon: '💡' }
-    ]
+      { key: 'light', label: '灯光检查', icon: '💡' },
+      { key: 'chassis', label: '底盘检查', icon: '🔩' },
+      { key: 'other', label: '其他检查', icon: '📋' }
+    ],
+    stats: { normal: 0, abnormal: 0, pending: 0 }
   },
 
   onLoad(options) {
@@ -42,6 +45,7 @@ Page({
           d.createTimeStr = ''
         }
         page.setData({ detail: d })
+        page._calcStats(d)
       },
       fail: function () {
         wx.hideLoading()
@@ -52,6 +56,24 @@ Page({
 
   onGoHome() {
     wx.switchTab({ url: '/pages/dashboard/dashboard' })
+  },
+
+  // 计算检查项三态统计：正常 / 异常 / 未检查
+  _calcStats(detail) {
+    if (!detail || !detail.checkItems) return
+    var stats = { normal: 0, abnormal: 0, pending: 0 }
+    var items = this.data.checkItems
+    for (var i = 0; i < items.length; i++) {
+      var ci = detail.checkItems[items[i].key]
+      if (ci && ci.normal === true) {
+        stats.normal++
+      } else if (ci && ci.value && ci.value !== '该项未检查') {
+        stats.abnormal++
+      } else {
+        stats.pending++
+      }
+    }
+    this.setData({ stats: stats })
   },
 
   // 生成分享图片
@@ -67,7 +89,7 @@ Page({
 
     var ctx = wx.createCanvasContext('shareCanvas', page)
     var W = 600
-    var H = 900
+    var H = 1020   // 8项=4行，高度从900增至1020容纳更多内容
     var checkItems = page.data.checkItems
 
     // 背景
@@ -111,7 +133,7 @@ Page({
     ctx.lineTo(W - 30, y)
     ctx.stroke()
 
-    // ===== 检查结果区（2列3行网格卡片布局）=====
+    // ===== 检查结果区（2列4行网格卡片布局）=====
     y += 15
     ctx.setFontSize(20)
     ctx.setFillStyle('#1677ff')
@@ -164,8 +186,26 @@ Page({
       }
     })
 
-    // 最后一行结束后更新y（3行 × 高度 + 2个行间距）
+    // 最后一行结束后更新y（4行 × 高度 + 3个行间距）
     y += cardH + 16
+
+    // ── 统计概览横条 ──
+    y += 10
+    ctx.setFillStyle('#f0f7ff')
+    page._roundRect(ctx, 30, y, W - 60, 46, 10, '#f0f7ff')
+    ctx.restore()
+
+    ctx.setFontSize(17)
+    var s = page.data.stats
+    var statX = 50
+    ctx.setFillStyle('#52c41a')
+    ctx.fillText('● 正常 ' + s.normal, statX, y + 30)
+    statX += 160
+    ctx.setFillStyle('#fa8c16')
+    ctx.fillText('● 异常 ' + s.abnormal, statX, y + 30)
+    statX += 160
+    ctx.setFillStyle('#999999')
+    ctx.fillText('○ 未检查 ' + s.pending, statX, y + 30)
 
     // 分割线
     ctx.setStrokeStyle('#eeeeee')

@@ -1,9 +1,25 @@
 <!-- components/radar-chart/radar-chart.wxml -->
 <view class="radar-wrapper">
+  <!-- Canvas 模式（小程序端正常渲染） -->
   <canvas
+    wx:if="{{!useTextFallback}}"
     id="{{canvasId}}"
     type="2d"
     class="radar-canvas"
     style="width: {{width}}rpx; height: {{height}}rpx;"
   />
+  <!-- 文本降级模式（APP端 Canvas 不可用时 / 多端模式主动使用） -->
+  <view wx:if="{{useTextFallback && dimensions}}" class="radar-text-fallback">
+    <view class="rf-title">五维健康评分</view>
+    <view class="rf-list">
+      <view class="rf-item" wx:for="{{textItems}}" wx:key="label">
+        <text class="rf-label">{{item.label}}</text>
+        <text class="rf-score" style="color:{{item.color}}">{{item.score}}分</text>
+        <view class="rf-bar">
+          <view class="rf-bar-fill" style="width:{{item.percent}}%;background:{{item.color}}" />
+        </view>
+        <text class="rf-percent" style="color:{{item.color}}">({{item.percent}}%)</text>
+      </view>
+    </view>
+  </view>
 </view>

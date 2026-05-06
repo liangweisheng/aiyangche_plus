@@ -22,12 +22,16 @@
     </view>
   </view>
 
-  <!-- 统计信息 + 状态筛选 -->
-  <view class="stats-section" wx:if="{{!loading && !isEmpty && orderList.length > 0}}">
+  <!-- 统计信息（始终显示，避免切换筛选时页面跳动） -->
+  <view class="stats-section" wx:if="{{!loading}}">
     <view class="stats-card">
       <text class="stats-num">{{totalCount}}</text>
       <text class="stats-label">总工单数</text>
     </view>
+  </view>
+
+  <!-- 状态筛选（始终显示，方便切换） -->
+  <view class="filter-section" wx:if="{{!loading}}">
     <view class="filter-tabs">
       <view
         class="filter-tab {{statusFilter === item.value ? 'active' : ''}} {{item.style}}"

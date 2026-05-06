@@ -22,7 +22,7 @@
 
   <!-- 底部版本号 -->
   <view class="splash-footer">
-    <text class="splash-version">v4.2.0</text>
+    <text class="splash-version">{{version}}</text>
   </view>
 
 </view>

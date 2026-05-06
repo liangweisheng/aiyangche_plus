@@ -12,6 +12,15 @@ function maskPlate(plate) {
   return plate.substring(0, keepFront) + '**' + plate.substring(len - 3);
 }
 
+// 手机号脱敏：保留前3后4，中间用****替代
+// 例：13812345678 → 138****5678
+function maskPhone(phone) {
+  if (!phone || typeof phone !== 'string') return phone || '';
+  if (phone.length !== 11) return phone;
+  return phone.substring(0, 3) + '****' + phone.substring(7);
+}
+
 module.exports = {
-  maskPlate: maskPlate
+  maskPlate: maskPlate,
+  maskPhone: maskPhone
 };

@@ -15,6 +15,8 @@ Page({
       battery: '',
       brake: '',
       light: '',
+      chassis: '',
+      other: '',
       issue: '',
       suggestion: ''
     },
@@ -24,7 +26,9 @@ Page({
       { key: 'oil', label: '机油检查', icon: '💧' },
       { key: 'battery', label: '电瓶检查', icon: '🔋' },
       { key: 'brake', label: '刹车检查', icon: '🛑' },
-      { key: 'light', label: '灯光检查', icon: '💡' }
+      { key: 'light', label: '灯光检查', icon: '💡' },
+      { key: 'chassis', label: '底盘检查', icon: '🔩' },
+      { key: 'other', label: '其他检查', icon: '📋' }
     ]
   },
 
@@ -55,7 +59,9 @@ Page({
           if (res.data.length > 0) {
             var carData = res.data[0]
             if (carData.createTime) {
-              carData.createTime = new Date(carData.createTime).toLocaleString()
+              var d = new Date(carData.createTime)
+              var pad = function (n) { return n < 10 ? '0' + n : '' + n }
+              carData.createTime = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds())
             }
             page.setData({ carInfo: carData })
           }
@@ -125,7 +131,8 @@ Page({
       carColor: (carInfo && carInfo.color) || '',
       checkItems: checkItemsData,
       issue: form.issue.trim() || '无',
-      suggestion: form.suggestion.trim() || '无'
+      suggestion: form.suggestion.trim() || '无',
+      operatorPhone: app.getOperatorPhone()
     }).then(function (res) {
       wx.hideLoading()
       if (res && res.code === 0) {

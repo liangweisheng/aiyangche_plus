@@ -2,6 +2,7 @@
 // 数据导出功能（仅Pro版用户可用）
 
 const app = getApp()
+
 const XLSX = require('../../lib/xlsx.full.min.js')
 
 Page({

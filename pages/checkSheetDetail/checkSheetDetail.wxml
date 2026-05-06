@@ -27,6 +27,25 @@
     </view>
   </view>
 
+  <!-- 检查统计概览 -->
+  <view class="stats-bar">
+    <view class="stat-item stat-normal">
+      <text class="stat-dot"></text>
+      <text class="stat-label">正常</text>
+      <text class="stat-num">{{stats.normal}}</text>
+    </view>
+    <view class="stat-item stat-abnormal">
+      <text class="stat-dot"></text>
+      <text class="stat-label">异常</text>
+      <text class="stat-num">{{stats.abnormal}}</text>
+    </view>
+    <view class="stat-item stat-pending">
+      <text class="stat-dot"></text>
+      <text class="stat-label">未检查</text>
+      <text class="stat-num">{{stats.pending}}</text>
+    </view>
+  </view>
+
   <!-- 检查结果 -->
   <view class="check-section">
     <view class="section-title">检查结果</view>
@@ -63,6 +82,12 @@
     <text class="time-value">{{detail.createTimeStr}}</text>
   </view>
 
+  <!-- 开单人 -->
+  <view class="time-section" wx:if="{{detail.operatorPhone}}">
+    <text class="time-label">检查人</text>
+    <text class="time-value">{{detail.operatorPhone}}</text>
+  </view>
+
 </view>
 
 <!-- 底部分享按钮 -->
@@ -73,7 +98,7 @@
 </view>
 
 <!-- 离屏 canvas 用于生成分享图片 -->
-<canvas canvas-id="shareCanvas" style="position:fixed;left:-9999rpx;top:-9999rpx;width:600px;height:900px;"></canvas>
+<canvas canvas-id="shareCanvas" style="position:fixed;left:-9999rpx;top:-9999rpx;width:600px;height:1020px;"></canvas>
 
 <!-- 浮动首页按钮 -->
 <view class="fab-home" bindtap="onGoHome">首页</view>

@@ -164,8 +164,8 @@
   <view class="form-section">
     <view class="section-title">备注信息</view>
     <view class="form-card">
-      <textarea
-        class="textarea"
+      <input
+        class="remark-input"
         placeholder="选填，记录其他信息"
         placeholder-class="placeholder"
         value="{{form.remark}}"
@@ -187,11 +187,14 @@
           <text class="alert-emoji">🔧</text>
           <text>下次保养</text>
         </view>
-        <picker mode="date" value="{{form.setMaintainDate}}" start="{{today}}" bindchange="onDatePick" data-field="setMaintainDate">
-          <view class="alert-picker {{form.setMaintainDate ? '' : 'placeholder'}}">
-            <text>{{form.setMaintainDate || '选择日期'}}</text>
-          </view>
-        </picker>
+        <view class="picker-with-clear">
+          <picker mode="date" value="{{form.setMaintainDate}}" start="{{today}}" bindchange="onDatePick" data-field="setMaintainDate">
+            <view class="alert-picker {{form.setMaintainDate ? '' : 'placeholder'}}">
+              <text>{{form.setMaintainDate || '选择日期'}}</text>
+            </view>
+          </picker>
+          <text class="picker-clear-btn" wx:if="{{form.setMaintainDate}}" catchtap="onClearDateField" data-field="setMaintainDate">✕</text>
+        </view>
       </view>
       <!-- 配件更换提醒 -->
       <view class="alert-divider"></view>
@@ -215,23 +218,19 @@
           <text class="alert-emoji">📅</text>
           <text>更换日期</text>
         </view>
-        <picker mode="date" value="{{form.setPartDate}}" start="{{today}}" bindchange="onDatePick" data-field="setPartDate">
-          <view class="alert-picker {{form.setPartDate ? '' : 'placeholder'}}">
-            <text>{{form.setPartDate || '选择日期'}}</text>
-          </view>
-        </picker>
+        <view class="picker-with-clear">
+          <picker mode="date" value="{{form.setPartDate}}" start="{{today}}" bindchange="onDatePick" data-field="setPartDate">
+            <view class="alert-picker {{form.setPartDate ? '' : 'placeholder'}}">
+              <text>{{form.setPartDate || '选择日期'}}</text>
+            </view>
+          </picker>
+          <text class="picker-clear-btn" wx:if="{{form.setPartDate}}" catchtap="onClearDateField" data-field="setPartDate">✕</text>
+        </view>
       </view>
     </view>
   </view>
 
-  <!-- 施工照片（预留） -->
-  <view class="upload-section disabled">
-    <view class="section-title">施工照片</view>
-    <view class="upload-card">
-      <text class="upload-icon">📷</text>
-      <text class="upload-text">上传功能开发中</text>
-    </view>
-  </view>
+
 
 </view>
 
@@ -281,7 +280,7 @@
           <view class="car-picker-item-info">
             <text wx:if="{{item.brand}}">{{item.brand}}</text>
             <text wx:if="{{item.color}}"> · {{item.color}}</text>
-            <text wx:if="{{item.phone}}"> · {{item.phone}}</text>
+            <text wx:if="{{item.phone}}"> · {{mask.maskPhone(item.phone)}}</text>
           </view>
         </view>
       </view>
@@ -293,7 +292,7 @@
           <view class="car-picker-item-info">
             <text wx:if="{{item.brand}}">{{item.brand}}</text>
             <text wx:if="{{item.color}}"> · {{item.color}}</text>
-            <text wx:if="{{item.phone}}"> · {{item.phone}}</text>
+            <text wx:if="{{item.phone}}"> · {{mask.maskPhone(item.phone)}}</text>
           </view>
         </view>
         <view class="car-picker-empty" wx:if="{{carPickerRecent.length === 0}}">
