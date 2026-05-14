@@ -260,6 +260,17 @@ function maskName(name) {
   return n.charAt(0) + '*'.repeat(n.length - 1)
 }
 
+/**
+ * 操作人展示：优先显示姓名，无姓名回退脱敏电话
+ * @param {string} name 操作人姓名
+ * @param {string} phone 操作人电话
+ * @returns {string}
+ */
+function formatOperatorName(name, phone) {
+  if (name && (name + '').trim()) return (name + '').trim()
+  return maskPhone(phone)
+}
+
 // ============================
 // 金额格式化
 // ============================
@@ -493,12 +504,8 @@ function callRepair(action, data) {
       shopPhone: app.getShopPhone(),
       clientOpenid: wx.getStorageSync('openid') || ''
     }
-    // 多端模式 + 游客模式：注入 clientPhone 供服务端鉴权
-    if (shopInfo.phone && (shopInfo._platform === 'multiend' || shopInfo.isGuest)) {
-      baseParams.clientPhone = shopInfo.phone
-    }
-    // 兜底：全局检测为多端模式但缓存未标记时，也注入 clientPhone（防御性编程）
-    if (!baseParams.clientPhone && getApp().globalData._isMultiEndMode && shopInfo.phone) {
+    // 所有模式注入 clientPhone 供服务端多层鉴权（管理员/员工登录都需要）
+    if (shopInfo.phone) {
       baseParams.clientPhone = shopInfo.phone
     }
     var params = Object.assign(baseParams, data || {})
@@ -506,7 +513,6 @@ function callRepair(action, data) {
       name: 'repair_main',
       data: params,
       success: function (res) {
-        console.log('[callRepair] 返回 res.result=', JSON.stringify(res.result))
         resolve(res.result)
       },
       fail: function (err) {
@@ -546,6 +552,7 @@ module.exports = {
   maskPhone: maskPhone,
   maskPlate: maskPlate,
   maskName: maskName,
+  formatOperatorName: formatOperatorName,
 
   // 金额格式化
   formatMoney: formatMoney,

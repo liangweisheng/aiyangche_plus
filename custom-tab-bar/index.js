@@ -1,34 +1,72 @@
 // custom-tab-bar/index.js
 // v4.0.0 自定义 TabBar：根据角色动态显示/隐藏 tab
 // v5.2.0 增强：切换 Tab 时校验账号有效性
+// v5.4.0 增强：admin 动态导航栏配置（会员/车辆 可切换）
 
 var app = getApp()
 
-// admin: 首页/会员/报表/我的
-var ADMIN_LIST = [
-  { pagePath: '/pages/dashboard/dashboard', text: '首页', iconPath: '/images/home.png', selectedIconPath: '/images/home-active.png' },
-  { pagePath: '/pages/memberList/memberList', text: '会员', iconPath: '/images/user.png', selectedIconPath: '/images/user-active.png' },
-  { pagePath: '/pages/report/report', text: '报表', iconPath: '/images/report.png', selectedIconPath: '/images/report-active.png' },
-  { pagePath: '/pages/proUnlock/proUnlock', text: '我的', iconPath: '/images/me.png', selectedIconPath: '/images/me-active.png' }
-]
-// staff: 首页/会员
+// staff: 仅首页（会员/车辆/报表/我的均为管理员专属页面）
 var STAFF_LIST = [
-  { pagePath: '/pages/dashboard/dashboard', text: '首页', iconPath: '/images/home.png', selectedIconPath: '/images/home-active.png' },
-  { pagePath: '/pages/memberList/memberList', text: '会员', iconPath: '/images/user.png', selectedIconPath: '/images/user-active.png' }
+  { pagePath: '/pages/dashboard/dashboard', text: '首页', iconPath: '/images/home.png', selectedIconPath: '/images/home-active.png' }
 ]
+
+// Admin 动态构建辅助方法
+function buildAdminList(config) {
+  config = config || {}
+  var showMember = config.member !== false  // 默认 true
+  var showCar = config.car === true         // 默认 false
+
+  var list = [
+    { pagePath: '/pages/dashboard/dashboard', text: '首页', iconPath: '/images/home.png', selectedIconPath: '/images/home-active.png' }
+  ]
+  if (showMember) list.push({ pagePath: '/pages/memberList/memberList', text: '会员', iconPath: '/images/user.png', selectedIconPath: '/images/user-active.png' })
+  if (showCar)    list.push({ pagePath: '/pages/carList/carList', text: '车辆', iconPath: '/images/car.png', selectedIconPath: '/images/car-active.png' })
+  list.push({ pagePath: '/pages/report/report', text: '报表', iconPath: '/images/report.png', selectedIconPath: '/images/report-active.png' })
+  list.push({ pagePath: '/pages/proUnlock/proUnlock', text: '我的', iconPath: '/images/me.png', selectedIconPath: '/images/me-active.png' })
+  return list
+}
+
+// 根据当前页面路由匹配 selected 索引
+function matchSelected(list) {
+  var pages = getCurrentPages()
+  var route = pages.length > 0 ? (pages[pages.length - 1].route || '') : ''
+  if (!route) return 0
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].pagePath.indexOf(route) !== -1) return i
+  }
+  return 0
+}
 
 Component({
   data: {
     selected: 0,
     list: [],
-    _validating: false // ★ 防重复验证标记
+    _validating: false, // ★ 防重复验证标记
+    _hidden: false      // ★ 页面级显隐控制（替代 wx.hideTabBar/showTabBar）
   },
 
   methods: {
-    init(selected) {
+    // ★ 显隐控制：供页面通过 this.getTabBar().hide()/show() 调用
+    hide() {
+      this.setData({ _hidden: true })
+    },
+    show() {
+      this.setData({ _hidden: false })
+    },
+
+    init() {
       var role = app.getRole()
-      var list = role === 'staff' ? STAFF_LIST : ADMIN_LIST
-      this.setData({ list: list, selected: selected !== undefined ? selected : 0 })
+      var list
+
+      if (role === 'staff') {
+        list = STAFF_LIST
+        this.setData({ list: list, selected: 0, _hidden: true })   // ★ staff 仅1个tab，隐藏TabBar
+      } else {
+        var config = wx.getStorageSync('navTabConfig') || {}
+        list = buildAdminList(config)
+        var selected = matchSelected(list)
+        this.setData({ list: list, selected: selected, _hidden: false })  // ★ 管理员确保显示
+      }
     },
 
     switchTab(e) {

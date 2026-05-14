@@ -2,20 +2,13 @@
 // 电子查车单详情页（只读展示 + 分享生成图片）
 
 const app = getApp()
+var util = require('../../utils/util')
+var constants = require('../../utils/constants')
 
 Page({
   data: {
     detail: null,
-    checkItems: [
-      { key: 'exterior', label: '外观检查', icon: '🚗' },
-      { key: 'tire', label: '轮胎检查', icon: '🛞' },
-      { key: 'oil', label: '机油检查', icon: '💧' },
-      { key: 'battery', label: '电瓶检查', icon: '🔋' },
-      { key: 'brake', label: '刹车检查', icon: '🛑' },
-      { key: 'light', label: '灯光检查', icon: '💡' },
-      { key: 'chassis', label: '底盘检查', icon: '🔩' },
-      { key: 'other', label: '其他检查', icon: '📋' }
-    ],
+    checkItems: constants.CHECK_ITEMS,
     stats: { normal: 0, abnormal: 0, pending: 0 }
   },
 
@@ -37,13 +30,20 @@ Page({
       success: function (res) {
         wx.hideLoading()
         var d = res.data
+        // 校验查车单是否属于当前门店
+        var shopPhone = app.getShopPhone()
+        if (d.shopPhone && d.shopPhone !== shopPhone) {
+          wx.showToast({ title: '无权查看此查车单', icon: 'none' })
+          setTimeout(function () { wx.navigateBack() }, 1500)
+          return
+        }
         if (d.createTime) {
-          var dt = new Date(d.createTime)
-          var pad = function (n) { return n < 10 ? '0' + n : '' + n }
-          d.createTimeStr = dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate()) + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes())
+          d.createTimeStr = util.formatDateTime(d.createTime).replace(/:\d{2}$/, '')
         } else {
           d.createTimeStr = ''
         }
+        d._maskedPhone = util.maskPhone(d.phone)
+        d._displayOperator = util.formatOperatorName(d.operatorName, d.operatorPhone)
         page.setData({ detail: d })
         page._calcStats(d)
       },
@@ -56,6 +56,13 @@ Page({
 
   onGoHome() {
     wx.switchTab({ url: '/pages/dashboard/dashboard' })
+  },
+
+  onReorder() {
+    var plate = this.data.detail && this.data.detail.plate
+    if (plate) {
+      wx.redirectTo({ url: '/pages/checkSheet/checkSheet?plate=' + plate })
+    }
   },
 
   // 计算检查项三态统计：正常 / 异常 / 未检查
@@ -120,7 +127,7 @@ Page({
     ctx.fillText(carInfoLine, 30, y)
 
     y += 25
-    var ownerLine = (detail.ownerName || '') + (detail.phone ? '  ' + detail.phone : '')
+    var ownerLine = (detail.ownerName || '') + (detail.phone ? '  ' + util.maskPhone(detail.phone) : '')
     if (ownerLine.trim()) {
       ctx.fillText(ownerLine, 30, y)
     }
@@ -193,7 +200,6 @@ Page({
     y += 10
     ctx.setFillStyle('#f0f7ff')
     page._roundRect(ctx, 30, y, W - 60, 46, 10, '#f0f7ff')
-    ctx.restore()
 
     ctx.setFontSize(17)
     var s = page.data.stats
@@ -207,14 +213,14 @@ Page({
     ctx.setFillStyle('#999999')
     ctx.fillText('○ 未检查 ' + s.pending, statX, y + 30)
 
-    // 分割线
+    // 分割线（画在统计条底部）
     ctx.setStrokeStyle('#eeeeee')
-    ctx.moveTo(30, y)
-    ctx.lineTo(W - 30, y)
+    ctx.moveTo(30, y + 46)
+    ctx.lineTo(W - 30, y + 46)
     ctx.stroke()
 
     // 问题
-    y += 15
+    y += 61
     ctx.setFontSize(20)
     ctx.setFillStyle('#1677ff')
     ctx.fillText('问题描述', 30, y + 18)
@@ -247,12 +253,24 @@ Page({
 
     ctx.setFontSize(14)
     ctx.setFillStyle('#999999')
+
+    // 第一行：检查时间（左）+ 开单人（右）
     ctx.setTextAlign('left')
     if (detail.createTimeStr) {
       ctx.fillText(detail.createTimeStr, 30, footerY + 10)
     }
+    var operatorText2 = '开单人：'
+    if (detail.operatorName) {
+      operatorText2 += detail.operatorName
+    } else if (detail.operatorPhone) {
+      operatorText2 += util.maskPhone(detail.operatorPhone)
+    }
     ctx.setTextAlign('right')
-    ctx.fillText('AI养车门店管理系统', W - 30, footerY + 10)
+    ctx.fillText(operatorText2, W - 30, footerY + 10)
+
+    // 第二行：品牌标识
+    ctx.setTextAlign('right')
+    ctx.fillText('AI养车门店管理系统', W - 30, footerY + 28)
 
     ctx.draw(false, function () {
       setTimeout(function () {

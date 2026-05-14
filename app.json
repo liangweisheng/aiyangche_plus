@@ -3,9 +3,9 @@
     "pages/splash/splash",
     "pages/dashboard/dashboard",
     "pages/welcome/welcome",
-    "pages/carSearch/carSearch",
     "pages/carAdd/carAdd",
     "pages/carDetail/carDetail",
+    "pages/carList/carList",
     "pages/orderAdd/orderAdd",
     "pages/orderList/orderList",
     "pages/orderDetail/orderDetail",
@@ -19,7 +19,8 @@
     "pages/report/report",
     "pages/privacy/privacy",
     "pages/userAgreement/userAgreement",
-    "pages/monthlyReport/monthlyReport"
+    "pages/monthlyReport/monthlyReport",
+    "pages/staffProfile/staffProfile"
   ],
   "window": {
     "navigationBarBackgroundColor": "#1677ff",
@@ -46,6 +47,12 @@
         "text": "会员",
         "iconPath": "images/user.png",
         "selectedIconPath": "images/user-active.png"
+      },
+      {
+        "pagePath": "pages/carList/carList",
+        "text": "车辆",
+        "iconPath": "images/car.png",
+        "selectedIconPath": "images/car-active.png"
       },
       {
         "pagePath": "pages/report/report",

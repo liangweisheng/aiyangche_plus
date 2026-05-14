@@ -3,16 +3,18 @@
 
 const util = require('../../utils/util')
 const app = getApp()
+var constants = require('../../utils/constants')
 
 Page({
   data: {
-    mode: 'login', // 'login' 登录 | 'register' 注册
+    mode: 'register', // 默认优先显示注册 | 'login' 登录
     showPrivacyModal: false, // 隐私弹窗控制
     privacyChecked: false, // 隐私条款勾选状态
     shopName: '',
     phone: '',
     shopCode: '',
-    submitting: false
+    submitting: false,
+    version: constants.APP_VERSION // 版本号
   },
 
   onLoad(options) {
@@ -23,7 +25,7 @@ Page({
     // 已有正式 shopInfo（非游客）→ 直接进 dashboard
     var shopInfo = wx.getStorageSync('shopInfo') || {}
     // 修复：记住游客缓存，取消登录时恢复
-    var wasGuest = !!(shopInfo.isGuest || shopInfo.phone === '13507720000' || wx.getStorageSync('isGuestMode'))
+    var wasGuest = app.isGuest ? app.isGuest() : false
     if (wasGuest) {
       page._guestShopInfo = JSON.parse(JSON.stringify(shopInfo))
       page._guestMode = wx.getStorageSync('isGuestMode')
@@ -39,14 +41,19 @@ Page({
       return
     }
 
-    // 设置 mode
+    // ★ 多端模式不允许注册，强制显示登录模式
+    if (_isMultiEnd) {
+      initMode = 'login'
+    }
+
+    // 设置 mode（默认优先显示注册模式；多端模式已强制登录）
     page.setData({
-      mode: initMode === 'register' ? 'register' : 'login',
+      mode: initMode === 'login' ? 'login' : 'register',
       _isMultiEnd: _isMultiEnd
     })
 
-    // login 模式且未同意过隐私 → 自动弹出隐私确认弹窗
-    if (!agreed && initMode !== 'register') {
+    // login 模式且未同意过隐私 → 自动弹出隐私确认弹窗（仅在显式指定登录时弹出）
+    if (!agreed && initMode === 'login') {
       this.setData({ showPrivacyModal: true })
     }
   },
@@ -83,7 +90,8 @@ Page({
   // 弹窗内取消 / 点击蒙层 → 小程序回退游客 / 多端模式关闭弹窗留页
   onCancelPrivacyModal() {
     var page = this
-    var _isMultiEnd = getApp().globalData._isMultiEndMode
+    var app = getApp()
+    var _isMultiEnd = app.globalData._isMultiEndMode
     // ★ 多端模式：仅关闭弹窗，留在登录页
     if (_isMultiEnd) {
       page.setData({ showPrivacyModal: false })
@@ -92,14 +100,24 @@ Page({
 
     // 小程序模式：恢复游客缓存并回退到 dashboard
     page.setData({ showPrivacyModal: false })
-    // 恢复游客缓存（如果之前是游客）
     if (page._guestShopInfo) {
       wx.setStorageSync('shopInfo', page._guestShopInfo)
       if (page._guestMode) wx.setStorageSync('isGuestMode', page._guestMode)
+      setTimeout(function () {
+        wx.reLaunch({ url: '/pages/dashboard/dashboard' })
+      }, 200)
+      return
     }
-    setTimeout(function () {
+
+    // 兜底：无游客缓存 → 进入游客模式
+    wx.showLoading({ title: '进入体验模式...' })
+    app._enterGuestMode().then(function () {
+      wx.hideLoading()
       wx.reLaunch({ url: '/pages/dashboard/dashboard' })
-    }, 200)
+    }).catch(function () {
+      wx.hideLoading()
+      wx.reLaunch({ url: '/pages/dashboard/dashboard' })
+    })
   },
 
   // 点击蒙层也视为取消
@@ -109,7 +127,8 @@ Page({
 
   // 取消登录 → 小程序回退游客 / 多端模式留在登录页
   onCancelLogin() {
-    var _isMultiEnd = getApp().globalData._isMultiEndMode
+    var app = getApp()
+    var _isMultiEnd = app.globalData._isMultiEndMode
     // ★ 多端模式：不允许取消/跳过，必须登录
     if (_isMultiEnd) {
       app.toastFail('App端需要登录后才能使用')
@@ -120,8 +139,19 @@ Page({
     if (this._guestShopInfo) {
       wx.setStorageSync('shopInfo', this._guestShopInfo)
       if (this._guestMode) wx.setStorageSync('isGuestMode', this._guestMode)
+      wx.reLaunch({ url: '/pages/dashboard/dashboard' })
+      return
     }
-    wx.reLaunch({ url: '/pages/dashboard/dashboard' })
+
+    // 兜底：无游客缓存 → 进入游客模式
+    wx.showLoading({ title: '进入体验模式...' })
+    app._enterGuestMode().then(function () {
+      wx.hideLoading()
+      wx.reLaunch({ url: '/pages/dashboard/dashboard' })
+    }).catch(function () {
+      wx.hideLoading()
+      wx.reLaunch({ url: '/pages/dashboard/dashboard' })
+    })
   },
 
   // 切换到注册
@@ -139,13 +169,18 @@ Page({
   // 切换到登录
   switchToLogin() {
     this.setData({ mode: 'login' })
+    // 切换到登录模式时检查隐私协议是否已同意
+    var agreed = wx.getStorageSync('privacyAgreed') || ''
+    if (!agreed) {
+      this.setData({ showPrivacyModal: true })
+    }
   },
 
   // 联系客服（忘记门店码）
   onContactService() {
     wx.showModal({
       title: '联系客服',
-      content: '客服号码：17807725166',
+      content: '客服号码：' + constants.SERVICE_PHONE,
       showCancel: false,
       confirmText: '知道了'
     })
@@ -222,21 +257,19 @@ Page({
 
           record = adminRecord
         }
-      } else {
-        // 未命中管理员记录
       }
       // 其次匹配员工（phone 对即可，通过 shopPhone 找到店主）
       if (!record && results[1].data && results[1].data.length > 0) {
         var staffRecord = results[1].data[0]
         // 查询员工所属店主的 shopCode
-        return db.collection('repair_activationCodes')
-          .where({ type: 'free', phone: staffRecord.shopPhone })
-          .field({ shopCode: true, name: true, shopTel: true, shopAddr: true })
-          .limit(1)
-          .get()
-          .then(function (ownerRes) {
-            var owner = ownerRes.data && ownerRes.data[0]
-            var ownerShopCode = (owner && owner.shopCode) || ''
+            return db.collection('repair_activationCodes')
+              .where({ type: 'free', phone: staffRecord.shopPhone })
+              .field({ shopCode: true, name: true, shopTel: true, shopAddr: true })
+              .limit(1)
+              .get()
+              .then(function (ownerRes) {
+                var owner = ownerRes.data && ownerRes.data[0]
+                var ownerShopCode = (owner && owner.shopCode) || ''
             if (ownerShopCode === shopCode) {
               return { record: staffRecord, isStaff: true, ownerName: (owner && owner.name) || '', ownerTel: (owner && owner.shopTel) || '', ownerAddr: (owner && owner.shopAddr) || '' }
             }
@@ -267,7 +300,12 @@ Page({
       app.getOpenId().then(function (openid) {
         if (openid) {
           if (isStaff) {
-            util.callRepair('updateStaffOpenid', { staffDocId: record._id, openid: openid }).catch(function () {})
+            util.callRepair('updateStaffOpenid', { staffDocId: record._id, openid: openid, clientOpenid: openid })
+              .then(function (res) {
+              })
+              .catch(function (err) {
+                console.error('[welcome] ❌ updateStaffOpenid 调用失败:', err && err.errMsg ? err.errMsg : err)
+              })
           }
           // ★ 管理员不再更新 openid（防止覆盖，已在上方守卫处理首次绑定）
         }
@@ -287,8 +325,13 @@ Page({
           addedBy: record.addedBy || '',
           shopTel: isStaff ? (result.ownerTel || '') : (record.shopTel || ''),
           shopAddr: isStaff ? (result.ownerAddr || '') : (record.shopAddr || ''),
+          displayName: record.displayName || '',
           // 标记平台来源（多端模式需注入 clientPhone 供服务端鉴权）
           _platform: getApp().globalData._isMultiEndMode ? 'multiend' : 'miniprogram'
+        }
+        // ★ 多端模式：登录成功记录信任时间戳，后续 24h 内直接恢复缓存
+        if (getApp().globalData._isMultiEndMode) {
+          shopInfo._lastLoginTime = Date.now()
         }
         wx.setStorageSync('shopInfo', shopInfo)
         wx.setStorageSync('shopName', shopInfo.name || '')
@@ -309,7 +352,17 @@ Page({
 
         // 员工继承店主 Pro 状态
         if (isStaff && realShopPhone) {
-          app._getProStatusAsync().then(function () {})
+          // ★ 保存员工原始 cloudRecord（_getProStatusAsync 内部的 _applyProCache 会覆盖）
+          var employeeCloudRecord = (wx.getStorageSync('shopInfo') || {}).cloudRecord || null
+          app._getProStatusAsync().then(function () {
+            // 恢复员工 cloudRecord（_applyProCache 覆盖为店主记录后需还原）
+            if (employeeCloudRecord) {
+              var si = wx.getStorageSync('shopInfo') || {}
+              si.cloudRecord = employeeCloudRecord
+              wx.setStorageSync('shopInfo', si)
+              getApp().globalData.shopInfo = si
+            }
+          })
         } else {
           app.syncProStatus({ docId: record._id }).catch(function () {})
         }
@@ -385,6 +438,8 @@ Page({
         wx.setStorageSync('shopInfo', shopInfo)
         wx.setStorageSync('shopName', shopName)
         wx.removeStorageSync('isGuestMode')
+        wx.setStorageSync('isPro', false)       // 新注册账号默认非Pro，清除游客模式残留
+        wx.removeStorageSync('proType')
         if (openid) {
           wx.setStorageSync('openid', openid)
         }

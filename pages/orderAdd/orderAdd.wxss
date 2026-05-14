@@ -426,6 +426,53 @@
   font-size: 26rpx;
 }
 
+/* 金额触发区（替代 input） */
+.svc-amount-trigger {
+  height: 72rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 2;        /* ← 新增：在 flex row 中获取弹性宽度 */
+  min-width: 0;   /* ← 新增：防止内容溢出 */
+}
+
+.svc-amount-trigger:active {
+  background: #e6f4ff;
+}
+
+.svc-amount-text {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+.svc-amount-text.placeholder {
+  color: #ccc;
+  font-weight: 400;
+}
+
+/* 实收金额显示（替代 input） */
+.amount-input-display {
+  flex: 1;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+}
+
+.amount-display-text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.amount-display-text.placeholder {
+  color: #bbb;
+  font-weight: 400;
+  font-size: 28rpx;
+}
+
 .svc-add-row {
   display: flex;
   align-items: center;
@@ -496,7 +543,6 @@
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 12rpx 0;
 }
 
@@ -512,20 +558,22 @@
   font-size: 30rpx;
   font-weight: 700;
   color: #333;
+  margin-right: 20rpx;
+  flex-shrink: 0;
 }
 
 .amount-input-wrapper {
   display: flex;
   align-items: center;
-  background: #f7f8fa;
+  background: #d0d0d1;
   border-radius: 16rpx;
   padding: 12rpx 20rpx;
-  min-width: 200rpx;
+  min-width: 180rpx;
   transition: all 0.3s ease;
 }
 
 .amount-input-wrapper:focus-within {
-  background: #e6f4ff;
+  background: #a5a6a6;
   box-shadow: 0 0 0 4rpx rgba(22, 119, 255, 0.1);
 }
 
@@ -551,6 +599,10 @@
 }
 
 .amount-value {
+  flex: 1;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
   font-size: 32rpx;
   font-weight: 700;
   color: #1677ff;
@@ -558,7 +610,7 @@
 
 .amount-value.auto {
   font-size: 24rpx;
-  color: #bbb;
+  color: #6f6e6e;
   font-weight: 400;
 }
 
@@ -894,6 +946,117 @@
   opacity: 0.8;
 }
 
+/* 实收金额编辑按钮 */
+.paid-edit-btn {
+  font-size: 32rpx;
+  padding: 6rpx;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+.paid-edit-btn:active {
+  opacity: 1;
+}
+
+/* 配件成本-利润分割线 */
+.amount-cost-divider {
+  height: 2rpx;
+  background: #f0f0f0;
+  margin: 12rpx 0 4rpx;
+}
+
+/* 配件成本输入框背景（更淡，体现选填） */
+.cost-input {
+  background: #f5f6f8 !important;
+}
+
+/* 利润标签颜色 */
+.amount-label.gross-label {
+  color: #52c41a;
+}
+
+/* 利润值容器 */
+.profit-value-wrap {
+  flex: 1;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+}
+
+.profit-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.profit-value.positive {
+  color: #52c41a;
+}
+
+.profit-value.negative {
+  color: #ff4d4f;
+}
+
+.profit-value.placeholder {
+  font-size: 24rpx;
+  color: #bbb;
+  font-weight: 400;
+}
+
+/* 实收金额弹窗内容区 */
+.paid-edit-body {
+  padding: 0 32rpx 24rpx;
+}
+
+.paid-edit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+}
+
+.paid-edit-row + .paid-edit-row {
+  border-top: 2rpx solid #f5f5f5;
+}
+
+.paid-edit-label {
+  font-size: 28rpx;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.paid-edit-value {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.paid-edit-input-wrap {
+  display: flex;
+  align-items: center;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  flex: 1;
+  max-width: 260rpx;
+  margin-left: 24rpx;
+}
+
+.paid-edit-input {
+  flex: 1;
+  height: 72rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1677ff;
+  text-align: right;
+}
+
+.paid-edit-unit {
+  font-size: 26rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
 /* 车牌选择器弹层 */
 .car-picker-mask {
   position: fixed;
@@ -1083,4 +1246,16 @@
   padding: 48rpx 0;
   font-size: 26rpx;
   color: #bbb;
+}
+
+/* 弹窗毛利率行 */
+.paid-edit-value.gross-rate {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+.paid-edit-value.positive-rate {
+  color: #52c41a;
+}
+.paid-edit-value.negative-rate {
+  color: #ff4d4f;
 }

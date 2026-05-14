@@ -1,9 +1,11 @@
 // pages/orderList/orderList.js
-// 历史工单列表（按门店手机号隔离 + 分页加载）
+// 历史工单列表 - v6.0
+// 云函数统一数据获取（listOrders），服务端分页+会员状态聚合
 
 const app = getApp()
 const util = require('../../utils/util')
-const PAGE_SIZE = 20
+var constants = require('../../utils/constants')
+const PAGE_SIZE = constants.DEFAULT_PAGE_LIMIT || 20
 
 Page({
   data: {
@@ -27,7 +29,16 @@ Page({
     if (options.keyword) {
       this.setData({ searchKeyword: options.keyword })
     }
+    if (options.plate) {
+      this.setData({ searchKeyword: options.plate })
+    }
     this._resetAndFetch()
+  },
+
+  onUnload() {
+    if (this.data.searchTimer) {
+      clearTimeout(this.data.searchTimer)
+    }
   },
 
   onShow() {
@@ -50,8 +61,14 @@ Page({
       page.setData({ searchTimer: null })
     }
 
+    // 清空内容时重置为全量列表
+    if (!val || !val.trim()) {
+      page._resetAndFetch()
+      return
+    }
+
     // 少于3字符时不自动搜索（保留手动搜索能力）
-    if (!val || val.trim().length < 3) {
+    if (val.trim().length < 3) {
       return
     }
 
@@ -93,104 +110,66 @@ Page({
 
   // 下拉刷新
   onPullDownRefresh() {
-    this._resetAndFetch()
-    wx.stopPullDownRefresh()
+    var page = this
+    this._resetAndFetch().then(function () {
+      wx.stopPullDownRefresh()
+    }).catch(function () {
+      wx.stopPullDownRefresh()
+    })
   },
 
   // 重置列表并重新加载
   _resetAndFetch() {
     this._reqVersion = (this._reqVersion || 0) + 1
     this.setData({ orderList: [], noMore: false, isEmpty: false, totalCount: 0 })
-    this._page = 0
-    this.fetchOrderList()
+    this._page = 1
+    return this.fetchOrderList()
   },
 
-  // 获取工单列表（分页）
+  // 获取工单列表（云函数分页）
   fetchOrderList() {
     var page = this
-    var searchKeyword = page.data.searchKeyword
-    var db = app.db()
     var reqVersion = page._reqVersion || 0
     page.setData({ loading: true, isEmpty: false })
 
-    var baseCondition = app.shopWhere()
-    baseCondition.isVoided = db.command.neq(true)
+    return util.callRepair('listOrders', {
+      shopPhone: app.getShopPhone(),
+      page: page._page,
+      pageSize: PAGE_SIZE,
+      keyword: (page.data.searchKeyword || '').trim(),
+      statusFilter: page.data.statusFilter || ''
+    }).then(function (res) {
+      if (reqVersion !== page._reqVersion) return  // 竞态保护
 
-    if (searchKeyword.trim()) {
-      baseCondition.plate = db.RegExp({ regexp: searchKeyword.trim(), options: 'i' })
-    }
+      if (res.code !== 0 || !res.data) {
+        page.setData({ loading: false })
+        return
+      }
 
-    // 状态筛选
-    var statusFilter = page.data.statusFilter
-    if (statusFilter) {
-      baseCondition.status = statusFilter
-    }
-
-    // 先查总数（仅在第一页时）
-    if (page._page === 0) {
-      db.collection('repair_orders').where(baseCondition).count().then(function (countRes) {
-        page.setData({ totalCount: countRes.total })
+      var newData = (res.data.list || []).map(function (item) {
+        return Object.assign({}, item, {
+          createTime: item.createTime ? util.formatDateTime(item.createTime) : '',
+          isMember: !!item.isMember
+        })
       })
-    }
 
-    db.collection('repair_orders')
-      .where(baseCondition)
-      .orderBy('createTime', 'desc')
-      .skip(page._page * PAGE_SIZE)
-      .limit(PAGE_SIZE)
-      .get({
-        success: function (res) {
-          // 忽略过期请求的回调，防止竞态导致重复数据
-          if (reqVersion !== page._reqVersion) return
-          page._page++
-          var data = res.data
-          // 批量查询会员状态
-          var plates = []
-          for (var i = 0; i < data.length; i++) {
-            if (data[i].plate && plates.indexOf(data[i].plate) === -1) {
-              plates.push(data[i].plate)
-            }
-          }
-          var memberPlateSet = {}
-          var finishLoad = function () {
-            var newData = data.map(function (item) {
-              return Object.assign({}, item, {
-                createTime: item.createTime ? util.formatDateTime(item.createTime) : '',
-                isMember: !!memberPlateSet[item.plate]
-              })
-            })
-            var list = page.data.orderList.concat(newData)
-            var noMore = newData.length < PAGE_SIZE
-            page.setData({
-              loading: false,
-              orderList: list,
-              isEmpty: list.length === 0,
-              noMore: noMore
-            })
-          }
-          if (plates.length === 0) {
-            finishLoad()
-            return
-          }
-          db.collection('repair_members').where({
-            plate: db.command.in(plates)
-          }).get({
-            success: function (memRes) {
-              for (var j = 0; j < memRes.data.length; j++) {
-                memberPlateSet[memRes.data[j].plate] = true
-              }
-              finishLoad()
-            },
-            fail: function () {
-              finishLoad()
-            }
-          })
-        },
-        fail: function () {
-          page.setData({ loading: false })
-          wx.showToast({ title: '加载失败', icon: 'none' })
-        }
+      var list = page.data.orderList.concat(newData)
+      var noMore = newData.length < PAGE_SIZE
+      page._page++
+
+      page.setData({
+        loading: false,
+        orderList: list,
+        isEmpty: list.length === 0,
+        noMore: noMore,
+        totalCount: res.data.total || 0
       })
+    }).catch(function (err) {
+      console.error('[orderList] 加载失败:', err)
+      if (reqVersion !== page._reqVersion) return
+      page.setData({ loading: false })
+      wx.showToast({ title: '加载失败', icon: 'none' })
+    })
   },
 
   onOrderTap(e) {
@@ -202,5 +181,14 @@ Page({
     this._resetAndFetch()
   },
 
-  _page: 0
+  onNewOrder() {
+    wx.navigateTo({ url: '/pages/orderAdd/orderAdd' })
+  },
+
+  onGoHome: function () {
+    wx.switchTab({ url: '/pages/dashboard/dashboard' })
+  },
+
+  _reqVersion: 0,
+  _page: 1
 })

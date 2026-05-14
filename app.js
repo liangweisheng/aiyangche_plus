@@ -27,7 +27,6 @@ function _isMultiEndMode() {
   try {
     // 方式1（最可靠）：Donut 框架注入的 miniapp 全局对象
     if (typeof miniapp !== 'undefined' && miniapp) {
-      console.log('[_isMultiEndMode] 检测到 miniapp 全局对象 → 多端模式')
       return true
     }
 
@@ -35,7 +34,6 @@ function _isMultiEndMode() {
 
     // 方式2：检查系统信息中的多端标记
     if (systemInfo && systemInfo.miniappVersion) {
-      console.log('[_isMultiEndMode] 检测到 miniappVersion → 多端模式')
       return true
     }
 
@@ -239,18 +237,45 @@ App({
     }
 
     var cloud = this._resourceCloud
+    // ★ 自动注入鉴权参数（与 util.callRepair 保持一致）
+    var shopInfo = wx.getStorageSync('shopInfo') || {}
+    var baseParams = {
+      shopPhone: app.getShopPhone(),
+      clientOpenid: wx.getStorageSync('openid') || ''
+    }
+    // 多端模式 + 游客模式：注入 clientPhone 供服务端鉴权
+    if (shopInfo.phone && (shopInfo._platform === 'multiend' || shopInfo.isGuest)) {
+      baseParams.clientPhone = shopInfo.phone
+    }
+    // 兜底：全局检测为多端模式但缓存未标记时，也注入 clientPhone
+    if (!baseParams.clientPhone && app.globalData._isMultiEndMode && shopInfo.phone) {
+      baseParams.clientPhone = shopInfo.phone
+    }
+    // 合并：业务参数可覆盖默认值
+    var params = Object.assign(baseParams, data || {})
+
     return new Promise(function (resolve, reject) {
       cloud.callFunction({
         name: name,
-        data: data || {},
+        data: params,
         success: function (res) {
-          // ★ 统一鉴权拦截：-403 = 账号已失效/被删除，强制登出跳转登录页
+          // ★ 统一鉴权拦截：-403 需区分"账号失效"和"权限不足"
           var result = res.result || {}
           if (result.code === -403) {
-            console.log('[AUTH] 收到 -403，强制登出:', result.msg)
-            wx.showToast({ title: result.msg || '账号已失效', icon: 'none', duration: 2000 })
-            setTimeout(function () { app._forceLogout() }, 1500)
-            return reject(new Error('AUTH:-403 ' + (result.msg || '账号已失效')))
+            var msg = result.msg || ''
+            var authFailKeywords = ['账号已失效', '被删除', '请重新登录', '未登录', 'openid不匹配']
+            var isAuthFailed = authFailKeywords.some(function (k) { return msg.indexOf(k) !== -1 })
+            console.error('[AUTH] -403 action=' + (params.action || name) + ' msg=' + msg)
+            if (isAuthFailed) {
+              // 真正的账号失效 → 强制登出
+              wx.showToast({ title: msg || '账号已失效', icon: 'none', duration: 2000 })
+              setTimeout(function () { app._forceLogout() }, 1500)
+            } else {
+              // 权限不足（非Pro/非管理员等） → 仅提示，不登出
+              console.warn('[PERM] 权限不足 action=' + (params.action || name))
+              wx.showToast({ title: msg || '权限不足', icon: 'none', duration: 2000 })
+            }
+            return reject(new Error('AUTH:-403 ' + msg))
           }
           resolve(result)
         },
@@ -415,19 +440,12 @@ App({
    */
   _autoLoginMultiEnd() {
     var app = this
-    console.log('[_autoLoginMultiEnd] 进入多端登录流程')
 
     // 尝试从本地缓存恢复（用户之前已登录过）
     var cachedShopInfo = wx.getStorageSync('shopInfo') || {}
 
     // ★ 新增：验证缓存来源标记（只恢复多端模式自己写入的缓存）
     var cachePlatform = cachedShopInfo._platform || 'unknown'
-    console.log('[_autoLoginMultiEnd] 缓存检查:', {
-      hasPhone: !!cachedShopInfo.phone,
-      isGuest: cachedShopInfo.isGuest,
-      isGuestMode: !!wx.getStorageSync('isGuestMode'),
-      cachePlatform: cachePlatform
-    })
 
     if (
       cachedShopInfo.phone &&
@@ -435,12 +453,18 @@ App({
       !wx.getStorageSync('isGuestMode') &&
       (cachePlatform === 'multiend' || cachePlatform === 'unknown')
     ) {
-      // 有有效缓存 → 先验证缓存是否仍有效（同步阻塞式）
-      console.log('[_autoLoginMultiEnd] 检测到本地缓存, 开始验证身份... name:', cachedShopInfo.name, ', phone:', cachedShopInfo.phone)
+      // ★ 24小时内信任窗口：跳过云端验证，直接恢复缓存
+      var lastLoginTime = cachedShopInfo._lastLoginTime || 0
+      var hoursSinceLogin = (Date.now() - lastLoginTime) / 3600000
+      if (lastLoginTime > 0 && hoursSinceLogin < constants.MULTIEND_CACHE_TTL_HOURS) {
+          app._loadGlobalShopInfo()
+        return Promise.resolve()
+      }
+
+      // 超过24h → 云端验证
       return app._validateMultiEndCache(cachedShopInfo).then(function() {
-        // 验证通过 → 恢复全局状态
+        // 验证通过 → 恢复全局状态（内部会更新信任时间）
         app._loadGlobalShopInfo()
-        console.log('[_autoLoginMultiEnd] 缓存验证通过，已恢复登录状态')
         return Promise.resolve()
       }).catch(function(err) {
         // 验证失败 → 清除缓存 + 跳转登录页
@@ -458,7 +482,6 @@ App({
     }
 
     // 无有效缓存 → 跳转到登录页（手机号+门店码）
-    console.log('[_autoLoginMultiEnd] 无有效缓存，跳转登录页')
     app._goWelcome('login')
     return Promise.resolve()
   },
@@ -476,7 +499,11 @@ App({
     if (!phone || !shopCode) return Promise.reject(new Error('缺少必要参数'))
 
     var db = app.db()
-    if (!db) return Promise.reject(new Error('数据库不可用'))
+    // ★ 数据库未就绪 → 信任缓存（网络问题不阻止用户）
+    if (!db) {
+      console.warn('[_validateMultiEndCache] db() 不可用，信任本地缓存')
+      return Promise.resolve()
+    }
 
     // 同时查询管理员记录和员工记录
     return Promise.all([
@@ -491,23 +518,22 @@ App({
       var staffRecord = results[1].data && results[1].data.length > 0 ? results[1].data[0] : null
 
       if (adminRecord) {
-        console.log('[_validateMultiEndCache] ✓ 管理员账号有效:', phone)
         return Promise.resolve()
       }
       if (staffRecord) {
-        console.log('[_validateMultiEndCache] ✓ 员工账号有效:', phone)
         return Promise.resolve()
       }
 
-      // 都查不到 → 账号已失效或被删除
+      // 都查不到 → 账号已失效或被删除（仅此情况才清除缓存）
       console.warn('[_validateMultiEndCache] ✗ 账号已失效，phone:', phone)
       return Promise.reject(new Error('账号已失效，请重新登录'))
     }).catch(function(err) {
+      // ★ 区分：业务错误（账号失效）→ 清除缓存；网络/查询异常 → 信任缓存
       if (err.message && err.message.indexOf('账号') >= 0) {
         return Promise.reject(err)  // 业务错误，向上抛出
       }
-      console.error('[_validateMultiEndCache] 验证请求异常:', err)
-      return Promise.reject(new Error('网络错误，请重试'))
+      console.warn('[_validateMultiEndCache] 验证请求异常，信任本地缓存:', err && err.message || err)
+      return Promise.resolve()  // 网络异常等 → 信任缓存
     })
   },
 
@@ -540,14 +566,12 @@ App({
 
     if (isAdmin) {
       // ====== 管理员验证：查询 type='free' + openid 匹配 ======
-      console.log('[_validateMiniProgramCache] 验证管理员:', openid)
       return db.collection('repair_activationCodes')
         .where({ type: 'free', openid: openid })
         .limit(1)
         .get()
         .then(function(res) {
           if (res.data && res.data.length > 0) {
-            console.log('[_validateMiniProgramCache] ✓ 管理员有效')
             return Promise.resolve()
           }
           console.warn('[_validateMiniProgramCache] ✗ 管理员云端无匹配记录')
@@ -560,7 +584,6 @@ App({
         })
     } else {
       // ====== 员工验证：单层查询 + newAccount 标记 ======
-      console.log('[_validateMiniProgramCache] 验证员工, openid:', openid)
       return db.collection('repair_activationCodes')
         .where({ staffOpenid: openid, status: 'active' })
         .limit(1)
@@ -570,10 +593,8 @@ App({
             var record = res.data[0]
             // 检查是否为新增员工(尚未完成首次登录绑定)
             if (record.newAccount === true) {
-              console.log('[_validateMiniProgramCache] ✓ 员工(newAccount=true), 待绑定, phone:', record.phone)
               return Promise.resolve()
             }
-            console.log('[_validateMiniProgramCache] ✓ 员工有效(staffOpenid):', openid)
             return Promise.resolve()
           }
           console.warn('[_validateMiniProgramCache] ✗ 员工账号失效, openid:', openid)
@@ -708,6 +729,7 @@ App({
       cloudRecord: record,
       role: record.role || 'admin',
       shopPhone: shopPhone,
+      displayName: record.displayName || '',     // 显示名称（个人级别字段）
       // ★ 新增：标记缓存来源（用于跨模式隔离）
       _platform: _platformDetected ? 'multiend' : 'miniprogram'
     }
@@ -760,32 +782,20 @@ App({
   },
 
   /**
-   * Pro 激活状态判断（与 proUnlock.js checkProFromRecord 逻辑一致）
-   * 规则：code 有值即已激活 + 当前时间 < expireTime
+   * Pro 激活状态判断
+   * 判定逻辑委托 constants.checkProFromRecord（唯一来源）
+   * 额外职责：Pro 过期时主动清除本地缓存（副作用）
    * @param {Object} record
    * @returns {boolean}
    */
   _checkProStatus(record) {
-    if (!record) return false
-    var code = record.code || ''
-
-    // 条件1：code 有值即表示已激活（与 proUnlock.js checkProFromRecord 逻辑一致）
-    if (!code) {
-      return false
+    var isPro = constants.checkProFromRecord(record)
+    if (!isPro && record && record.code) {
+      // code 有值但已过期 → 主动清缓存
+      wx.setStorageSync('isPro', false)
+      wx.setStorageSync('proType', '')
     }
-
-    // 条件2：当前时间未超过有效期
-    var expireTime = record.expireTime || ''
-    if (expireTime) {
-      var expireDate = new Date(expireTime)
-      if (isNaN(expireDate.getTime())) return false
-      if (new Date().getTime() >= expireDate.getTime()) {
-        wx.setStorageSync('isPro', false)
-        wx.setStorageSync('proType', '')
-        return false
-      }
-    }
-    return true
+    return isPro
   },
 
   /**
@@ -800,8 +810,7 @@ App({
 
     // ★ 多端模式：跳过游客模式，直接进入登录页
     if (_platformDetected) {
-      console.log('[_enterGuestMode] 多端模式，跳转登录页')
-      app._goWelcome('login')
+        app._goWelcome('login')
       return Promise.resolve()
     }
 
@@ -842,6 +851,7 @@ App({
             createTime: '',
             cloudRecord: null,
             isGuest: true,
+            role: 'admin',
             _platform: 'miniprogram'
           }
           wx.setStorageSync('shopInfo', fallbackShopInfo)
@@ -859,14 +869,22 @@ App({
           name: record.name || constants.GUEST_DISPLAY_NAME,
           phone: guestPhone,
           openid: '',
+          shopPhone: guestPhone,                    // ★ 供 getShopPhone() / shopWhere() 使用
           shopCode: guestCode,
+          shopTel: record.shopTel || '',             // ★ 门店联系电话
+          shopAddr: record.shopAddr || '',           // ★ 门店地址
+          displayName: record.displayName || '',     // ★ 显示名称
           createTime: record.createTime || '',
           cloudRecord: record,
           isGuest: true,
+          role: 'admin',
           _platform: 'miniprogram'
         }
         wx.setStorageSync('shopInfo', shopInfo)
         wx.setStorageSync('shopName', record.name || constants.GUEST_DISPLAY_NAME)
+        // ★ 同步门店联系方式到独立存储键（供 onShow 等场景读取）
+        if (record.shopTel) wx.setStorageSync('shopTel', record.shopTel)
+        if (record.shopAddr) wx.setStorageSync('shopAddr', record.shopAddr)
         wx.setStorageSync('isGuestMode', 'yes')
         var guestIsPro = app._checkProStatus(record)
         wx.setStorageSync('isPro', guestIsPro)
@@ -885,6 +903,7 @@ App({
           createTime: '',
           cloudRecord: null,
           isGuest: true,
+          role: 'admin',
           _platform: 'miniprogram'
         }
         wx.setStorageSync('shopInfo', fallbackShopInfo)
@@ -906,13 +925,10 @@ App({
   },
 
   /**
-   * 清除失效账号的所有登录缓存 + 切换到游客模式（仅小程序端使用）
-   * 与 _forceLogout 的区别：不跳转页面，仅重置状态
+   * 清除所有登录相关的本地缓存 + 全局数据（公共方法）
+   * 被 _forceLogout 和 _forceLogoutAndEnterGuest 共用
    */
-  _forceLogoutAndEnterGuest: function() {
-    console.log('[AUTH] 失效账号清除：切换到游客模式')
-
-    // 1. 清除所有登录相关缓存（复用 _forceLogout 的清除列表）
+  _clearAuthCache: function() {
     wx.removeStorageSync('shopInfo')
     wx.removeStorageSync('shopName')
     wx.removeStorageSync('isPro')
@@ -924,12 +940,17 @@ App({
     wx.removeStorageSync('roleLabel')
     wx.removeStorageSync('openid')
 
-    // 2. 清除全局数据
     this.globalData.shopName = ''
     this.globalData.shopPhone = ''
     this.globalData.shopInfo = {}
+  },
 
-    // 3. 切换到游客模式（不跳转页面，仅重置状态）
+  /**
+   * 清除失效账号的所有登录缓存 + 切换到游客模式（仅小程序端使用）
+   * 与 _forceLogout 的区别：不跳转页面，仅重置状态
+   */
+  _forceLogoutAndEnterGuest: function() {
+    this._clearAuthCache()
     this._enterGuestMode()
   },
 
@@ -938,25 +959,7 @@ App({
    * 用于 -403（账号已失效/被删除）等安全场景
    */
   _forceLogout: function () {
-    console.log('[AUTH] 强制登出：清除所有登录状态')
-    // 1. 清除本地缓存
-    wx.removeStorageSync('shopInfo')
-    wx.removeStorageSync('shopName')
-    wx.removeStorageSync('isPro')
-    wx.removeStorageSync('proType')
-    wx.removeStorageSync('proActivationTime')
-    wx.removeStorageSync('isGuestMode')
-    wx.removeStorageSync('shopTel')
-    wx.removeStorageSync('shopAddr')
-    wx.removeStorageSync('roleLabel')
-    wx.removeStorageSync('openid')
-
-    // 2. 清除全局数据
-    this.globalData.shopName = ''
-    this.globalData.shopPhone = ''
-    this.globalData.shopInfo = {}
-
-    // 3. 跳转登录页（reLaunch 关闭所有页面）
+    this._clearAuthCache()
     wx.reLaunch({ url: '/pages/welcome/welcome?mode=login' })
   },
 
@@ -1034,7 +1037,7 @@ App({
 
         // 清除 DB 中的 openid 绑定（让下次 _loadShopByOpenid 查不到）
         if (docId) {
-          util.callRepair('updateOpenid', { docId: docId }).catch(function () { /* 静默 */ })
+          util.callRepair('updateOpenid', { docId: docId, clearOpenid: true }).catch(function () { /* 静默 */ })
         }
 
         // 进入游客模式（内部会设置缓存）
@@ -1043,6 +1046,70 @@ App({
         })
 
         app.toastSuccess('已退出')
+      }
+    })
+  },
+
+  /**
+   * 员工退出登录：清本地缓存 + 清云端 staffOpenid 绑定 + 跳转登录页
+   * 与 logout() 区别：不进入游客模式（多端模式下游客模式不可用）
+   */
+  staffLogout() {
+    var app = this
+    wx.showModal({
+      title: '退出登录',
+      content: '确定要退出当前账号吗？退出后需重新登录',
+      confirmText: '退出',
+      confirmColor: '#ff4d4f',
+      success: function (res) {
+        if (!res.confirm) return
+
+        var shopInfo = wx.getStorageSync('shopInfo') || {}
+        var staffPhone = shopInfo.phone || ''
+        var ownerPhone = shopInfo.shopPhone || ''
+
+        // ★ 用 phone + shopPhone 查询 DB 找到员工记录 _id，不再依赖 cloudRecord._id
+        var clearPromise = app.whenCloudReady().then(function () {
+          if (!staffPhone || !ownerPhone) return null
+          return app.db().collection('repair_activationCodes')
+            .where({ type: 'staff', phone: staffPhone, shopPhone: ownerPhone, status: 'active' })
+            .limit(1)
+            .get()
+        }).then(function (queryRes) {
+          var docId = (queryRes && queryRes.data && queryRes.data.length > 0)
+            ? queryRes.data[0]._id : ''
+          if (docId) {
+            return util.callRepair('updateStaffOpenid', { staffDocId: docId, clearStaffOpenid: true })
+              .catch(function (err) {
+                console.warn('[staffLogout] 清除staffOpenid失败', err && err.errMsg ? err.errMsg : err, err)
+              })
+          }
+        }).catch(function (err) {
+          console.warn('[staffLogout] 查询员工记录失败:', err)
+        })
+
+        clearPromise.finally(function () {
+          // 清除本地缓存
+          wx.removeStorageSync('shopInfo')
+          wx.removeStorageSync('shopName')
+          wx.removeStorageSync('isPro')
+          wx.removeStorageSync('proType')
+          wx.removeStorageSync('proActivationTime')
+          wx.removeStorageSync('isGuestMode')
+          wx.removeStorageSync('shopTel')
+          wx.removeStorageSync('shopAddr')
+          wx.removeStorageSync('roleLabel')
+          wx.removeStorageSync('openid')
+
+          // 清除全局数据
+          app.globalData.shopName = ''
+          app.globalData.shopPhone = ''
+          app.globalData.shopInfo = {}
+
+          // 跳转登录页（不进入游客模式）
+          wx.reLaunch({ url: '/pages/welcome/welcome?mode=login' })
+          app.toastSuccess('已退出')
+        })
       }
     })
   },
@@ -1060,12 +1127,8 @@ App({
       if (qs) fullUrl += '?' + qs
     }
 
-    // tabBar 页面列表
-    var tabBarUrls = [
-      '/pages/dashboard/dashboard',
-      '/pages/memberList/memberList',
-      '/pages/proUnlock/proUnlock'
-    ]
+    // tabBar 页面列表（引用 constants 统一来源）
+    var tabBarUrls = constants.TAB_BAR_PAGES
     var isTabBar = tabBarUrls.some(function (t) { return fullUrl.indexOf(t) === 0 })
 
     if (isTabBar) {
@@ -1205,6 +1268,24 @@ App({
   },
 
   /**
+   * 获取当前操作人显示名称（优先姓名，无姓名返回空字符串）
+   * @returns {string}
+   */
+  getOperatorName() {
+    var shopInfo = wx.getStorageSync('shopInfo') || {}
+    var name = shopInfo.displayName || ''
+    if (name) return name
+    if (shopInfo.cloudRecord && shopInfo.cloudRecord.displayName) {
+      return shopInfo.cloudRecord.displayName
+    }
+    // 员工场景：从自身记录读取
+    if (shopInfo.addedBy && shopInfo.phone) {
+      return '' // 员工可能没有设置displayName，回退到手机号
+    }
+    return ''
+  },
+
+  /**
    * 构建门店隔离查询条件（所有业务数据查询必须带上）
    * @param {Object} [where] 原始查询条件
    * @returns {Object} 带 shopPhone 条件的查询条件
@@ -1263,7 +1344,8 @@ App({
    * @returns {boolean}
    */
   isPro() {
-    return !!wx.getStorageSync('isPro')
+    var val = !!wx.getStorageSync('isPro')
+    return val
   },
 
   /**
@@ -1402,8 +1484,7 @@ App({
 
     // ★ 多端模式：跳过获取，返回空字符串
     if (_platformDetected) {
-      console.log('[getOpenId] 多端模式，跳过openid获取')
-      return Promise.resolve('')
+        return Promise.resolve('')
     }
 
     // 优先从缓存取
@@ -1494,6 +1575,120 @@ App({
   },
 
   /**
+   * 是否游客模式
+   * @returns {boolean}
+   */
+  isGuest() {
+    var shopInfo = wx.getStorageSync('shopInfo') || {}
+    return !!(shopInfo.isGuest || shopInfo.phone === constants.GUEST_PHONE || wx.getStorageSync('isGuestMode'))
+  },
+
+  /**
+   * 页面级权限守卫（在 onLoad 中调用）
+   * 统一管理各页面的访问权限，避免各页面散落不同的判断逻辑
+   * 
+   * @param {string} requiredRole 所需权限等级：
+   *   'registered' - 已注册用户（排除游客）
+   *   'admin'      - 管理员（排除员工）
+   *   'superAdmin' - 超级管理员（仅注册者本人）
+   *   'pro'        - Pro版用户
+   *   'admin+pro'  - 管理员 + Pro版
+   *   'superAdmin+pro' - 超级管理员 + Pro版
+   * @returns {boolean} true=有权限，false=无权限（已自动弹窗拦截）
+   */
+  checkPageAccess(requiredRole) {
+    var parts = requiredRole.split('+')
+    var roleRequired = parts[0]
+    var needPro = parts.indexOf('pro') !== -1
+
+    // 智能回退：有上一页则 navigateBack，否则 switchTab 回首页（处理 TabBar 页面分享场景）
+    function _goBack() {
+      var pages = getCurrentPages()
+      if (pages.length > 1) {
+        wx.navigateBack()
+      } else {
+        wx.switchTab({ url: '/pages/dashboard/dashboard' })
+      }
+    }
+
+    // 1. 游客权限检查：游客继承共享账号的 admin 权限（"体验 demo"模式）
+    //    仅 superAdmin 页面需要拦截（游客无法满足 openid 匹配条件）
+    if (this.isGuest()) {
+      if (roleRequired === 'superAdmin') {
+        wx.showModal({
+          title: '需要超级管理员',
+          content: '此功能需要注册者本人登录，游客无法使用',
+          showCancel: false,
+          confirmText: '我知道了',
+          success: function () { _goBack() }
+        })
+        return false
+      }
+      // 游客 admin 权限放行，跳过步骤 2（isRegistered 对游客返回 false）
+      // 继续步骤 3 角色检查 + 步骤 4 Pro 检查
+    } else {
+      // 2. 非游客的未注册检查
+      if (roleRequired !== 'public' && !this.isRegistered()) {
+        wx.showModal({
+          title: '请先注册',
+          content: '完善门店信息后即可使用该功能',
+          confirmText: '去注册',
+          success: function (res) {
+            if (res.confirm) {
+              wx.navigateTo({ url: '/pages/welcome/welcome' })
+            } else {
+              _goBack()
+            }
+          }
+        })
+        return false
+      }
+    }
+
+    // 3. 角色检查
+    if (roleRequired === 'admin' && this.isStaff()) {
+      wx.showModal({
+        title: '无权限',
+        content: '店员无权访问此页面',
+        showCancel: false,
+        confirmText: '我知道了',
+        success: function () { _goBack() }
+      })
+      return false
+    }
+
+    if (roleRequired === 'superAdmin' && !this.isSuperAdmin()) {
+      wx.showModal({
+        title: '无权限',
+        content: '仅超级管理员可访问此页面',
+        showCancel: false,
+        confirmText: '我知道了',
+        success: function () { _goBack() }
+      })
+      return false
+    }
+
+    // 4. Pro 检查
+    if (needPro && !this.isPro()) {
+      wx.showModal({
+        title: '需要Pro版',
+        content: '此功能仅Pro版可用，升级后即可使用',
+        confirmText: '去升级',
+        success: function (res) {
+          if (res.confirm) {
+            wx.switchTab({ url: '/pages/proUnlock/proUnlock' })
+          } else {
+            _goBack()
+          }
+        }
+      })
+      return false
+    }
+
+    return true
+  },
+
+  /**
    * 异步获取 Pro 状态（员工继承店主 Pro 状态）
    * 通过 shopPhone 反查店主记录的 code + expireTime 判断
    * @returns {Promise<boolean>}
@@ -1503,7 +1698,6 @@ App({
     var db = this.db()
     var shopInfo = wx.getStorageSync('shopInfo') || {}
     var shopPhone = shopInfo.shopPhone || shopInfo.phone || ''
-
     if (!shopPhone) return Promise.resolve(false)
 
     return db.collection('repair_activationCodes')
@@ -1517,6 +1711,9 @@ App({
         var record = res.data[0]
         var isPro = app._checkProStatus(record)
         if (isPro !== app.isPro()) {
+          app._applyProCache(isPro, record)
+        } else {
+          // 即使 isPro 不变，也要更新 cloudRecord（修复之前的覆盖问题）
           app._applyProCache(isPro, record)
         }
         return isPro
@@ -1533,6 +1730,11 @@ App({
    */
   _loadGlobalShopInfo() {
     var shopInfo = wx.getStorageSync('shopInfo') || {}
+    // ★ 多端模式：恢复缓存时刷新信任窗口时间戳，滚动延长有效期
+    if (_platformDetected) {
+      shopInfo._lastLoginTime = Date.now()
+      wx.setStorageSync('shopInfo', shopInfo)
+    }
     this.globalData.shopName = shopInfo.name || wx.getStorageSync('shopName') || ''
     this.globalData.shopPhone = shopInfo.phone || ''
     this.globalData.shopInfo = shopInfo

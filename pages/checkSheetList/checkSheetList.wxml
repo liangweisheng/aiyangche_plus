@@ -2,8 +2,12 @@
 <wxs src="../../utils/maskPlate.wxs" module="mask" />
 <view class="container">
 
+  <view class="sticky-header">
   <!-- 搜索栏 -->
   <view class="search-section">
+    <view class="home-btn" bindtap="onGoHome">
+      <text>🏠首页</text>
+    </view>
     <view class="search-wrapper">
       <text class="search-icon">🔍</text>
       <input class="search-input" placeholder="搜索车牌号" placeholder-class="search-placeholder" value="{{keyword}}" bindinput="onSearchInput" bindconfirm="onSearch" confirm-type="search" />
@@ -19,6 +23,7 @@
       <text class="stats-num">{{totalCount}}</text>
       <text class="stats-label">份查车单</text>
     </view>
+  </view>
   </view>
 
   <!-- 列表 -->
@@ -59,8 +64,9 @@
       <view class="loading-dot"></view>
       <text class="loading-text">加载中...</text>
     </view>
-    <view class="load-more" wx:if="{{noMore && list.length > 0}}">
-      <text class="load-more-text">— 已加载全部 —</text>
+    <view class="load-more" wx:if="{{list.length > 0 && !loading}}">
+      <text class="load-more-text" wx:if="{{noMore}}">— 已加载全部 —</text>
+      <text class="load-more-text" wx:else>上拉加载更多</text>
     </view>
   </view>
 
@@ -77,5 +83,5 @@
 
 </view>
 
-<!-- 浮动首页按钮 -->
-<view class="fab-home" bindtap="onGoHome">首页</view>
+<!-- 浮动新建查车单按钮 -->
+<view class="fab-add" bindtap="onNewCheckSheet">＋查车单</view>

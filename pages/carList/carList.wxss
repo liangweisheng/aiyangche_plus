@@ -1,0 +1,437 @@
+/* pages/carList/carList.wxss */
+/* 车辆列表 - 复用 orderList 商业 SaaS 风格 */
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f7ff 0%, #f5f7fa 100%);
+  padding-bottom: 280rpx;
+}
+
+/* ───────── 固定头部（搜索栏 + 统计 + 筛选） ───────── */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(180deg, #f0f7ff 0%, #f5f7fa 100%);
+}
+
+/* ======================== */
+/* 搜索栏                    */
+/* ======================== */
+
+.search-section {
+  padding: 24rpx 24rpx 0;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.home-btn {
+  flex-shrink: 0;
+  padding: 20rpx 20rpx;
+  background: #f0f5ff;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: #1677ff;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.search-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 0 24rpx;
+  height: 88rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.search-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.search-input {
+  flex: 1;
+  height: 88rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.search-placeholder {
+  color: #bbb;
+}
+
+.clear-btn {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f0f0f0;
+}
+
+.clear-icon {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* ======================== */
+/* 统计 + 筛选               */
+/* ======================== */
+
+.filter-section {
+  padding: 0 24rpx;
+  margin-bottom: 20rpx;
+}
+
+/* 统计卡片 */
+.stats-card {
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  border-radius: 20rpx;
+  padding: 20rpx 24rpx;
+  margin-top: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  box-shadow: 0 6rpx 28rpx rgba(22, 119, 255, 0.25);
+}
+
+.stats-num {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #fff;
+}
+
+.stats-label {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 筛选标签 */
+.filter-tabs {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 16rpx;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  flex: 1;
+  min-width: 100rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 14rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #666;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.filter-tab:active {
+  transform: scale(0.96);
+}
+
+/* 全部激活 */
+.filter-tab.active.all {
+  background: #e6f4ff;
+  color: #1677ff;
+  border: 2rpx solid #91caff;
+}
+
+/* 会员激活 */
+.filter-tab.active.member {
+  background: #f9f0ff;
+  color: #722ed1;
+  border: 2rpx solid #d3adf7;
+}
+
+/* 非会员激活 */
+.filter-tab.active.non-member {
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 2rpx solid #ffd591;
+}
+
+/* 燃油车激活 */
+.filter-tab.active.fuel {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 2rpx solid #b7eb8f;
+}
+
+/* 新能源激活 */
+.filter-tab.active.energy {
+  background: #e6fffb;
+  color: #13c2c2;
+  border: 2rpx solid #87e8de;
+}
+
+/* ======================== */
+/* 骨架屏                    */
+/* ======================== */
+
+.skeleton-section {
+  padding: 0 24rpx;
+}
+
+.skeleton-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.skeleton-line {
+  height: 24rpx;
+  background: linear-gradient(90deg, #f0f0f0 25%, #f5f5f5 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6rpx;
+}
+
+.skeleton-plate {
+  width: 140rpx;
+  margin-bottom: 16rpx;
+}
+
+.skeleton-info {
+  width: 340rpx;
+  margin-bottom: 12rpx;
+}
+
+.skeleton-stats {
+  width: 240rpx;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ======================== */
+/* 车辆列表                  */
+/* ======================== */
+
+.list-section {
+  padding: 0 24rpx;
+}
+
+.car-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+/* 车辆卡片 */
+.car-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.car-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 6rpx 24rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 头部：车牌 + 会员徽章 + 车型 */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.plate {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #333;
+  letter-spacing: 2rpx;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-shrink: 0;
+}
+
+/* 会员标签 */
+.member-badge {
+  padding: 4rpx 14rpx;
+  border-radius: 12rpx;
+  background: #f9f0ff;
+  color: #722ed1;
+  font-size: 20rpx;
+  font-weight: 600;
+  border: 2rpx solid #d3adf7;
+  flex-shrink: 0;
+}
+
+/* 车型标签 */
+.car-type-tag {
+  font-size: 22rpx;
+  color: #999;
+  max-width: 160rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 信息行：车主 + 电话 */
+.card-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+  padding-bottom: 14rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.owner-name {
+  font-size: 26rpx;
+  color: #555;
+  font-weight: 500;
+}
+
+.owner-phone {
+  font-size: 24rpx;
+  color: #aaa;
+}
+
+/* 底栏 */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-stats {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.footer-item {
+  font-size: 24rpx;
+  color: #666;
+  font-weight: 500;
+}
+
+.footer-time {
+  font-size: 22rpx;
+  color: #bbb;
+  flex-shrink: 0;
+}
+
+/* ======================== */
+/* 空状态                    */
+/* ======================== */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+}
+
+.empty-icon {
+  font-size: 96rpx;
+  margin-bottom: 24rpx;
+  opacity: 0.4;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #999;
+  margin-bottom: 12rpx;
+}
+
+.empty-hint {
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+/* ======================== */
+/* 加载更多                  */
+/* ======================== */
+
+.load-more {
+  padding: 30rpx 0 20rpx;
+  text-align: center;
+}
+
+.load-more-text {
+  font-size: 22rpx;
+  color: #ccc;
+}
+
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 30rpx 0 20rpx;
+}
+
+.loading-dot {
+  width: 28rpx;
+  height: 28rpx;
+  border: 4rpx solid #e0e0e0;
+  border-top-color: #1677ff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 浮动新增按钮 */
+.fab-add {
+  position: fixed;
+  right: 32rpx;
+  bottom: 180rpx;
+  height: 80rpx;
+  padding: 0 32rpx;
+  border-radius: 40rpx;
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  box-shadow: 0 8rpx 28rpx rgba(22, 119, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.fab-add:active {
+  opacity: 0.8;
+  transform: scale(0.92);
+}

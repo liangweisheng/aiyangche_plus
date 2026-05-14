@@ -16,7 +16,7 @@ Page({
     // 状态文字轮播，让用户感知到在加载
     var texts = ['正在加载...', '正在识别身份...', '正在初始化...']
     var textIdx = 0
-    var textTimer = setInterval(function () {
+    page._textTimer = setInterval(function () {
       textIdx = (textIdx + 1) % texts.length
       page.setData({ statusText: texts[textIdx] })
     }, 1500)
@@ -26,12 +26,19 @@ Page({
     var loginPromise = app.autoLoginPromise || Promise.resolve()
 
     loginPromise.then(function () {
-      clearInterval(textTimer)
+      clearInterval(page._textTimer)
       page._navigateNext()
     }).catch(function () {
-      clearInterval(textTimer)
+      clearInterval(page._textTimer)
       page._navigateNext()
     })
+  },
+
+  onUnload() {
+    if (this._textTimer) {
+      clearInterval(this._textTimer)
+      this._textTimer = null
+    }
   },
 
   /**
@@ -39,7 +46,7 @@ Page({
    */
   _navigateNext() {
     var shopInfo = wx.getStorageSync('shopInfo') || {}
-    var isGuest = !!(shopInfo.isGuest || shopInfo.phone === '13507720000' || wx.getStorageSync('isGuestMode'))
+    var isGuest = app.isGuest ? app.isGuest() : false
     var isRegistered = !!(shopInfo.phone && !isGuest)
 
     // ★ v5.1.0 多端模式：未注册用户必须走登录页（不能直接进 dashboard）
@@ -50,12 +57,7 @@ Page({
       return
     }
 
-    if (isRegistered) {
-      // 已注册用户 → dashboard
-      wx.switchTab({ url: '/pages/dashboard/dashboard' })
-    } else {
-      // 新用户/游客 → dashboard（游客模式）
-      wx.switchTab({ url: '/pages/dashboard/dashboard' })
-    }
+    // 已注册用户/新用户/游客均进入 dashboard
+    wx.switchTab({ url: '/pages/dashboard/dashboard' })
   }
 })

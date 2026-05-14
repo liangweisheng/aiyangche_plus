@@ -38,6 +38,7 @@ Page({
       setTimeout(function () { wx.navigateBack() }, 1500)
       return
     }
+    this._firstLoad = true
     if (plate) {
       this.fetchCarDetail(plate)
       this.fetchMemberInfo(plate)
@@ -46,8 +47,18 @@ Page({
     }
   },
 
+  onUnload() {
+    // 重置重入守卫，下次从其他页面返回时可正常刷新
+    this._firstLoad = true
+  },
+
   // 从子页面（memberAdd/orderAdd等）返回时刷新数据
   onShow() {
+    // 首次加载跳过（onLoad已拉取），仅从子页面返回时刷新
+    if (this._firstLoad) {
+      this._firstLoad = false
+      return
+    }
     var plate = this.data.carInfo && this.data.carInfo.plate
     if (plate) {
       this.fetchCarDetail(plate)
@@ -64,10 +75,15 @@ Page({
       success: function (res) {
         wx.hideLoading()
         var carData = res.data
+        // 归属校验：确保只能查看本门店车辆
+        var shopPhone = app.getShopPhone()
+        if (carData.shopPhone && carData.shopPhone !== shopPhone) {
+          wx.showToast({ title: '无权查看此车辆', icon: 'none' })
+          setTimeout(function () { wx.navigateBack() }, 1500)
+          return
+        }
         if (carData.createTime) {
-          var d = new Date(carData.createTime)
-          var pad = function (n) { return n < 10 ? '0' + n : '' + n }
-          carData.createTime = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds())
+          carData.createTime = util.formatDateTime(carData.createTime)
         }
         carData._maskedPhone = util.maskPhone(carData.phone)
         page.setData({ carInfo: carData })
@@ -81,52 +97,28 @@ Page({
     })
   },
 
-  // 按车牌聚合查询：累计消费金额 + 工单数
+  // 按车牌聚合查询：累计消费金额 + 工单数（云函数端聚合）⭐ 优化
   _fetchCarStats(plate) {
     var page = this
-    var db = app.db()
-    var whereCondition = app.shopWhere({ plate: plate, status: '已完成' })
-    db.collection('repair_orders')
-      .where(whereCondition)
-      .field({ totalAmount: true })
-      .count()
-      .then(function (countRes) {
-        var orderCount = countRes.total || 0
-        if (orderCount === 0) {
-          page.setData({
-            'carInfo._totalAmount': 0,
-            'carInfo._orderCount': 0
-          })
-          return
-        }
-        // 分批读取所有已完工单的 totalAmount（每次最多20条）
-        var tasks = []
-        var batchCount = Math.ceil(orderCount / 20)
-        for (var i = 0; i < batchCount; i++) {
-          tasks.push(
-            db.collection('repair_orders')
-              .where(whereCondition)
-              .field({ totalAmount: true })
-              .skip(i * 20)
-              .limit(20)
-              .get()
-          )
-        }
-        Promise.all(tasks).then(function (results) {
-          var totalAmount = 0
-          results.forEach(function (batch) {
-            if (batch.data) {
-              batch.data.forEach(function (order) {
-                totalAmount += Number(order.totalAmount) || 0
-              })
-            }
-          })
-          page.setData({
-            'carInfo._totalAmount': totalAmount,
-            'carInfo._orderCount': orderCount
-          })
-        }).catch(function () { /* 静默失败 */ })
-      }).catch(function () { /* 静默失败 */ })
+    var shopPhone = app.getShopPhone()
+    if (!shopPhone || !plate) return
+
+    app.callFunction('repair_main', {
+      action: 'getCarOrderStats',
+      shopPhone: shopPhone,
+      plate: plate
+    }).then(function (res) {
+      if (res && res.code === 0 && res.data) {
+        page.setData({
+          'carInfo._totalAmount': res.data.totalAmount || 0,
+          'carInfo._orderCount': res.data.orderCount || 0
+        })
+      } else {
+        page.setData({ 'carInfo._totalAmount': 0, 'carInfo._orderCount': 0 })
+      }
+    }).catch(function () {
+      page.setData({ 'carInfo._totalAmount': 0, 'carInfo._orderCount': 0 })
+    })
   },
 
   // 获取车辆详情（按门店手机号隔离）
@@ -148,9 +140,7 @@ Page({
           } else {
             var carData = res.data[0]
             if (carData.createTime) {
-              var d = new Date(carData.createTime)
-              var pad = function (n) { return n < 10 ? '0' + n : '' + n }
-              carData.createTime = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds())
+              carData.createTime = util.formatDateTime(carData.createTime)
             }
             carData._maskedPhone = util.maskPhone(carData.phone)
             page.setData({ carInfo: carData })
@@ -177,19 +167,14 @@ Page({
             var info = res.data[0]
             // 格式化每条权益的新增时间
             if (info.benefits && info.benefits.length > 0) {
-              var pad2 = function(n) { return n < 10 ? '0' + n : '' + n }
               info.benefits = info.benefits.map(function(b) {
                 if (b.addedTime) {
-                  try {
-                    var d = new Date(b.addedTime)
-                    b.addedTimeFormatted = d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate())
-                      + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes())
-                  } catch(e) { /* 保留原始值 */ }
+                  b.addedTimeFormatted = util.formatDateTime(b.addedTime).replace(/:\d{2}$/, '')
                 }
                 return b
               })
             }
-            info._maskedOperatorPhone = util.maskPhone(info.operatorPhone)
+            info._displayOperator = util.formatOperatorName(info.operatorName, info.operatorPhone)
             page.setData({ memberInfo: info })
             return
           }
@@ -204,7 +189,7 @@ Page({
                 success: function (memberRes) {
                   if (memberRes.data.length > 0) {
                     var mInfo = memberRes.data[0]
-                    mInfo._maskedOperatorPhone = util.maskPhone(mInfo.operatorPhone)
+                    mInfo._displayOperator = util.formatOperatorName(mInfo.operatorName, mInfo.operatorPhone)
                     page.setData({ memberInfo: mInfo })
                   }
                 }
@@ -297,17 +282,18 @@ Page({
         wx.showLoading({ title: '删除中...' })
 
         if (memberInfo.benefits && memberInfo.benefits.length > 0) {
-          // 数组模式：移除指定项
-          benefits.splice(idx, 1)
+          // 数组模式：拷贝后移除指定项（避免API失败时本地数据已损坏）
+          var updatedBenefits = benefits.slice()
+          updatedBenefits.splice(idx, 1)
           var updateData = {
-            benefits: benefits,
+            benefits: updatedBenefits,
             updateTime: db.serverDate()
           }
           // 同步旧字段
-          if (benefits.length > 0) {
-            updateData.benefitName = benefits[0].name
-            updateData.benefitTotal = benefits[0].total
-            updateData.benefitRemain = benefits[0].remain
+          if (updatedBenefits.length > 0) {
+            updateData.benefitName = updatedBenefits[0].name
+            updateData.benefitTotal = updatedBenefits[0].total
+            updateData.benefitRemain = updatedBenefits[0].remain
           } else {
             updateData.benefitName = ''
             updateData.benefitTotal = 0
@@ -318,7 +304,7 @@ Page({
             .then(function (res) {
               wx.hideLoading()
               if (res && res.code === 0) {
-                if (benefits.length === 0) {
+                if (updatedBenefits.length === 0) {
                   page.setData({
                     'memberInfo.benefits': [],
                     'memberInfo.benefitName': '',
@@ -326,7 +312,7 @@ Page({
                     'memberInfo.benefitRemain': 0
                   })
                 } else {
-                  page.setData({ 'memberInfo.benefits': benefits })
+                  page.setData({ 'memberInfo.benefits': updatedBenefits })
                 }
                 wx.showToast({ title: '已删除', icon: 'success' })
               } else {
@@ -400,7 +386,10 @@ Page({
           newRemain: newRemain,
           benefitName: benefit.name || '权益',
           benefitTotal: benefit.total || 0,
-          plate: plate
+          amount: Number(benefit.amount) || 0,
+          plate: plate,
+          operatorPhone: app.getOperatorPhone(),
+          operatorName: app.getOperatorName()
         }).then(function (res) {
           wx.hideLoading()
           if (res && res.code === 0) {
@@ -411,6 +400,12 @@ Page({
               page.setData({ 'memberInfo.benefitRemain': newRemain })
             }
             wx.showToast({ title: '已使用，剩余' + newRemain + '次', icon: 'success' })
+            // 核销成功后跳转到对应工单详情页
+            if (res.data && res.data.orderId) {
+              setTimeout(function () {
+                wx.navigateTo({ url: '/pages/orderDetail/orderDetail?id=' + res.data.orderId })
+              }, 800)
+            }
           } else {
             wx.showToast({ title: res.msg || '操作失败', icon: 'none' })
           }
@@ -439,10 +434,6 @@ Page({
   },
 
   onEditVehicle() {
-    if (getApp().isStaff()) {
-      wx.showToast({ title: '店员无权编辑车辆信息', icon: 'none' })
-      return
-    }
     var car = this.data.carInfo
     this.setData({
       showVehicleModal: true,
@@ -610,6 +601,8 @@ Page({
           'carInfo.partReplaceName': form.partReplaceName,
           'carInfo.partReplaceDate': form.partReplaceDate
         })
+      } else {
+        wx.showToast({ title: (res && res.msg) || '保存失败', icon: 'none' })
       }
     }).catch(function () {
       wx.hideLoading()

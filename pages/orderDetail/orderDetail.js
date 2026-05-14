@@ -17,11 +17,21 @@ Page({
   onLoad(options) {
     if (options.id) {
       this._orderId = options.id
+      this._firstLoad = true
       this.fetchOrderDetail(options.id)
     }
   },
 
+  onUnload() {
+    this._firstLoad = true
+  },
+
   onShow() {
+    // 首次加载跳过（onLoad已拉取），仅从编辑页返回时刷新
+    if (this._firstLoad) {
+      this._firstLoad = false
+      return
+    }
     if (this._orderId) {
       this.fetchOrderDetail(this._orderId)
     }
@@ -34,6 +44,13 @@ Page({
     db.collection('repair_orders').doc(id).get({
       success: function (res) {
         var order = res.data
+        // 校验工单是否属于当前门店
+        var shopPhone = app.getShopPhone()
+        if (order.shopPhone && order.shopPhone !== shopPhone) {
+          wx.showToast({ title: '无权查看此工单', icon: 'none' })
+          setTimeout(function () { wx.navigateBack() }, 1500)
+          return
+        }
         var payMap = { '1': '现付', '2': '挂账' }
 
         // 解析服务项目表格数据
@@ -56,12 +73,15 @@ Page({
           payMethodText: payMap[order.payMethod] || '未知',
           createTimeStr: order.createTime ? util.formatDateTime(order.createTime) : '',
           itemRows: itemRows,
-          loading: false
+          loading: false,
+          shopPhoneMasked: order.shopPhone ? util.maskPhone(order.shopPhone) : '',
+          operatorPhoneMasked: order.operatorPhone ? util.formatOperatorName(order.operatorName, order.operatorPhone) : ''
         })
 
-        // 查询该车牌是否为会员车辆
+        // 查询该车牌是否为会员车辆（按门店隔离）
         if (order.plate) {
-          db.collection('repair_members').where({ plate: order.plate }).count({
+          var memberCountWhere = app.shopWhere({ plate: order.plate })
+          db.collection('repair_members').where(memberCountWhere).count({
             success: function (res) {
               page.setData({ isMemberVehicle: res.total > 0 })
             }
@@ -167,6 +187,17 @@ Page({
     ctx.setFontSize(13)
     ctx.setFillStyle('rgba(255,255,255,0.65)')
     ctx.fillText('开单时间：' + page.data.createTimeStr, pad, pad + 92)
+
+    // 第四行：开单人
+    var operatorText = '开单人：'
+    if (order.operatorName) {
+      operatorText += order.operatorName
+    } else if (order.operatorPhone) {
+      operatorText += util.maskPhone(order.operatorPhone)
+    }
+    ctx.setFontSize(13)
+    ctx.setFillStyle('rgba(255,255,255,0.55)')
+    ctx.fillText(operatorText, pad, pad + 112)
 
     // ====== 白色服务项目卡片 ======
     var cardX = pad
@@ -333,6 +364,27 @@ Page({
     ctx.lineTo(x, y + r)
     ctx.arcTo(x, y, x + r, y, r)
     ctx.closePath()
+  },
+
+  onPlateTap() {
+    var plate = this.data.plate
+    if (plate) {
+      wx.navigateTo({ url: '/pages/carDetail/carDetail?plate=' + plate })
+    }
+  },
+
+  onNewCheckSheet() {
+    var plate = this.data.plate
+    if (plate) {
+      wx.navigateTo({ url: '/pages/checkSheet/checkSheet?plate=' + plate })
+    }
+  },
+
+  onViewCheckSheets() {
+    var plate = this.data.plate
+    if (plate) {
+      wx.navigateTo({ url: '/pages/checkSheetList/checkSheetList?keyword=' + plate })
+    }
   },
 
   onGoHome() {

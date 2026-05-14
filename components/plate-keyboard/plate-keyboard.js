@@ -3,7 +3,8 @@
 Component({
   properties: {
     visible: { type: Boolean, value: false },
-    value: { type: String, value: '' }
+    value: { type: String, value: '' },
+    mode: { type: String, value: 'plate' } // 'plate' | 'alnum'
   },
 
   data: {
@@ -11,6 +12,7 @@ Component({
     currentPos: 0,
     maxLength: 7,
     isEnergy: false,
+    _alnumValue: '',
 
     // 第1位：省份简称
     provinceKeys: [
@@ -32,12 +34,22 @@ Component({
       'H','J','K','L','M','N','P',
       'Q','R','S','T','U','V','W',
       'X','Y','Z'
+    ],
+    // 拆分键盘：数字区 + 字母区
+    digitKeys: ['0','1','2','3','4','5','6','7','8','9'],
+    remainingLetterKeys: [
+      'A','B','C','D','E','F','G',
+      'H','J','K','L','M','N','P',
+      'Q','R','S','T','U','V','W',
+      'X','Y','Z'
     ]
   },
 
   observers: {
     'value': function(val) {
-      if (val) {
+      if (this.data.mode === 'alnum') {
+        this.setData({ _alnumValue: val || '' });
+      } else if (val) {
         this.setData({ plate: val.split('') });
       }
     }
@@ -65,6 +77,17 @@ Component({
 
     onKeyPress(e) {
       var val = e.currentTarget.dataset.val;
+
+      // alnum 模式：直接拼接，最多17位
+      if (this.data.mode === 'alnum') {
+        var cur = this.data._alnumValue || '';
+        if (cur.length >= 17) return;
+        cur += val;
+        this.setData({ _alnumValue: cur });
+        this.triggerEvent('input', { value: cur });
+        return;
+      }
+
       var plate = this.data.plate.slice();
       var pos = this.data.currentPos;
       var maxLen = this.data.maxLength;
@@ -81,6 +104,17 @@ Component({
     },
 
     onDelete() {
+      // alnum 模式：删除最后一个字符
+      if (this.data.mode === 'alnum') {
+        var cur = this.data._alnumValue || '';
+        if (cur.length > 0) {
+          cur = cur.substring(0, cur.length - 1);
+          this.setData({ _alnumValue: cur });
+          this.triggerEvent('input', { value: cur });
+        }
+        return;
+      }
+
       var plate = this.data.plate.slice();
       var pos = this.data.currentPos;
 
@@ -111,6 +145,14 @@ Component({
     },
 
     onConfirm() {
+      // alnum 模式：直接返回当前值，不校验长度
+      if (this.data.mode === 'alnum') {
+        var val = this.data._alnumValue || '';
+        this.triggerEvent('cancel');
+        this.triggerEvent('confirm', { value: val });
+        return;
+      }
+
       var plateStr = this.data.plate.join('');
       var minLen = this.data.maxLength;
 

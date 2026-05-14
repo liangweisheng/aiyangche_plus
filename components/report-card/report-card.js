@@ -54,9 +54,6 @@ Component({
       var ymlabel = ''
       if (ym) {
         var parts = ym.split('-')
-        ymlabel = parts[1] + '月'
-        if (parts[1]) ymlabel = parseInt(parts[1], 10) + '月'
-        // 显示为"X月报告"
         ymlabel = (parseInt(parts[1], 10)) + '月报告'
       }
 

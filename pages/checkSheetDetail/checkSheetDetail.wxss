@@ -219,9 +219,14 @@
   box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06);
 }
 
-.share-btn {
-  width: 100%;
-  height: 104rpx;
+.footer-row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.reorder-btn {
+  flex: 3;
+  height: 96rpx;
   background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
   border-radius: 24rpx;
   display: flex;
@@ -230,16 +235,38 @@
   box-shadow: 0 8rpx 32rpx rgba(22, 119, 255, 0.35);
 }
 
-.share-btn:active {
+.reorder-btn:active {
   transform: scale(0.98);
   opacity: 0.9;
 }
 
+.share-btn {
+  flex: 2;
+  height: 96rpx;
+  background: #fff;
+  border: 2rpx solid #1677ff;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-btn:active {
+  background: rgba(22, 119, 255, 0.06);
+}
+
 .btn-text {
-  font-size: 32rpx;
+  font-size: 28rpx;
   font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.reorder-btn .btn-text {
   color: #fff;
-  letter-spacing: 4rpx;
+}
+
+.share-btn .btn-text {
+  color: #1677ff;
 }
 
 /* 浮动首页按钮 */

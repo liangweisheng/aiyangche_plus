@@ -20,18 +20,24 @@
   <!-- 已注册内容 -->
   <block wx:if="{{registered}}">
 
-  <!-- 免费版限制提示 -->
-  <view class="pro-tip-banner" wx:if="{{!isPro}}">
-    <text class="pro-tip-text">当前为免费版，仅支持基础报表，升级Pro版获取更多分析</text>
-    <text class="pro-tip-action" bindtap="goToPro">升级 ›</text>
-  </view>
-
   <!-- 日期范围切换 -->
   <view class="date-tabs">
     <view class="date-tab {{activeTab === 'today' ? 'active' : ''}}" data-tab="today" bindtap="onTabChange">今日</view>
     <view class="date-tab {{activeTab === 'week' ? 'active' : ''}}" data-tab="week" bindtap="onTabChange">本周</view>
     <view class="date-tab {{activeTab === 'month' ? 'active' : ''}}" data-tab="month" bindtap="onTabChange">本月</view>
     <view class="date-tab {{activeTab === 'year' ? 'active' : ''}}" data-tab="year" bindtap="onTabChange">本年</view>
+  </view>
+
+  <!-- 月份/年份选择器 -->
+  <view class="picker-row" wx:if="{{activeTab === 'month'}}">
+    <view class="picker-arrow" bindtap="onPrevMonth"><text class="picker-arrow-text">‹</text></view>
+    <text class="picker-label">{{pickerYear}}年{{pickerMonth}}月</text>
+    <view class="picker-arrow {{pickerYear >= nowYear && pickerMonth >= nowMonth ? 'picker-disabled' : ''}}" bindtap="onNextMonth"><text class="picker-arrow-text">›</text></view>
+  </view>
+  <view class="picker-row" wx:if="{{activeTab === 'year'}}">
+    <view class="picker-arrow" bindtap="onPrevYear"><text class="picker-arrow-text">‹</text></view>
+    <text class="picker-label">{{pickerYear}}年</text>
+    <view class="picker-arrow {{pickerYear >= nowYear ? 'picker-disabled' : ''}}" bindtap="onNextYear"><text class="picker-arrow-text">›</text></view>
   </view>
 
   <!-- 缓存提示 -->
@@ -53,6 +59,16 @@
 
   <!-- 数据内容区：免费版被限制时隐藏 -->
   <block wx:elif="{{!proLimitTip}}">
+
+  <!-- 空数据提示 -->
+  <view class="empty-report" wx:if="{{isEmpty}}">
+    <text class="empty-report-icon">📭</text>
+    <text class="empty-report-text">当前时段暂无工单数据</text>
+    <text class="empty-report-sub">可切换至其他月份或年份查看</text>
+  </view>
+
+  <!-- 有数据时正常展示 -->
+  <block wx:if="{{!isEmpty}}">
 
   <!-- 汇总卡片 -->
   <view class="summary-section">
@@ -175,7 +191,7 @@
       <text class="section-sub">TOP{{topCustomers.length}}车主</text>
     </view>
     <view class="customer-card">
-      <view class="customer-item" wx:for="{{topCustomers}}" wx:key="plate" wx:for-index="idx">
+      <view class="customer-item" wx:for="{{topCustomers}}" wx:key="plate" wx:for-index="idx" bindtap="goToCarDetail" data-plate="{{item.plate}}">
         <view class="customer-rank {{idx < 3 ? 'top' : ''}}">{{idx + 1}}</view>
         <view class="customer-plate-area">
           <text class="customer-plate">{{mask.maskPlate(item.plate)}}</text>
@@ -194,6 +210,7 @@
 
   </block>
 
+  </block>
   </block>
 
   <!-- 加载状态 -->

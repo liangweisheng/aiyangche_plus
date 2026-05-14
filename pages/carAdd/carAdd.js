@@ -3,6 +3,7 @@
 
 const app = getApp()
 const util = require('../../utils/util')
+var constants = require('../../utils/constants')
 
 Page({
   data: {
@@ -23,7 +24,12 @@ Page({
     colorOptions: ['白色', '黑色', '银色', '红色', '蓝色', '灰色'],
     colorExpanded: false,
     keyboardVisible: false,
+    vinKeyboardVisible: false,
     showDetail: false
+  },
+
+  onLoad() {
+    if (!app.checkPageAccess('registered')) return
   },
 
   showPlateKeyboard() {
@@ -60,10 +66,44 @@ Page({
     this.setData({ ['form.' + field]: e.detail.value })
   },
 
+  // 清除日期选择
+  onClearDateField(e) {
+    var field = e.currentTarget.dataset.field
+    this.setData({ ['form.' + field]: '' })
+  },
+
+  // ========== VIN键盘 ==========
+
+  showVinKeyboard() {
+    this.setData({ vinKeyboardVisible: true })
+  },
+
+  hideVinKeyboard() {
+    this.setData({ vinKeyboardVisible: false })
+  },
+
+  onVinInput(e) {
+    this.setData({ 'form.vin': e.detail.value || '' })
+  },
+
+  onVinConfirm(e) {
+    var vin = e.detail.value || ''
+    this.setData({ 'form.vin': vin, vinKeyboardVisible: false })
+  },
+
   toggleDetail() {
     this.setData({ showDetail: !this.data.showDetail })
   },
 
+
+  onUnload() {
+    if (this.data.keyboardVisible) {
+      this.setData({ keyboardVisible: false })
+    }
+    if (this.data.vinKeyboardVisible) {
+      this.setData({ vinKeyboardVisible: false })
+    }
+  },
 
   // 保存车辆（自动写入 shopPhone 实现门店隔离）
   onSave() {

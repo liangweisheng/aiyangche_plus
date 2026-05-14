@@ -1,8 +1,8 @@
-<!-- 车牌键盘组件：第1位汉字，第2位字母，第3位起数字或字母 -->
+<!-- 车牌/字母数字键盘组件 -->
 <view class="plate-keyboard-mask" wx:if="{{visible}}" bindtap="onMaskTap">
   <view class="keyboard-area" catchtap="stopPropagation">
-    <!-- 输入显示区 -->
-    <view class="display-area">
+    <!-- ====== plate模式：输入显示区 ====== -->
+    <view class="display-area" wx:if="{{mode === 'plate'}}">
       <view class="plate-box">
         <view class="cell {{currentPos === 0 ? 'active' : 'filled'}}" bindtap="onCellTap" data-pos="0">
           <text>{{plate[0] || ''}}</text>
@@ -43,20 +43,40 @@
       </view>
     </view>
 
-    <!-- 键盘区域 -->
+    <!-- ====== 键盘区域 ====== -->
     <view class="keys-area">
-      <!-- 第1位：省份键盘 -->
-      <view class="keys-grid province-grid" wx:if="{{currentPos === 0}}">
-        <view class="key-item" wx:for="{{provinceKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
-      </view>
-      <!-- 第2位：字母键盘 -->
-      <view class="keys-grid letter-grid" wx:elif="{{currentPos === 1}}">
-        <view class="key-item" wx:for="{{letterKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
-      </view>
-      <!-- 第3位起：数字+字母混合键盘 -->
-      <view class="keys-grid mix-grid" wx:elif="{{currentPos >= 2}}">
-        <view class="key-item" wx:for="{{mixKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
-      </view>
+      <!-- plate模式 -->
+      <block wx:if="{{mode === 'plate'}}">
+        <!-- 第1位：省份键盘 8列 -->
+        <view class="keys-grid province-grid" wx:if="{{currentPos === 0}}">
+          <view class="key-item" wx:for="{{provinceKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
+        </view>
+        <!-- 第2位：字母键盘 6列 -->
+        <view class="keys-grid letter-grid" wx:elif="{{currentPos === 1}}">
+          <view class="key-item" wx:for="{{letterKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
+        </view>
+        <!-- 第3位起：数字区(2×5) + 字母区(4×6) -->
+        <block wx:elif="{{currentPos >= 2}}">
+          <view class="keys-grid mix-digits">
+            <view class="key-item" wx:for="{{digitKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
+          </view>
+          <view class="mix-divider"></view>
+          <view class="keys-grid mix-letters">
+            <view class="key-item" wx:for="{{remainingLetterKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
+          </view>
+        </block>
+      </block>
+
+      <!-- alnum模式：数字区(2×5) + 字母区(4×6)，无显示区 -->
+      <block wx:elif="{{mode === 'alnum'}}">
+        <view class="keys-grid mix-digits">
+          <view class="key-item" wx:for="{{digitKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
+        </view>
+        <view class="mix-divider"></view>
+        <view class="keys-grid mix-letters">
+          <view class="key-item" wx:for="{{remainingLetterKeys}}" wx:key="*this" data-val="{{item}}" bindtap="onKeyPress">{{item}}</view>
+        </view>
+      </block>
 
       <!-- 功能键行 -->
       <view class="func-row">

@@ -1,0 +1,98 @@
+/* 自定义数字键盘 */
+.number-keyboard-mask {
+  position: fixed;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.keyboard-container {
+  background: #f5f5f5;
+  border-radius: 24rpx 24rpx 0 0;
+  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
+}
+
+/* 显示区 */
+.display-area {
+  padding: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.display-value {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #333;
+  letter-spacing: 2rpx;
+}
+
+.display-value.placeholder {
+  color: #bbb;
+  font-weight: 400;
+  font-size: 40rpx;
+}
+
+/* 键盘区 */
+.keys-area {
+  padding: 12rpx 12rpx 40rpx;
+}
+
+/* 最后一行（操作行）与上方按键拉开间距 */
+.action-row {
+  margin-top: 40rpx;
+}
+
+.keyboard-row {
+  display: flex;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.key-item {
+  flex: 1;
+  height: 84rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  color: #333;
+  font-weight: 500;
+  box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.06);
+}
+
+.key-item:active {
+  background: #e0e0e0;
+}
+
+.key-delete {
+  background: #e8e8e8;
+  color: #666;
+  font-size: 32rpx;
+  box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.04);
+}
+
+.key-next {
+  height: 88rpx;
+  background: #f0f4ff;
+  color: #1677ff;
+  font-size: 28rpx;
+  font-weight: 600;
+  border: 2rpx solid #d6e4ff;
+}
+
+.key-done {
+  height: 88rpx;
+  background: linear-gradient(135deg, #07c160 0%, #10d070 100%);
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx rgba(7, 193, 96, 0.3);
+}

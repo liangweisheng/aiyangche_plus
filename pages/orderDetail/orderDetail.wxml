@@ -4,7 +4,12 @@
   <!-- 顶部状态卡片 -->
   <view class="top-card {{isMemberVehicle ? 'member' : ''}}">
     <view class="top-card-header">
-      <view class="plate-badge">{{plate}}</view>
+      <view class="plate-area" bindtap="onPlateTap">
+        <view class="plate-badge">
+          <text class="plate-text">{{plate}}</text>
+          <text class="plate-hint">点击查看车辆详情</text>
+        </view>
+      </view>
       <view class="header-tags">
         <view class="status-tag status-{{order.status === '已完成' ? 'done' : order.status === '待结算' ? 'pending' : 'working'}}">{{order.status || '施工中'}}</view>
         <view class="pay-tag">{{payMethodText}}</view>
@@ -58,6 +63,16 @@
         <text class="detail-label">实收金额</text>
         <text class="detail-value green">¥{{order.paidAmount}}</text>
       </view>
+      <view class="detail-row" wx:if="{{order.partCost && order.partCost > 0}}">
+        <text class="detail-label">配件成本</text>
+        <text class="detail-value">¥{{order.partCost}}</text>
+      </view>
+      <view class="detail-row" wx:if="{{order.profit !== undefined && order.partCost > 0}}">
+        <text class="detail-label profit-label">本单利润</text>
+        <text class="detail-value {{order.profit >= 0 ? 'green' : 'red'}}">
+          {{order.profit >= 0 ? '+' : ''}}¥{{order.profit}}
+        </text>
+      </view>
     </view>
   </view>
 
@@ -71,11 +86,11 @@
       </view>
       <view class="detail-row" wx:if="{{order.shopPhone}}">
         <text class="detail-label">门店电话</text>
-        <text class="detail-value link" bindtap="onCallPhone">{{order.shopPhone}}</text>
+        <text class="detail-value link" bindtap="onCallPhone">{{shopPhoneMasked}}</text>
       </view>
       <view class="detail-row" wx:if="{{order.operatorPhone}}">
         <text class="detail-label">开单人</text>
-        <text class="detail-value">{{order.operatorPhone}}</text>
+        <text class="detail-value">{{operatorPhoneMasked}}</text>
       </view>
     </view>
   </view>
@@ -85,6 +100,21 @@
     <view class="section-title">备注</view>
     <view class="info-card">
       <text class="info-text">{{order.remark}}</text>
+    </view>
+  </view>
+
+  <!-- 车辆安全检查入口 -->
+  <view class="section">
+    <view class="section-title">车辆安全检查</view>
+    <view class="check-sheet-row">
+      <view class="check-btn new" bindtap="onNewCheckSheet">
+        <text class="check-btn-icon">🔍</text>
+        <text class="check-btn-text">新建查车单</text>
+      </view>
+      <view class="check-btn list" bindtap="onViewCheckSheets">
+        <text class="check-btn-icon">📋</text>
+        <text class="check-btn-text">查看查车记录</text>
+      </view>
     </view>
   </view>
 

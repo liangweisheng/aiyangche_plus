@@ -1,9 +1,13 @@
 <!-- 历史工单列表 - 商用SaaS风格 -->
 <wxs src="../../utils/maskPlate.wxs" module="mask" />
 <view class="container">
+  <view class="sticky-header">
 
   <!-- 搜索栏 -->
   <view class="search-section">
+    <view class="home-btn" bindtap="onGoHome">
+      <text>🏠首页</text>
+    </view>
     <view class="search-wrapper">
       <text class="search-icon">🔍</text>
       <input
@@ -41,6 +45,7 @@
       ><text>{{item.label}}</text></view>
     </view>
   </view>
+  </view>
 
   <!-- 工单列表 -->
   <view class="list-section">
@@ -74,7 +79,12 @@
             <view class="amount-row">
               <text class="amount-label">金额：</text>
               <text class="amount-value">¥{{item.totalAmount}}</text>
-              <text class="paid-label" wx:if="{{item.paidAmount > 0}}">（实收¥{{item.paidAmount}}）</text>
+              <!-- 两者都有：合并到一个括号内 -->
+              <text wx:if="{{item.paidAmount > 0 && item.profit !== undefined && item.partCost > 0}}" class="amount-extra {{item.profit >= 0 ? 'profit-positive' : 'profit-negative'}}">（实收¥{{item.paidAmount}}，利润¥{{item.profit}}）</text>
+              <!-- 仅有实收 -->
+              <text wx:elif="{{item.paidAmount > 0}}" class="amount-extra">（实收¥{{item.paidAmount}}）</text>
+              <!-- 仅有利润 -->
+              <text wx:elif="{{item.profit !== undefined && item.partCost > 0}}" class="amount-extra {{item.profit >= 0 ? 'profit-positive' : 'profit-negative'}}">（利润¥{{item.profit}}）</text>
             </view>
           </view>
           <text class="time-text">{{item.createTime}}</text>
@@ -120,5 +130,8 @@
     <view class="loading-dot"></view>
     <text class="loading-text">加载中...</text>
   </view>
+
+  <!-- 浮动新建工单按钮 -->
+  <view class="fab-add" bindtap="onNewOrder">＋工单</view>
 
 </view>

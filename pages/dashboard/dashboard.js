@@ -2,7 +2,9 @@
 // 老板控制台 - 数据看板（按门店手机号隔离）
 
 const app = getApp()
+var util = require('../../utils/util')
 var shareCardUtil = require('../../utils/shareCard')
+var constants = require('../../utils/constants')
 
 Page({
   data: {
@@ -14,7 +16,6 @@ Page({
       totalRevenue: 0,
       totalCars: 0
     },
-    revenueTrend: [],
     alertList: [],
     shopPhone: '',
     loading: true,
@@ -29,31 +30,45 @@ Page({
     latestReport: null,
     reportLoading: false,
     showShopGuide: false,  // 门店信息引导弹窗
-    _shopProfileCache: null  // 云端已保存的门店配置缓存（用于判断是否跳过引导弹窗）
+    _shopProfileCache: null,  // 云端已保存的门店配置缓存（用于判断是否跳过引导弹窗）
+    _dashboardReqVersion: 0,   // 竞态保护版本号
+    _reportFetching: false,    // 月报请求去重标记
+    _shopGuideTimer: null,     // 门店引导弹窗延时器引用
+    isAdminRole: false,
+    // ⚡️快速搜索
+    searchKeyword: '',
+    searchResults: [],
+    searchLoading: false,
+    searchEmpty: false,
+    searchWaiting: false,
+    searchTimer: null,
+    showSearchResults: false
   },
 
   onLoad() {
     var page = this
     var shopInfo = wx.getStorageSync('shopInfo') || {}
     var sp = app.getShopPhone ? app.getShopPhone() : (shopInfo.shopPhone || shopInfo.phone || '')
-    var guest = (sp === '13507720000')
+    var guest = app.isGuest ? app.isGuest() : false
     var superAdmin = app.isSuperAdmin ? app.isSuperAdmin() : false
+    var isStaff = app.isStaff ? app.isStaff() : false
+    var isAdminRole = app.isAdmin ? app.isAdmin() : false
     this.setData({
       shopName: wx.getStorageSync('shopName') || '',
       roleLabel: wx.getStorageSync('roleLabel') || '',
       shopPhone: sp,
       isGuest: guest,
       isSuperAdmin: superAdmin,
-      showReportCard: (guest || superAdmin),
+      isStaff: isStaff,
+      isAdminRole: isAdminRole,
+      showReportCard: !isStaff || isAdminRole,
       loading: true
     })
     this.updateDate()
 
     app.whenCloudReady().then(function () {
-      page.setData({ loading: false })
+      // ★ 优化：单次云函数调用同时获取看板数据+到期提醒
       page.fetchDashboardData()
-      page.fetchAlertList()
-      // v5.0.0 加载最新月报
       page._fetchLatestReport()
     })
   },
@@ -64,34 +79,34 @@ Page({
     shareCardUtil.generateDashboardCard(page, function (err, tempFilePath) {
       if (!err && tempFilePath) {
         page.setData({ shareImagePath: tempFilePath })
-        console.log('[dashboard] 分享卡片已保存:', tempFilePath)
-      } else {
-        console.warn('[dashboard] 分享卡片生成失败:', err)
       }
     })
   },
 
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().init(0)
+      this.getTabBar().init()
     }
     var sp = app.getShopPhone ? app.getShopPhone() : ''
-    var guest = (sp === '13507720000')
+    var guest = app.isGuest ? app.isGuest() : false
     var superAdmin = app.isSuperAdmin ? app.isSuperAdmin() : false
+    var isStaff = app.isStaff ? app.isStaff() : false
+    var isAdminRole = app.isAdmin ? app.isAdmin() : false
     this.setData({
       shopName: wx.getStorageSync('shopName') || '',
       roleLabel: wx.getStorageSync('roleLabel') || '',
       shopPhone: sp,
       isGuest: guest,
       isSuperAdmin: superAdmin,
-      showReportCard: (guest || superAdmin)
+      isStaff: isStaff,
+      isAdminRole: isAdminRole,
+      showReportCard: !isStaff || isAdminRole
     })
-
     // 检测开单页返回时的刷新标志
     if (getApp().globalData.shouldRefreshOrderList) {
       getApp().globalData.shouldRefreshOrderList = false
+      // ★ 优化：单次云函数调用即可刷新看板+提醒
       this.fetchDashboardData()
-      this.fetchAlertList()
     }
   },
 
@@ -101,7 +116,6 @@ Page({
     page.updateDate()
     Promise.all([
       page.fetchDashboardData(),
-      page.fetchAlertList(),
       page._fetchLatestReport()
     ]).then(function () {
       wx.stopPullDownRefresh()
@@ -117,166 +131,100 @@ Page({
   _onLoginReady() {
     var page = this
     var shopInfo = wx.getStorageSync('shopInfo') || {}
+    var isStaff = app.isStaff ? app.isStaff() : false
+    var isAdminRole = app.isAdmin ? app.isAdmin() : false
     page.setData({
       shopName: wx.getStorageSync('shopName') || '',
       roleLabel: wx.getStorageSync('roleLabel') || '',
       shopPhone: shopInfo.phone || '',
-      isGuest: (shopInfo.phone === '13507720000'),
+      isGuest: app.isGuest ? app.isGuest() : false,
+      isStaff: isStaff,
+      isAdminRole: isAdminRole,
+      showReportCard: !isStaff || isAdminRole,
       loading: false
     })
     app.whenCloudReady().then(function () {
       page.fetchDashboardData()
-      page.fetchAlertList()
+      // 员工不加载月报
+      if (!page.data.showReportCard) return
       page._fetchLatestReport()
     })
   },
 
   updateDate() {
     var now = new Date()
-    var year = now.getFullYear()
-    var month = ('0' + (now.getMonth() + 1)).slice(-2)
-    var day = ('0' + now.getDate()).slice(-2)
-    var weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    var weekDay = weekDays[now.getDay()]
-    this.setData({ date: year + '年' + month + '月' + day + '日 ' + weekDay })
+    var y = now.getFullYear()
+    var m = ('0' + (now.getMonth() + 1)).slice(-2)
+    var d = ('0' + now.getDate()).slice(-2)
+    this.setData({ date: y + '年' + m + '月' + d + '日 ' + util.formatWeekDay(now) })
   },
 
-  // 分页获取全部工单记录（客户端，突破单次limit限制）
-  _fetchAllOrders(where, field) {
-    var db = app.db()
-    var MAX = 100
-    return db.collection('repair_orders').where(where).count().then(function (countRes) {
-      var total = countRes.total
-      if (total === 0) return Promise.resolve([])
-      var allData = []
-      var batch = 0
-      function fetchBatch() {
-        var skip = batch * MAX
-        var limit = Math.min(MAX, total - skip)
-        return db.collection('repair_orders').where(where).field(field).skip(skip).limit(limit).get()
-          .then(function (res) {
-            allData = allData.concat(res.data || [])
-            batch++
-            if (batch * MAX < total) {
-              return fetchBatch()
-            }
-            return allData
-          })
-      }
-      return fetchBatch()
-    })
-  },
-
-  // 获取看板数据（按门店手机号隔离）
+  // 获取看板数据（云函数端聚合，单次请求替代客户端多次分页）
   fetchDashboardData() {
     var page = this
-    var db = app.db()
-    var shopBase = app.shopWhere()
-    var _ = db.command
-    var today = new Date()
-    today.setHours(0, 0, 0, 0)
+    var shopPhone = page.data.shopPhone
 
-    // 近7日起始日期
-    var sevenDaysAgo = new Date(today)
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+    if (!shopPhone) {
+      page.setData({ loading: false })
+      return Promise.resolve()
+    }
 
-    var notVoided = { isVoided: _.neq(true) }
-    var todayWhere = Object.assign({}, shopBase, notVoided, { createTime: _.gte(today) })
-    var totalWhere = Object.assign({}, shopBase, notVoided)
-    var trendWhere = Object.assign({}, shopBase, notVoided, { createTime: _.gte(sevenDaysAgo) })
+    // ★ 竞态保护：每次请求递增版本号，响应时版本号不匹配则丢弃
+    var version = page.data._dashboardReqVersion + 1
+    page.setData({ _dashboardReqVersion: version })
 
-    Promise.all([
-      // 今日开单数
-      db.collection('repair_orders').where(todayWhere).count(),
-      // 今日营收（分页全量）
-      page._fetchAllOrders(todayWhere, { totalAmount: true }),
-      // 总营收（分页全量）
-      page._fetchAllOrders(totalWhere, { totalAmount: true }),
-      // 车辆总数
-      db.collection('repair_cars').where(shopBase).count(),
-      // 近7日趋势（分页全量）
-      page._fetchAllOrders(trendWhere, { totalAmount: true, createTime: true }),
-      // 会员总数
-      db.collection('repair_members').where(shopBase).count()
-    ]).then(function (results) {
-      var todayOrdersRes = results[0]
-      var todayOrdersData = results[1]
-      var totalOrdersData = results[2]
-      var totalCarsRes = results[3]
-      var trendOrdersData = results[4]
-      var totalMembersRes = results[5]
+    // ★ 客户端计算今日零点毫秒时间戳（手机本地时区），与 report 页保持一致
+    var todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    return app.callFunction('repair_main', {
+      action: 'getDashboardStats',
+      shopPhone: shopPhone,
+      todayStartMs: todayStart.getTime()
+    }).then(function (res) {
+      // 竞态检查：版本号不匹配说明有更新的请求已发出，丢弃本次响应
+      if (page.data._dashboardReqVersion !== version) return
 
-      var todayRevenue = todayOrdersData.reduce(function (sum, item) { var v = parseFloat(item.totalAmount); return sum + (isNaN(v) ? 0 : v) }, 0)
-      var totalRevenue = totalOrdersData.reduce(function (sum, item) { var v = parseFloat(item.totalAmount); return sum + (isNaN(v) ? 0 : v) }, 0)
+      if (res && res.code === 0 && res.data) {
+        var d = res.data
+        page.setData({
+          stats: d.stats || { todayOrders: 0, todayRevenue: 0, totalRevenue: 0, totalCars: 0 },
+          totalOrderCount: d.totalOrderCount || 0,
+          totalMemberCount: d.totalMemberCount || 0,
+          alertList: d.alertList || [],
+          loading: false
+        })
 
-      // 构建近7日趋势数据
-      var trendMap = {}
-      var trendLabels = []
-      var trendValues = []
-      function toLocalKey(dateObj) {
-        // 统一转为本地日期字符串 M/D，补偿 ServerDate(UTC) 的时区偏移
-        var d = new Date(dateObj)
-        var offset = d.getTimezoneOffset() * 60 * 1000
-        var local = new Date(d.getTime() - offset)
-        return (local.getMonth() + 1) + '/' + local.getDate()
+        // Pro状态实时同步 + 免费版限额检查
+        app.syncProStatus().then(function (isPro) {
+          if (page.data._dashboardReqVersion !== version) return
+          page.setData({ isPro: isPro })
+          if (!isPro && (d.totalOrderCount || 0) >= constants.FREE_MAX_ORDERS) {
+            page.setData({ showLimitTip: true })
+          } else {
+            page.setData({ showLimitTip: false })
+          }
+          if (!isPro && (d.totalMemberCount || 0) >= constants.FREE_MAX_MEMBERS) {
+            page.setData({ showMemberLimitTip: true })
+          } else {
+            page.setData({ showMemberLimitTip: false })
+          }
+        }).catch(function () {
+          if (page.data._dashboardReqVersion !== version) return
+          page.setData({ showLimitTip: false, showMemberLimitTip: false })
+        })
+      } else {
+        console.error('看板数据返回异常', res)
+        page.setData({ loading: false })
       }
-      for (var i = 6; i >= 0; i--) {
-        var d = new Date(today)
-        d.setDate(d.getDate() - i)
-        var key = toLocalKey(d)
-        var weekDay = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()]
-        trendLabels.push(weekDay)
-        trendMap[key] = 0
-      }
-      trendOrdersData.forEach(function (o) {
-        var key = toLocalKey(o.createTime)
-        if (trendMap.hasOwnProperty(key)) {
-          trendMap[key] += (o.totalAmount || 0)
-        }
-      })
-      trendValues = Object.keys(trendMap).map(function (k) { return trendMap[k] })
-      var maxTrendValue = Math.max.apply(null, trendValues) || 1
-
-      page.setData({
-        stats: {
-          todayOrders: todayOrdersRes.total,
-          todayRevenue: todayRevenue,
-          totalRevenue: totalRevenue,
-          totalCars: totalCarsRes.total
-        },
-        revenueTrend: trendValues,
-        trendLabels: trendLabels,
-        maxTrendValue: maxTrendValue,
-        totalOrderCount: totalOrdersData.length,
-        totalMemberCount: totalMembersRes.total || 0,
-        loading: false
-      })
-
-      // 重置限额提示状态（避免残留）
-      page.setData({
-        showLimitTip: false,
-        showMemberLimitTip: false
-      })
-
-      // Pro状态实时同步 + 免费版限额检查（必须在回调内用异步返回值判断）
-      app.syncProStatus().then(function (isPro) {
-        page.setData({ isPro: isPro })
-        if (!isPro && totalOrdersData.length >= 100) {
-          page.setData({ showLimitTip: true })
-        }
-        if (!isPro && (totalMembersRes.total || 0) >= 10) {
-          page.setData({ showMemberLimitTip: true })
-        }
-      })
     }).catch(function (err) {
+      if (page.data._dashboardReqVersion !== version) return
       console.error('看板数据加载失败', err)
       page.setData({ loading: false })
     })
   },
 
-  goToCarSearch() {
-    wx.navigateTo({ url: '/pages/carSearch/carSearch' })
-  },
+
+
 
   goToAddCar() {
     wx.navigateTo({ url: '/pages/carAdd/carAdd' })
@@ -284,89 +232,6 @@ Page({
 
   goToCreateOrder() {
     wx.navigateTo({ url: '/pages/orderAdd/orderAdd' })
-  },
-
-  // 获取到期提醒（45天内到期的保养/保险/配件更换）
-  fetchAlertList() {
-    var page = this
-    var db = app.db()
-    var shopBase = app.shopWhere()
-    var _ = db.command
-
-    // 计算45天后的截止日期
-    var now = new Date()
-    var deadline = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000)
-
-    db.collection('repair_cars').where(shopBase).field({
-      plate: true,
-      maintainDate: true,
-      insuranceDate: true,
-      partReplaceName: true,
-      partReplaceDate: true
-    }).get().then(function (res) {
-      var cars = res.data || []
-      var alertList = []
-
-      cars.forEach(function (car) {
-        // 保养提醒
-        if (car.maintainDate) {
-          var mDate = new Date(car.maintainDate)
-          var mDays = Math.ceil((mDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
-          if (mDays >= -30 && mDays <= 45) {
-            alertList.push({
-              plate: car.plate,
-              typeEmoji: '🔧',
-              typeIcon: 'maintain',
-              typeName: '保养到期',
-              content: car.maintainDate,
-              days: mDays,
-              urgent: mDays <= 7
-            })
-          }
-        }
-
-        // 保险提醒
-        if (car.insuranceDate) {
-          var iDate = new Date(car.insuranceDate)
-          var iDays = Math.ceil((iDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
-          if (iDays >= -30 && iDays <= 45) {
-            alertList.push({
-              plate: car.plate,
-              typeEmoji: '🛡️',
-              typeIcon: 'insurance',
-              typeName: '保险到期',
-              content: car.insuranceDate,
-              days: iDays,
-              urgent: iDays <= 7
-            })
-          }
-        }
-
-        // 配件更换提醒
-        if (car.partReplaceName && car.partReplaceDate) {
-          var pDate = new Date(car.partReplaceDate)
-          var pDays = Math.ceil((pDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
-          if (pDays >= -30 && pDays <= 45) {
-            alertList.push({
-              plate: car.plate,
-              typeEmoji: '🔩',
-              typeIcon: 'part',
-              typeName: '配件更换',
-              content: car.partReplaceName + ' ' + car.partReplaceDate,
-              days: pDays,
-              urgent: pDays <= 7
-            })
-          }
-        }
-      })
-
-      // 按剩余天数升序排序（最紧急的排前面）
-      alertList.sort(function (a, b) { return a.days - b.days })
-
-      page.setData({ alertList: alertList })
-    }).catch(function (err) {
-      console.error('到期提醒加载失败', err)
-    })
   },
 
   // 点击提醒项 → 跳转车辆详情
@@ -423,17 +288,20 @@ Page({
     var page = this
 
     // 权限拦截：仅游客和超管可加载月报
-    if (!page.data.showReportCard) return
+    if (!page.data.showReportCard) return Promise.resolve()
+
+    // 请求去重：避免并发重复触发
+    if (page.data._reportFetching) return Promise.resolve()
 
     // 游客使用示例账号，超管使用自己的 shopPhone
-    var shopPhone = page.data.isGuest ? '13507720000' : page.data.shopPhone
+    var shopPhone = page.data.isGuest ? constants.GUEST_PHONE : page.data.shopPhone
     if (!shopPhone) {
-      return
+      return Promise.resolve()
     }
 
-    page.setData({ reportLoading: true })
+    page.setData({ reportLoading: true, _reportFetching: true })
 
-    app.callFunction('repair_main', {
+    return app.callFunction('repair_main', {
       action: 'listRecentReports',
       shopPhone: shopPhone,
       limit: 1
@@ -442,16 +310,19 @@ Page({
         // 有报告数据，直接展示（不再自动弹引导）
         page.setData({
           latestReport: res.data.list[0],
-          reportLoading: false
+          reportLoading: false,
+          _reportFetching: false
         })
         // ★ 预取门店配置（用于引导弹窗判断是否需要弹出）
         page._prefetchShopProfile()
       } else {
         // 无报告数据，尝试触发生成上月报告
+        page.setData({ _reportFetching: false })
         page._tryGenerateReport()
       }
     }).catch(function (err) {
-      page.setData({ reportLoading: false })
+      console.error('[dashboard] listRecentReports 异常:', err)
+      page.setData({ reportLoading: false, _reportFetching: false })
     })
   },
 
@@ -459,8 +330,12 @@ Page({
   _tryGenerateReport() {
     var page = this
     if (!page.data.showReportCard) return
+    // 非 Pro 用户跳过，避免触发 -403 被 callFunction 拦截器误踢
+    if (!app.isPro()) {
+      page.setData({ reportLoading: false }); return
+    }
     // 游客使用示例账号，超管使用自己的 shopPhone
-    var shopPhone = page.data.isGuest ? '13507720000' : page.data.shopPhone
+    var shopPhone = page.data.isGuest ? constants.GUEST_PHONE : page.data.shopPhone
     if (!shopPhone) { page.setData({ reportLoading: false }); return }
 
     // 计算上月的 yearMonth
@@ -475,6 +350,7 @@ Page({
     }).then(function (res) {
       if (res.code === 0 && res.data) {
         page.setData({ latestReport: res.data, reportLoading: false })
+        page._prefetchShopProfile()
       } else if (res.code === -2) {
         // 数据不足/新店/未达门槛 — 静默处理，不展示空报告卡片
         page.setData({ latestReport: null, reportLoading: false })
@@ -488,6 +364,25 @@ Page({
 
   // 点击"经营诊断"卡片：优先检查门店配置引导，再决定跳转
   _onReportCardTap(e) {
+    // Pro 权限守卫：非 Pro 用户仅提示，不跳转
+    if (!app.isPro()) {
+      wx.showModal({
+        title: 'Pro版专属功能',
+        content: 'AI经营诊断报告仅Pro版可查看，升级后即可享受智能诊断与月度报告',
+        confirmText: '了解详情',
+        cancelText: '暂不升级',
+        success: function (res) {
+          if (res.confirm) {
+            wx.switchTab({ url: '/pages/proUnlock/proUnlock' })
+          }
+        },
+        fail: function (err) {
+          wx.showToast({ title: 'AI月报为Pro版专属功能', icon: 'none', duration: 2500 })
+        }
+      })
+      return
+    }
+
     var detail = e.detail || {}
     var report = detail.report
 
@@ -514,9 +409,11 @@ Page({
 
       if (!hasConfigInReport && !hasConfigInCloud) {
         // 云端也未配置且从未引导过 → 弹窗拦截
-        setTimeout(function () {
-          this.setData({ showShopGuide: true })
-        }.bind(this), 300)
+        var page = this
+        page.data._shopGuideTimer = setTimeout(function () {
+          page.data._shopGuideTimer = null
+          page.setData({ showShopGuide: true })
+        }, 300)
         return
       }
     }
@@ -527,27 +424,6 @@ Page({
     })
   },
 
-  // 检查是否需要弹出门店引导
-  _checkShopGuide(report) {
-    var page = this
-
-    // 已经引导过就不再弹
-    try {
-      if (wx.getStorageSync('monthlyReportGuideShown')) return
-    } catch (e) {}
-
-    // 检查门店是否有配置
-    if (report && report.shopProfile && report.shopProfile.bayCount) {
-      // 已有配置，不需要引导
-      return
-    }
-
-    // 延迟一点弹出，让用户先看到页面
-    setTimeout(function () {
-      page.setData({ showShopGuide: true })
-    }, 1500)
-  },
-
   /**
    * 预取云端门店经营诊断配置（静默缓存）
    * 用于 _onReportCardTap 判断：用户已在 proUnlock 页面保存过工位数 → 跳过引导弹窗
@@ -555,7 +431,7 @@ Page({
    */
   _prefetchShopProfile() {
     var page = this
-    var sp = page.data.isGuest ? '13507720000' : page.data.shopPhone
+    var sp = page.data.isGuest ? constants.GUEST_PHONE : page.data.shopPhone
     if (!sp) return
 
     app.callFunction('repair_main', {
@@ -580,12 +456,165 @@ Page({
     this.setData({ showShopGuide: false })
   },
 
+  /** 跳转员工"我的资料"独立页面 */
+  goToStaffProfile() {
+    wx.navigateTo({ url: '/pages/staffProfile/staffProfile' })
+  },
+
+  onUnload() {
+    // 清理延时器，防止页面销毁后 setData
+    if (this.data._shopGuideTimer) {
+      clearTimeout(this.data._shopGuideTimer)
+      this.data._shopGuideTimer = null
+    }
+    // 清理搜索防抖定时器
+    if (this.data.searchTimer) {
+      clearTimeout(this.data.searchTimer)
+      this.data.searchTimer = null
+    }
+  },
+
   // 分享配置
   onShareAppMessage() {
     return {
       title: '汽修店管理神器，开单查记录超方便！',
       path: '/pages/dashboard/dashboard',
       imageUrl: this.data.shareImagePath || ''
+    }
+  },
+
+  // 统计卡片点击跳转
+  onStatCardTap(e) {
+    var type = e.currentTarget.dataset.type
+    // 店员不允许通过统计卡片跳转报表/车辆页
+    if (getApp().isStaff()) {
+      wx.showToast({ title: '店员无法使用此功能', icon: 'none' })
+      return
+    }
+    if (type === 'orders' || type === 'revenue') {
+      // 跳转报表页 → 今日 tab（report 是 TabBar 页，通过 globalData 传参）
+      getApp().globalData.reportActiveTab = 'today'
+      wx.switchTab({ url: '/pages/report/report' })
+    } else if (type === 'cars') {
+      // 跳转车辆列表页（TabBar 页面）
+      wx.switchTab({ url: '/pages/carList/carList' })
+    }
+  },
+
+  // ⚡️快速搜索输入（≥2字符自动触发 + 防抖）
+  onQuickSearchInput(e) {
+    var page = this
+    var rawVal = e.detail.value
+    var filteredVal = rawVal.replace(/[^0-9A-Za-z\u4e00-\u9fa5]/g, '').toUpperCase()
+    page.setData({ searchKeyword: filteredVal })
+
+    if (page.data.searchTimer) {
+      clearTimeout(page.data.searchTimer)
+      page.setData({ searchTimer: null })
+    }
+
+    if (!filteredVal || filteredVal.length < 2) {
+      page.setData({
+        searchResults: [],
+        searchLoading: false,
+        searchEmpty: false,
+        searchWaiting: !!filteredVal,
+        showSearchResults: !!filteredVal
+      })
+      return
+    }
+
+    page.setData({
+      searchTimer: setTimeout(function () {
+        page.doQuickSearch(filteredVal.trim())
+      }, 400),
+      searchWaiting: false
+    })
+  },
+
+  // 确认搜索（键盘搜索按钮）
+  onQuickSearchConfirm() {
+    var keyword = this.data.searchKeyword.trim()
+    if (keyword.length >= 2) {
+      if (this.data.searchTimer) {
+        clearTimeout(this.data.searchTimer)
+        this.setData({ searchTimer: null })
+      }
+      this.doQuickSearch(keyword)
+    }
+  },
+
+  // 执行快速搜索：优先车牌 → 不足8条再补搜索手机号/车主姓名
+  doQuickSearch(keyword) {
+    var page = this
+    if (!keyword || keyword.length < 2) return
+    var db = app.db()
+    var _ = db.command
+    page.setData({ searchLoading: true, searchEmpty: false, showSearchResults: true })
+
+    var regExp = db.RegExp({ regexp: keyword.replace(/\./g, '\\.'), options: 'i' })
+
+    // 第一步：优先搜索车牌号（最多8条）
+    db.collection('repair_cars')
+      .where(app.shopWhere({ plate: regExp }))
+      .limit(8)
+      .get()
+      .then(function (plateRes) {
+        var plateResults = plateRes.data || []
+        if (plateResults.length >= 8) {
+          page.setData({ searchLoading: false, searchResults: plateResults, searchEmpty: false })
+          return
+        }
+        // 未满8条，剩余额度搜索手机号/车主姓名
+        var remaining = 8 - plateResults.length
+        var excludeIds = plateResults.map(function (c) { return c._id })
+        return db.collection('repair_cars')
+          .where(_.and([
+            { shopPhone: app.getShopPhone() },
+            _.or([
+              { phone: regExp },
+              { ownerName: regExp }
+            ]),
+            { _id: _.nin(excludeIds) }
+          ]))
+          .limit(remaining)
+          .get()
+          .then(function (otherRes) {
+            var allResults = plateResults.concat(otherRes.data || [])
+            page.setData({
+              searchLoading: false,
+              searchResults: allResults,
+              searchEmpty: allResults.length === 0
+            })
+          })
+      })
+      .catch(function () {
+        page.setData({ searchLoading: false, searchResults: [], searchEmpty: true })
+        wx.showToast({ title: '查询失败', icon: 'none' })
+      })
+  },
+
+  // 清除搜索
+  onClearQuickSearch() {
+    if (this.data.searchTimer) {
+      clearTimeout(this.data.searchTimer)
+    }
+    this.setData({
+      searchKeyword: '',
+      searchResults: [],
+      searchLoading: false,
+      searchEmpty: false,
+      searchWaiting: false,
+      searchTimer: null,
+      showSearchResults: false
+    })
+  },
+
+  // 点击搜索结果 → 跳转车辆详情
+  onSearchResultTap(e) {
+    var plate = e.currentTarget.dataset.plate
+    if (plate) {
+      wx.navigateTo({ url: '/pages/carDetail/carDetail?plate=' + plate })
     }
   }
 })

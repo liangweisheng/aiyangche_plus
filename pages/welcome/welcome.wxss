@@ -98,7 +98,6 @@ page {
 
 /* 门店码输入 */
 .code-input {
-  letter-spacing: 16rpx;
   font-size: 36rpx;
   font-weight: 600;
   text-align: center;
@@ -230,7 +229,7 @@ page {
 }
 
 .switch-action {
-  font-size: 26rpx;
+  font-size: 36rpx;
   color: #1677ff;
   font-weight: 600;
 }
@@ -496,6 +495,22 @@ page {
   background: #ccc !important;
   color: #fff !important;
   box-shadow: none !important;
+}
+
+/* 底部版本号 */
+.welcome-footer {
+  position: fixed;
+  bottom: calc(40rpx + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 1;
+}
+
+.welcome-version {
+  font-size: 22rpx;
+  color: #ccc;
+  letter-spacing: 2rpx;
 }
 
 

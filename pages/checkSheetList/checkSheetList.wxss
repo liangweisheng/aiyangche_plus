@@ -4,15 +4,38 @@
 .container {
   min-height: 100vh;
   background: linear-gradient(180deg, #f0f7ff 0%, #f5f7fa 100%);
-  padding-bottom: 24rpx;
+  padding-bottom: 280rpx;
+}
+
+/* ───────── 固定头部（搜索栏 + 统计） ───────── */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(180deg, #f0f7ff 0%, #f5f7fa 100%);
 }
 
 /* 搜索栏 */
 .search-section {
   padding: 24rpx 24rpx 0;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.home-btn {
+  flex-shrink: 0;
+  padding: 20rpx 20rpx;
+  background: #f0f5ff;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: #1677ff;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .search-wrapper {
+  flex:1;
   display: flex;
   align-items: center;
   background: #fff;
@@ -39,8 +62,8 @@
 }
 
 .clear-btn {
-  width: 48rpx;
-  height: 48rpx;
+  width: 56rpx;
+  height: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -49,7 +72,7 @@
 }
 
 .clear-icon {
-  font-size: 22rpx;
+  font-size: 28rpx;
   color: #999;
 }
 
@@ -287,27 +310,27 @@
   to { transform: rotate(360deg); }
 }
 
-/* 浮动首页按钮 */
-.fab-home {
+/* 浮动新建按钮 */
+.fab-add {
   position: fixed;
   right: 32rpx;
-  bottom: 300rpx;
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 50%;
+  bottom: 180rpx;
+  height: 80rpx;
+  padding: 0 32rpx;
+  border-radius: 40rpx;
   background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
-  box-shadow: 0 8rpx 28rpx rgba(22, 119, 255, 0.35);
+  box-shadow: 0 8rpx 28rpx rgba(22, 119, 255, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10;
   color: #fff;
-  font-size: 24rpx;
-  font-weight: 700;
+  font-size: 28rpx;
+  font-weight: 600;
   letter-spacing: 2rpx;
 }
 
-.fab-home:active {
+.fab-add:active {
   opacity: 0.8;
   transform: scale(0.92);
 }

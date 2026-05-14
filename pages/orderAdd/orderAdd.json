@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "快速开单",
   "usingComponents": {
-    "plate-keyboard": "/components/plate-keyboard/plate-keyboard"
+    "plate-keyboard": "/components/plate-keyboard/plate-keyboard",
+    "number-keyboard": "/components/number-keyboard/number-keyboard"
   }
 }

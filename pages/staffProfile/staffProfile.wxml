@@ -1,0 +1,98 @@
+<!--pages/staffProfile/staffProfile.wxml-->
+<view class="container">
+  <!-- 资料卡片 -->
+  <view class="card staff-profile-card">
+    <view class="staff-card-header">
+      <text class="staff-card-title">📋 我的资料</text>
+    </view>
+
+    <!-- 绑定手机号（只读） -->
+    <view class="staff-info-row">
+      <text class="staff-info-label">绑定手机号</text>
+      <text class="staff-info-value">{{staffPhone || '未绑定'}}</text>
+    </view>
+
+    <!-- 显示名称（可编辑） -->
+    <view class="staff-info-row staff-info-editable" bindtap="onEditStaffDisplayName">
+      <text class="staff-info-label">显示名称</text>
+      <view class="staff-value-row">
+        <text class="staff-info-value">{{staffDisplayName || '点击设置'}}</text>
+        <text class="staff-edit-icon">📝</text>
+      </view>
+    </view>
+
+    <!-- 版本信息 -->
+    <view class="staff-info-row">
+      <text class="staff-info-label">版本信息</text>
+      <text class="staff-info-value">{{versionLabel}}</text>
+    </view>
+  </view>
+
+  <!-- 联系客服（可折叠，对齐 proUnlock 风格） -->
+  <view class="card collapsible-card">
+    <view class="collapse-header" bindtap="toggleStaffContact">
+      <view class="collapse-title">
+        <text class="icon">📞</text>
+        联系客服
+      </view>
+      <text class="collapse-arrow {{staffContactExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{staffContactExpanded}}">
+      <view class="contact-list">
+        <!-- 在线客服：仅小程序端显示 -->
+        <button wx:if="{{!_isMultiEnd}}" class="contact-item contact-official" open-type="contact" session-from="staffProfile">
+          <text class="contact-label">在线客服</text>
+          <view class="contact-value-row">
+            <text class="contact-value contact-online-hint">点击进入对话</text>
+            <text class="contact-badge">推荐</text>
+          </view>
+        </button>
+        <!-- 技术支持（复制微信号）-->
+        <view class="contact-item contact-tappable" bindtap="onCopyStaffWechat">
+          <text class="contact-label">技术支持</text>
+          <view class="contact-value-row">
+            <text class="contact-value">{{serviceWechat}}</text>
+            <text class="contact-copy-hint">点击复制</text>
+          </view>
+        </view>
+        <!-- 电话咨询 -->
+        <view class="contact-item contact-tappable" bindtap="onCallStaffPhone">
+          <text class="contact-label">电话咨询</text>
+          <view class="contact-value-row">
+            <text class="contact-value">{{servicePhone}}</text>
+            <text class="contact-copy-hint">点击拨打</text>
+          </view>
+        </view>
+      </view>
+      <!-- 下载APP入口 -->
+      <view class="download-app-entry" bindtap="onDownloadApp">
+        <text class="download-app-text">📱 下载 "汽修店小管家" 手机APP</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 使用帮助 -->
+  <view class="card collapsible-card" bindtap="onGoStaffVideoHelp">
+    <view class="collapse-header">
+      <view class="collapse-title">
+        <text class="icon">📺</text>
+        使用帮助
+      </view>
+      <text class="collapse-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 退出登录 -->
+  <view class="card staff-logout-card" bindtap="onStaffLogout">
+    <view class="staff-logout">
+      <text class="staff-logout-text">退出登录</text>
+    </view>
+  </view>
+
+  <!-- 底部隐私提示 -->
+  <view class="privacy-footer">
+    <text class="privacy-link" bindtap="onGoPrivacy">隐私政策</text>
+    <text class="privacy-divider">|</text>
+    <text class="privacy-link" bindtap="onGoAgreement">用户服务协议</text>
+  </view>
+</view>

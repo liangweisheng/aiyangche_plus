@@ -100,9 +100,9 @@
         <text class="label">入库时间</text>
         <text class="value">{{carInfo.createTime}}</text>
       </view>
-      <view class="info-row-card remark">
+      <view class="info-row-card remark" wx:if="{{carInfo.remark}}">
         <text class="label">备注</text>
-        <text class="value">{{carInfo.remark || '无备注'}}</text>
+        <text class="value">{{carInfo.remark}}</text>
       </view>
     </view>
   </view>
@@ -150,7 +150,7 @@
       </view>
       <view class="action-card" bindtap="onViewChecklist">
         <view class="action-icon">🔧</view>
-        <text class="action-title">建查车单</text>
+        <text class="action-title">开查车单</text>
         <text class="action-desc">车辆检测报告</text>
       </view>
       <view class="action-card" bindtap="onViewCheckSheetList">
@@ -189,7 +189,7 @@
           </view>
         </view>
         <view class="benefit-added-time" wx:if="{{item.addedTimeFormatted || memberInfo.operatorPhone}}">
-          <text wx:if="{{memberInfo.operatorPhone}}">开卡人：{{memberInfo._maskedOperatorPhone}}</text>
+          <text wx:if="{{memberInfo.operatorPhone}}">开卡人：{{memberInfo._displayOperator}}</text>
           <text wx:if="{{memberInfo.operatorPhone && item.addedTimeFormatted}}" style="margin-left:24rpx;"></text>
           <text wx:if="{{item.addedTimeFormatted}}">开卡时间：{{item.addedTimeFormatted}}</text>
         </view>
@@ -223,7 +223,7 @@
         </view>
       </view>
       <view class="benefit-added-time" wx:if="{{(memberInfo.benefits && memberInfo.benefits[0] && memberInfo.benefits[0].addedTimeFormatted) || memberInfo.operatorPhone}}">
-        <text wx:if="{{memberInfo.operatorPhone}}">开卡人：{{memberInfo._maskedOperatorPhone}}</text>
+        <text wx:if="{{memberInfo.operatorPhone}}">开卡人：{{memberInfo._displayOperator}}</text>
         <text wx:if="{{memberInfo.operatorPhone && (memberInfo.benefits && memberInfo.benefits[0] && memberInfo.benefits[0].addedTimeFormatted)}}" style="margin-left:24rpx;"></text>
         <text wx:if="{{memberInfo.benefits && memberInfo.benefits[0] && memberInfo.benefits[0].addedTimeFormatted}}">开卡时间：{{memberInfo.benefits[0].addedTimeFormatted}}</text>
       </view>

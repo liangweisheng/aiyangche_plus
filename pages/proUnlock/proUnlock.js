@@ -22,6 +22,7 @@ Page({
     versionLabel: '免费版',
     expireLabel: '无',
     registerDate: '',
+    displayName: '',    // 操作人显示名称
     renewTip: '',     // 续费提醒文案
     showRenew: false,   // 是否显示续费提醒
     shopTel: '',      // 门店联系电话
@@ -37,24 +38,35 @@ Page({
     staffExpanded: false,
     staffList: [],
     staffPhoneInput: '',
+    staffDisplayNameInput: '',
     staffRoleIndex: 0,
     staffRoleOptions: [{ label: '店员', value: 'staff' }, { label: '管理员', value: 'admin' }],
     staffAdding: false,
-    // v5.0.0 门店设置（经营诊断配置）
-    shopProfileExpanded: false,
     shopBayCount: 2,
     shopBayCountIndex: 1,  // 默认索引（对应值2）
     bayCountOptions: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'],
-    shopOpenYear: new Date().getFullYear(),
+    shopOpenYear: String(new Date().getFullYear()),
     shopProfileSaving: false,
-    currentYear: new Date().getFullYear()
+    currentYear: String(new Date().getFullYear()),
+    navTabs: { member: true, car: false },
+    // 激活 Pro 版折叠状态（默认收起）
+    activationExpanded: false,
+    // 系统设置（合并 AI诊断设置 + 导航栏设置）
+    systemSettingsExpanded: false,
+    // 使用帮助折叠状态
+    useHelpExpanded: false
+  },
+
+  // 切换激活 Pro 版卡片展开/收起
+  toggleActivation: function () {
+    this.setData({ activationExpanded: !this.data.activationExpanded })
   },
 
   onLoad: function () {
     var page = this
+    page._firstLoad = true
     // 统一用 shopPhone 判断游客模式（与 dashboard 保持一致）
-    var sp = (app.getShopPhone && app.getShopPhone()) || ''
-    var isGuest = (sp === constants.GUEST_PHONE)
+    var isGuest = app.isGuest ? app.isGuest() : false
     if (isGuest) {
       page.setData({ isGuest: true, isAdmin: false, shopPhone: constants.GUEST_MASKED_PHONE })
     }
@@ -71,17 +83,31 @@ Page({
     page._updateRoleLabel()
     // 设置 isOwner（是否超级管理员/注册者本人）
     page._updateOwnerFlag()
+    // v5.4.0 读取导航栏设置
+    page._loadNavConfig()
+    // 预传递常量到 data 供 WXML 使用
+    page.setData({
+      freeMaxOrders: constants.FREE_MAX_ORDERS,
+      freeMaxMembers: constants.FREE_MAX_MEMBERS,
+      servicePhone: constants.SERVICE_PHONE
+    })
   },
 
   onShow: function () {
     var page = this
-    // ★ v4.0.0 自定义TabBar：初始化第4个tab（索引3）
+    // ★ v5.4.0 自定义TabBar：自动匹配路由索引 + 恢复显隐
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().init(3)
+      this.getTabBar().init()
+      // ★ 恢复自定义 TabBar 可见（onHide/onUnload 中可能因诊断设置展开而隐藏了 TabBar）
+      this.getTabBar().show()
+    }
+    // 首次加载跳过（onLoad已拉取），仅从其他页面返回时刷新
+    if (page._firstLoad) {
+      page._firstLoad = false
+      return
     }
     // 同步刷新游客状态（与 dashboard 判断逻辑一致）
-    var sp2 = (app.getShopPhone && app.getShopPhone()) || ''
-    var isGuest = (sp2 === constants.GUEST_PHONE)
+    var isGuest = app.isGuest ? app.isGuest() : false
     if (isGuest && !this.data.isGuest) {
       page.setData({ isGuest: true, isAdmin: false, shopPhone: constants.GUEST_MASKED_PHONE })
     }
@@ -89,11 +115,36 @@ Page({
       page.loadShopInfo()
       page._updateOwnerFlag()
     })
-    // 从本地缓存快速加载门店联系信息（不需要云端）
+    // 从本地缓存批量加载门店联系信息（不需要云端）
     var tel = wx.getStorageSync('shopTel') || ''
     var addr = wx.getStorageSync('shopAddr') || ''
-    if (tel) this.setData({ shopTel: tel })
-    if (addr) this.setData({ shopAddr: addr })
+    var shopInfo = wx.getStorageSync('shopInfo') || {}
+    var localDisplayName = shopInfo.displayName || ''
+    var patch = {}
+    if (tel) patch.shopTel = tel
+    if (addr) patch.shopAddr = addr
+    if (localDisplayName) patch.displayName = localDisplayName
+    if (Object.keys(patch).length > 0) this.setData(patch)
+  },
+
+  onUnload: function () {
+    // 重置重入守卫，确保下次进入页面时刷新
+    this._firstLoad = true
+    // ★ 恢复自定义 TabBar（展开系统设置后直接返回页面时）
+    if (this.data.systemSettingsExpanded) {
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().show()
+      }
+    }
+  },
+
+  onHide: function () {
+    // ★ 恢复自定义 TabBar（切换 tab 时系统设置可能处于展开状态）
+    if (this.data.systemSettingsExpanded) {
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().show()
+      }
+    }
   },
 
   /**
@@ -125,16 +176,10 @@ Page({
 
   /**
    * 从云端记录判断Pro状态
-   * 规则：code 有值 && expireTime 未过期
-   * @param {Object} record 云数据库记录
-   * @returns {boolean}
+   * 委托 constants.checkProFromRecord（唯一来源）
    */
   checkProFromRecord: function (record) {
-    if (!record || !record.code) return false
-    if (record.expireTime) {
-      return new Date(record.expireTime).getTime() > Date.now()
-    }
-    return true
+    return constants.checkProFromRecord(record)
   },
 
   /**
@@ -157,20 +202,24 @@ Page({
     if (localName) {
       page.setData({ shopName: localName })
     }
-    if (localPhone) {
+    // ★ 从缓存读取显示名称（员工登录时已由 _restoreShopInfo 写入）
+    if (shopInfo.displayName) {
+      page.setData({ displayName: shopInfo.displayName })
+    }
+    // ★ 游客模式保留专属显示格式（如 '135****0000 (演示账号)'），避免被通用脱敏覆盖
+    if (localPhone && !page.data.isGuest) {
       page.setData({ shopPhone: util.maskPhone(localPhone) })
     }
     // 非超级管理员账号：设置登录手机号（员工用自身手机号，店主无openid时也需显示）
-    var _cachedShop = wx.getStorageSync('shopInfo') || {}
-    if (_cachedShop.addedBy && (_cachedShop.phone || _cachedShop.shopPhone)) {
+    if (shopInfo.addedBy && (shopInfo.phone || shopInfo.shopPhone)) {
       // 员工账号：显示员工自己的手机号
-      page.setData({ myPhone: util.maskPhone(_cachedShop.phone || _cachedShop.shopPhone) })
-    } else if ((_cachedShop.staffOpenid || _cachedShop.phone !== _cachedShop.shopPhone) && _cachedShop.phone) {
+      page.setData({ myPhone: util.maskPhone(shopInfo.phone || shopInfo.shopPhone) })
+    } else if ((shopInfo.staffOpenid || shopInfo.phone !== shopInfo.shopPhone) && shopInfo.phone) {
       // 兜底：有 staffOpenid 或 登录号≠店主号 → 视为非店主，显示自身手机号
-      page.setData({ myPhone: util.maskPhone(_cachedShop.phone), addedBy: _cachedShop.addedBy || true })
-    } else if (_cachedShop.phone && !_cachedShop.openid) {
+      page.setData({ myPhone: util.maskPhone(shopInfo.phone), addedBy: shopInfo.addedBy || true })
+    } else if (shopInfo.phone && !shopInfo.openid) {
       // 店主但 openid 为空（多端/Craft模式）：也需要显示登录账号
-      page.setData({ myPhone: util.maskPhone(_cachedShop.phone) })
+      page.setData({ myPhone: util.maskPhone(shopInfo.phone) })
     }
     // 预读门店联系方式
     var _cachedTel = shopInfo.shopTel || wx.getStorageSync('shopTel') || ''
@@ -190,18 +239,38 @@ Page({
     }
 
     // 2. 从云数据库读取最新值（一次请求获取门店信息 + Pro状态）
-    // ★ v5.1.0 多端模式安全检查：无有效 openid 时跳过云端查询，
-    // 防止 query={ type:'free' } 返回别人的门店记录导致误显示
+    // ★ v6.0 数据隔离加固：避免员工/无openid时退化为全库扫描泄漏数据
     try {
       var openid = wx.getStorageSync('openid') || ''
+      var shopInfoCache = wx.getStorageSync('shopInfo') || {}
+
+      // 多端模式：无有效 openid 时跳过云端查询
       var _isMultiEnd = (app.globalData && app.globalData._isMultiEndMode)
       if (_isMultiEnd && !openid) {
         return
       }
 
+      // 非多端模式、非游客、无有效 openid → 跳过云端查询（依赖本地缓存）
+      if (!page.data.isGuest && !openid) {
+        return
+      }
+
       var query = { type: 'free' }
-      if (openid) {
+      // 游客模式：用手机号查询
+      if (page.data.isGuest) {
+        query.phone = constants.GUEST_PHONE
+      }
+      // ★ 员工/管理员员工模式：用 shopPhone 反查店主记录（员工自身记录 type='staff'，查不到 type='free'）
+      else if (shopInfoCache.addedBy && shopInfoCache.shopPhone) {
+        query.phone = shopInfoCache.shopPhone
+      }
+      // 管理员模式：用 openid 查询
+      else if (openid) {
         query.openid = openid
+      }
+      // ★ 兜底守卫：仍有未覆盖的情况 → 跳过云端查询，防止泄漏
+      else {
+        return
       }
       db.collection('repair_activationCodes')
         .where(query)
@@ -215,7 +284,7 @@ Page({
               // 员工身份：主动拉取自身手机号
               if (page.data.isStaff) {
                 app.db().collection('repair_activationCodes')
-                  .where({ openid: app.globalData.openid })
+                  .where({ openid: wx.getStorageSync('openid') || '' })
                   .get({
                     success: function (staffRes) {
                       if (staffRes.data && staffRes.data.length > 0 && staffRes.data[0].phone) {
@@ -225,37 +294,10 @@ Page({
                   })
               }
 
-              // 读取门店名称
-              if (record.name) {
-                page.setData({ shopName: record.name })
-                wx.setStorageSync('shopName', record.name)
-              }
-
-              // 读取手机号
-              if (record.phone) {
-                page.setData({ shopPhone: util.maskPhone(record.phone) })
-              }
-
-              // 读取注册时间
-              if (record.createTime) {
-                page.setData({ registerDate: util.formatDate(record.createTime) })
-              }
-
-              // 读取门店码
-              if (record.shopCode) {
-                page.setData({ shopCode: record.shopCode })
-              }
-
-
-              // 读取门店联系信息
-              if (record.shopTel) {
-                page.setData({ shopTel: record.shopTel })
-                wx.setStorageSync('shopTel', record.shopTel)
-              }
-              if (record.shopAddr) {
-                page.setData({ shopAddr: record.shopAddr })
-                wx.setStorageSync('shopAddr', record.shopAddr)
-              }
+              // 读取门店联系信息（storageSync 优先同步，保证 cachedShopInfo 读到最新值）
+              if (record.shopTel) wx.setStorageSync('shopTel', record.shopTel)
+              if (record.shopAddr) wx.setStorageSync('shopAddr', record.shopAddr)
+              if (record.name) wx.setStorageSync('shopName', record.name)
 
               // 缓存云端记录到本地（避免重复请求）
               var cachedShopInfo = wx.getStorageSync('shopInfo') || {}
@@ -267,10 +309,26 @@ Page({
                 cachedShopInfo.phone = record.phone || cachedShopInfo.phone
               }
               cachedShopInfo.cloudRecord = record
+              // 同步显示名称到缓存（员工不覆盖，避免将店主的 displayName 写到员工缓存）
+              if (!isStaffUser) {
+                cachedShopInfo.displayName = record.displayName || cachedShopInfo.displayName || ''
+              }
               // 同步门店联系方式到 shopInfo 缓存
               cachedShopInfo.shopTel = record.shopTel || cachedShopInfo.shopTel || ''
               cachedShopInfo.shopAddr = record.shopAddr || cachedShopInfo.shopAddr || ''
               wx.setStorageSync('shopInfo', cachedShopInfo)
+
+              // ★ 合并 7 次独立 setData 为 1 次批量更新
+              var patch = {}
+              if (record.name) patch.shopName = record.name
+              // ★ 游客模式保留专属显示格式，不被通用脱敏覆盖
+              if (record.phone && !page.data.isGuest) patch.shopPhone = util.maskPhone(record.phone)
+              if (record.createTime) patch.registerDate = util.formatDate(record.createTime)
+              if (record.displayName && !page.data.isStaff) patch.displayName = record.displayName
+              if (record.shopCode) patch.shopCode = record.shopCode
+              if (record.shopTel) patch.shopTel = record.shopTel
+              if (record.shopAddr) patch.shopAddr = record.shopAddr
+              page.setData(patch)
 
               // ★ Pro激活判断：code 有值 && expireTime 未过期
               var isPro = page.checkProFromRecord(record)
@@ -316,11 +374,23 @@ Page({
                     success: function (ownerRes) {
                       if (ownerRes.data && ownerRes.data.length > 0) {
                         var or = ownerRes.data[0]
-                        if (or.shopTel) { page.setData({ shopTel: or.shopTel }); wx.setStorageSync('shopTel', or.shopTel) }
-                        if (or.shopAddr) { page.setData({ shopAddr: or.shopAddr }); wx.setStorageSync('shopAddr', or.shopAddr) }
-                        if (or.name) { page.setData({ shopName: or.name }); wx.setStorageSync('shopName', or.name) }
-                        if (or.createTime) { page.setData({ registerDate: util.formatDate(or.createTime) }) }
-                        if (or.shopCode) { page.setData({ shopCode: or.shopCode }) }
+                        // 批量 setData（合并 6 次独立调用）
+                        var patch = {}
+                        if (or.shopTel) {
+                          patch.shopTel = or.shopTel
+                          wx.setStorageSync('shopTel', or.shopTel)
+                        }
+                        if (or.shopAddr) {
+                          patch.shopAddr = or.shopAddr
+                          wx.setStorageSync('shopAddr', or.shopAddr)
+                        }
+                        if (or.name) {
+                          patch.shopName = or.name
+                          wx.setStorageSync('shopName', or.name)
+                        }
+                        if (or.createTime) patch.registerDate = util.formatDate(or.createTime)
+                        if (or.shopCode) patch.shopCode = or.shopCode
+                        page.setData(patch)
                         // 同步到 shopInfo 缓存
                         _staffShopInfo.shopTel = or.shopTel || _staffShopInfo.shopTel || ''
                         _staffShopInfo.shopAddr = or.shopAddr || _staffShopInfo.shopAddr || ''
@@ -360,6 +430,11 @@ Page({
     var db = app.db()
     try {
       var where = app.shopWhere()
+      // 无 shopPhone 时跳过查询，防止泄漏全店数据
+      if (!where.shopPhone) {
+        console.warn('loadUsedCount 跳过：shopPhone 为空')
+        return
+      }
       where.isVoided = db.command.neq(true)
       db.collection('repair_orders').where(where).count({
         success: function (res) {
@@ -453,10 +528,7 @@ Page({
         .get()
         .then(function (res) {
           if (!res.data || res.data.length === 0) {
-            page.setData({ unlocking: false })
-            app.hideLoading()
-            app.toastFail('未找到门店信息')
-            return
+            throw new Error('NOT_FOUND')
           }
 
           var shopRecord = res.data[0]
@@ -465,10 +537,7 @@ Page({
           var dbUnlockKey = (shopRecord.unlockKey || shopRecord.unlockkey || '').trim()
 
           if (activationCode.toLowerCase() !== dbUnlockKey.toLowerCase()) {
-            page.setData({ unlocking: false })
-            app.hideLoading()
-            app.toastFail('激活码不正确')
-            return
+            throw new Error('CODE_WRONG')
           }
 
           // 验证成功：通过云函数写入 code + expireTime，并清除 unlockKey
@@ -476,10 +545,7 @@ Page({
         })
         .then(function (result) {
           if (!result || result.code !== 0) {
-            page.setData({ unlocking: false })
-            app.hideLoading()
-            app.toastFail((result && result.msg) || '激活失败')
-            return
+            throw new Error((result && result.msg) || '激活失败')
           }
 
           // 激活成功 → 更新本地缓存
@@ -518,12 +584,22 @@ Page({
       console.error('激活失败', err)
       page.setData({ unlocking: false })
       app.hideLoading()
-      app.toastFail('激活失败，请重试')
+      if (err.message === 'NOT_FOUND') {
+        app.toastFail('未找到门店信息')
+      } else if (err.message === 'CODE_WRONG') {
+        app.toastFail('激活码不正确')
+      } else {
+        app.toastFail(err.message || '激活失败，请重试')
+      }
     })
   },
 
   // 修改门店名称
   onEditShopName: function () {
+    if (!this.data.isOwner) {
+      wx.showToast({ title: '仅超级管理员可修改', icon: 'none' })
+      return
+    }
     var page = this
     wx.showModal({
       title: '修改门店名称',
@@ -540,6 +616,37 @@ Page({
           shopInfo.name = newName
           wx.setStorageSync('shopInfo', shopInfo)
           wx.showToast({ title: '已更新', icon: 'success' })
+        }
+      }
+    })
+  },
+
+  // 编辑显示名称
+  onEditDisplayName: function () {
+    var page = this
+    wx.showModal({
+      title: '编辑显示名称',
+      editable: true,
+      placeholderText: '如：张师傅、小王',
+      content: page.data.displayName || '',
+      success: function (res) {
+        if (res.confirm) {
+          var name = (res.content || '').trim()
+          page.setData({ displayName: name })
+          // 写入云端（使用专用 action，员工管理员也能自助修改）
+          util.callRepair('updateMyDisplayName', { value: name }).then(function (res) {
+            if (res && res.code === 0) {
+              wx.showToast({ title: '已保存', icon: 'success' })
+            } else {
+              wx.showToast({ title: (res && res.msg) || '保存失败', icon: 'none' })
+            }
+          }).catch(function () {
+            wx.showToast({ title: '网络异常', icon: 'none' })
+          })
+          // 更新本地缓存
+          var shopInfo = wx.getStorageSync('shopInfo') || {}
+          shopInfo.displayName = name
+          wx.setStorageSync('shopInfo', shopInfo)
         }
       }
     })
@@ -608,7 +715,7 @@ Page({
       if (res && res.code === 0) {
         wx.showToast({ title: '已保存', icon: 'success' })
       } else {
-        wx.showToast({ title: res?.msg || '保存失败', icon: 'none' })
+        wx.showToast({ title: (res && res.msg) || '保存失败', icon: 'none' })
       }
     }).catch(() => {
       wx.showToast({ title: '网络异常', icon: 'none' })
@@ -692,6 +799,39 @@ Page({
     wx.showToast({ title: '仅小程序端可用', icon: 'none' })
   },
 
+  // 切换使用帮助展开/收起
+  toggleUseHelp: function () {
+    this.setData({ useHelpExpanded: !this.data.useHelpExpanded })
+  },
+
+  // 跳转公众号教程
+  onGoOfficialAccount: function () {
+    if (this.data._isMultiEnd) {
+      wx.showToast({ title: '仅小程序端可用', icon: 'none' })
+      return
+    }
+    wx.openOfficialAccountProfile({
+      username: 'gh_6bab9224241b',
+      fail: function (err) {
+        if (err && err.errMsg && err.errMsg.indexOf('cancel') !== -1) {
+          console.log('用户取消打开公众号')
+          return
+        }
+        console.error('打开公众号失败', err)
+        wx.showToast({ title: '打开失败，请稍后重试', icon: 'none' })
+      }
+    })
+  },
+
+  // ===========================
+  // v6.0.5 员工管理员退出登录
+  // ===========================
+
+  /** 员工管理员退出登录 - 调用 app.staffLogout() 统一处理确认弹窗和跳转 */
+  onStaffLogout: function () {
+    getApp().staffLogout()
+  },
+
   // ===========================
   // 账号类型标签
   // ===========================
@@ -706,14 +846,21 @@ Page({
     var hasIdentity = !!(shopInfo.openid || shopInfo.staffOpenid)
     var isOwner = !!(hasIdentity && !_addedBy && !_isStaffType)
     var isStaff = _addedBy || _isStaffType
-    this.setData({ isOwner: isOwner, isStaff: isStaff, addedBy: isStaff })
+    var roleLabel = ''
+    var roleTagClass = ''
     if (isOwner) {
-      this.setData({ roleLabel: '超级管理员', roleTagClass: 'tag-super-admin' })
+      roleLabel = '超级管理员'
+      roleTagClass = 'tag-super-admin'
     } else if (role === 'admin') {
-      this.setData({ roleLabel: '管理员', roleTagClass: 'tag-admin-role' })
+      roleLabel = '管理员'
+      roleTagClass = 'tag-admin-role'
     } else if (role === 'staff') {
-      this.setData({ roleLabel: '店员', roleTagClass: 'tag-staff-role' })
+      roleLabel = '店员'
+      roleTagClass = 'tag-staff-role'
     }
+    // ★ 管理员员工标识（非超级管理员、有 addedBy、role=admin）
+    var isAdminRole = !isOwner && role === 'admin' && isStaff
+    this.setData({ isOwner: isOwner, isStaff: isStaff, addedBy: isStaff, roleLabel: roleLabel, roleTagClass: roleTagClass, isAdminRole: isAdminRole })
   },
 
   /**
@@ -725,8 +872,9 @@ Page({
     // ★ 方案B：用 addedBy 替代 type 判断员工身份（type 未写入缓存，addedBy 已正确缓存）
     var _isStaffType2 = _addedBy2
     // 判断依据：openid(店主标识) / staffOpenid(员工标识) / addedBy(被添加标记) / role(角色)
+    var isGuest = !!(shopInfo.isGuest || wx.getStorageSync('isGuestMode') === 'yes')
     var hasIdentity2 = !!(shopInfo.openid || shopInfo.staffOpenid)
-    var isOwner = !!(hasIdentity2 && !_addedBy2 && !_isStaffType2 && shopInfo.role === 'admin')
+    var isOwner = isGuest || !!(hasIdentity2 && !_addedBy2 && !_isStaffType2 && shopInfo.role === 'admin')
     this.setData({ isOwner: isOwner, addedBy: _addedBy2 || _isStaffType2 })
   },
 
@@ -758,6 +906,10 @@ Page({
     this.setData({ staffPhoneInput: (e.detail.value || '').replace(/\D/g, '') })
   },
 
+  onStaffDisplayNameInput: function (e) {
+    this.setData({ staffDisplayNameInput: (e.detail.value || '').trim() })
+  },
+
   onStaffRoleChange: function (e) {
     this.setData({ staffRoleIndex: Number(e.detail.value) })
   },
@@ -770,13 +922,14 @@ Page({
       return
     }
     var role = page.data.staffRoleOptions[page.data.staffRoleIndex].value
+    var displayName = page.data.staffDisplayNameInput
     page.setData({ staffAdding: true })
-    util.callRepair('addStaff', { staffPhone: phone, staffRole: role, shopPhone: app.getShopPhone() })
+    util.callRepair('addStaff', { staffPhone: phone, staffRole: role, staffDisplayName: displayName, shopPhone: app.getShopPhone() })
       .then(function (res) {
         page.setData({ staffAdding: false })
         if (res.code === 0) {
           app.toastSuccess(res.msg || '添加成功')
-          page.setData({ staffPhoneInput: '' })
+          page.setData({ staffPhoneInput: '', staffDisplayNameInput: '' })
           page.loadStaffList()
         } else {
           app.toastFail(res.msg || '添加失败')
@@ -836,11 +989,24 @@ Page({
 
   // ====== v5.0.0 门店设置（经营诊断配置） ======
 
-  toggleShopProfile: function () {
-    var expanded = !this.data.shopProfileExpanded
-    this.setData({ shopProfileExpanded: expanded })
+  // 切换系统设置展开/收起
+  toggleSystemSettings: function () {
+    var expanded = !this.data.systemSettingsExpanded
+    this.setData({ systemSettingsExpanded: expanded })
     if (expanded) {
-      this._loadShopProfile()
+      // 展开时预加载数据
+      if (this.data.isOwner) {
+        this._loadShopProfile()
+      }
+      this._loadNavConfig()
+      // 隐藏自定义 TabBar，防止 picker 确定/取消按钮被遮挡
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().hide()
+      }
+    } else {
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().show()
+      }
     }
   },
 
@@ -855,7 +1021,7 @@ Page({
           page.setData({
             shopBayCount: bayCount,
             shopBayCountIndex: idx,
-            shopOpenYear: res.data.openYear || new Date().getFullYear()
+            shopOpenYear: String(res.data.openYear || new Date().getFullYear())
           })
         }
       })
@@ -871,7 +1037,7 @@ Page({
   onOpenYearChange: function (e) {
     var val = e.detail.value
     if (val) {
-      this.setData({ shopOpenYear: parseInt(val.substring(0, 4)) })
+      this.setData({ shopOpenYear: val.substring(0, 4) })
     }
   },
 
@@ -881,7 +1047,7 @@ Page({
 
     util.callRepair('updateShopProfile', {
       bayCount: page.data.shopBayCount,
-      openYear: page.data.shopOpenYear
+      openYear: parseInt(page.data.shopOpenYear)
     }).then(function (res) {
       page.setData({ shopProfileSaving: false })
       if (res.code === 0) {
@@ -966,5 +1132,24 @@ Page({
       showCancel: false,
       confirmText: '我知道了'
     })
+  },
+
+  // ====== v5.4.0 导航栏设置（即时生效） ======
+
+  _loadNavConfig: function () {
+    var config = wx.getStorageSync('navTabConfig') || { member: true, car: false }
+    this.setData({ navTabs: { member: config.member !== false, car: config.car === true } })
+  },
+
+  onToggleNavTab: function (e) {
+    var key = e.currentTarget.dataset.key
+    var navTabs = this.data.navTabs
+    navTabs[key] = !navTabs[key]
+    this.setData({ navTabs: navTabs })
+    // 即时保存 + 刷新 TabBar
+    wx.setStorageSync('navTabConfig', { member: navTabs.member, car: navTabs.car })
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().init()
+    }
   }
 })

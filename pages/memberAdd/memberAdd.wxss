@@ -6,7 +6,7 @@ page {
 }
 
 .container {
-  padding-bottom: 60rpx;
+  padding-bottom: 80rpx;
 }
 
 /* 卡片通用样式 */
@@ -302,10 +302,10 @@ page {
   border-left: 6rpx solid #faad14;
 }
 
-.remark-textarea {
+.remark-input {
   width: 100%;
-  min-height: 140rpx;
-  padding: 20rpx 24rpx;
+  height: 80rpx;
+  padding: 0 24rpx;
   font-size: 28rpx;
   background: #f5f7fa;
   border: 2rpx solid #e0e0e0;
@@ -317,6 +317,8 @@ page {
 .button-group {
   display: flex;
   gap: 20rpx;
+  padding-top: 80rpx;
+  
 }
 
 .submit-btn {
@@ -413,6 +415,12 @@ page {
 .added-benefit-count {
   font-size: 24rpx;
   color: #999;
+}
+
+.added-benefit-amount {
+  font-size: 22rpx;
+  color: #722ed1;
+  margin-top: 2rpx;
 }
 
 .added-benefit-del {

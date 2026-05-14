@@ -3,7 +3,7 @@
 .container {
   min-height: 100vh;
   background: linear-gradient(180deg, #f0f7ff 0%, #f5f7fa 100%);
-  padding: 24rpx 24rpx 160rpx;
+  padding: 24rpx 24rpx 420rpx;
 }
 
 /* 顶部卡片 */
@@ -28,19 +28,44 @@
   margin-bottom: 20rpx;
 }
 
-.plate-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  font-size: 32rpx;
-  font-weight: 800;
-  letter-spacing: 2rpx;
-  padding: 8rpx 24rpx;
-  border-radius: 12rpx;
+.plate-area {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+
+.plate-area:active {
+  opacity: 0.8;
+}
+
+.plate-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6rpx 20rpx;
+  border-radius: 10rpx;
+  display: inline-flex;
+  align-items: baseline;
+  max-width: 460rpx;
+  overflow: hidden;
+}
+
+.plate-text {
+  color: #fff;
+  font-size: 38rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+.plate-hint {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 20rpx;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .header-tags {
@@ -266,6 +291,11 @@
   color: #ff4d4f;
 }
 
+.detail-label.profit-label {
+  color: #52c41a;
+  font-weight: 700;
+}
+
 .detail-value.link {
   color: #1677ff;
 }
@@ -385,6 +415,47 @@
 
 .void-btn.voided .void-text {
   color: #bbb;
+}
+
+/* 查车入口 */
+.check-sheet-row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.check-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  height: 88rpx;
+  border-radius: 16rpx;
+  font-weight: 600;
+}
+
+.check-btn.new {
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  color: #fff;
+  box-shadow: 0 4rpx 16rpx rgba(22, 119, 255, 0.2);
+}
+
+.check-btn.list {
+  background: #fff;
+  color: #1677ff;
+  border: 2rpx solid #e8f0fe;
+}
+
+.check-btn:active {
+  opacity: 0.85;
+}
+
+.check-btn-icon {
+  font-size: 32rpx;
+}
+
+.check-btn-text {
+  font-size: 28rpx;
 }
 
 /* 浮动首页按钮 */

@@ -29,7 +29,7 @@
     <!-- 有车牌：展示车牌 + 历史工单 -->
     <block wx:else>
       <view class="card-header">
-        <text class="plate">{{plate}}</text>
+        <text class="plate" bindtap="onGoCarDetail">{{plate}}</text>
         <view class="plate-actions-inline">
           <view class="action-btn-sm history" bindtap="onViewHistory">
             <text>📋 历史工单</text>
@@ -64,6 +64,16 @@
   <!-- 车牌键盘 -->
   <plate-keyboard visible="{{showKeyboard}}" value="{{plate}}" bind:confirm="onPlateConfirm" bind:cancel="onPlateCancel" bind:input="onPlateInput"></plate-keyboard>
 
+  <!-- 数字键盘 -->
+  <number-keyboard
+    visible="{{showNumberKeyboard}}"
+    value="{{numberKeyboardValue}}"
+    decimal="{{false}}"
+    bindconfirm="onNumberKeyboardConfirm"
+    bindcancel="onNumberKeyboardCancel"
+    bindnext="onNumberKeyboardNext"
+  />
+
   <!-- 服务项目表格 -->
   <view class="form-section">
     <view class="section-title-row">
@@ -95,12 +105,15 @@
         </view>
         <view class="svc-row" wx:for="{{serviceRows}}" wx:key="index">
           <text class="svc-col col-num">{{index + 1}}</text>
-          <input class="svc-input col-name" placeholder="项目名" placeholder-class="svc-placeholder" value="{{item.name}}" data-index="{{index}}" data-field="name" bindinput="onRowInput" bindfocus="onRowFocus" bindblur="onRowBlur" />
-          <input class="svc-input col-spec" placeholder="规格" placeholder-class="svc-placeholder" value="{{item.spec}}" data-index="{{index}}" data-field="spec" bindinput="onRowInput" />
-          <input class="svc-input col-amount" type="number" placeholder="0" placeholder-class="svc-placeholder" value="{{item.amount}}" data-index="{{index}}" data-field="amount" bindinput="onRowInput" bindblur="onAmountBlur" />
+          <input class="svc-input col-name" placeholder="项目名" placeholder-class="svc-placeholder" value="{{item.name}}" data-index="{{index}}" data-field="name" bindinput="onRowInput" bindfocus="onRowFocus" bindblur="onRowBlur" focus="{{nameInputFocusIndex === index}}" />
+          <input class="svc-input col-spec" placeholder="规格（选填）" placeholder-class="svc-placeholder" value="{{item.spec}}" data-index="{{index}}" data-field="spec" bindinput="onRowInput" />
+          <view class="svc-amount-trigger col-amount" data-index="{{index}}" bindtap="onAmountTap">
+            <text class="svc-amount-text {{item.amount ? '' : 'placeholder'}}">{{item.amount || '0'}}</text>
+          </view>
         </view>
       </view>
       <view class="svc-add-row" bindtap="onAddRow">
+        <text class="svc-add-text">点击这里➡️  </text>
         <text class="svc-add-icon">+</text>
         <text class="svc-add-text">加一行</text>
       </view>
@@ -125,18 +138,52 @@
           <text class="amount-label">实收金额</text>
           <view class="amount-input-wrapper">
             <text class="currency">¥</text>
-            <input
-              class="amount-input"
-              type="digit"
-              placeholder="0.00"
-              placeholder-class="amount-placeholder"
-              value="{{form.paidAmount}}"
-              data-field="paidAmount"
-              bindinput="onInput"
-            />
+            <view class="amount-input-display">
+              <text class="amount-display-text {{form.paidAmount ? '' : 'placeholder'}}">{{form.paidAmount || '0'}}</text>
+            </view>
+            <text class="paid-edit-btn" bindtap="onEditPaidAmount">📝</text>
           </view>
         </view>
       </view>
+      <!-- 分割线 + 配件成本 | 本单毛利 -->
+      <view class="amount-cost-divider"></view>
+      <view class="amount-row-inline">
+        <view class="amount-field">
+          <text class="amount-label">配件成本</text>
+          <view class="amount-input-wrapper cost-input">
+            <text class="currency">¥</text>
+            <view class="amount-input-display">
+              <text class="amount-display-text {{form.partCost ? '' : 'placeholder'}}">{{form.partCost || '选填'}}</text>
+            </view>
+            <text class="paid-edit-btn" bindtap="onEditPartCost">📝</text>
+          </view>
+        </view>
+        <view class="amount-divider-v"></view>
+        <view class="amount-field" wx:if="{{form.partCost}}">
+          <text class="amount-label gross-label">本单毛利</text>
+          <view class="profit-value-wrap">
+            <text class="profit-value {{grossProfit > 0 ? 'positive' : grossProfit < 0 ? 'negative' : ''}}">
+              <text wx:if="{{grossProfit > 0}}">+</text>¥{{grossProfit}}
+            </text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 备注 -->
+  <view class="form-section">
+    <view class="section-title">备注信息</view>
+    <view class="form-card">
+      <input
+        class="remark-input"
+        placeholder="选填，记录配件供应商、质保信息、注意事项等"
+        placeholder-class="placeholder"
+        value="{{form.remark}}"
+        data-field="remark"
+        bindinput="onInput"
+        maxlength="200"
+      />
     </view>
   </view>
 
@@ -157,22 +204,6 @@
           <text class="check-icon">✓</text>
         </view>
       </view>
-    </view>
-  </view>
-
-  <!-- 备注 -->
-  <view class="form-section">
-    <view class="section-title">备注信息</view>
-    <view class="form-card">
-      <input
-        class="remark-input"
-        placeholder="选填，记录其他信息"
-        placeholder-class="placeholder"
-        value="{{form.remark}}"
-        data-field="remark"
-        bindinput="onInput"
-        maxlength="200"
-      />
     </view>
   </view>
 
@@ -255,7 +286,6 @@
           cursor-spacing="20"
           adjust-position="{{false}}"
           bindfocus="onCarPickerSearchFocus"
-          bindblur="onCarPickerSearchBlur"
           bindkeyboardheightchange="onCarPickerKBChange"
         />
         <text class="car-picker-clear" wx:if="{{carPickerKeyword}}" bindtap="onCarPickerClear">✕</text>
@@ -329,6 +359,66 @@
     </view>
   </view>
 </view>
+
+<!-- 实收金额修改弹窗 -->
+<view class="phrase-modal-mask" wx:if="{{showPaidAmountEdit}}" bindtap="onPaidEditCancel">
+  <view class="phrase-modal" catchtap="onPaidEditModalTap">
+    <view class="phrase-modal-header">
+      <text class="phrase-modal-title">确认修改实收金额</text>
+    </view>
+    <view class="paid-edit-body">
+      <view class="paid-edit-row">
+        <text class="paid-edit-label">项目总金额</text>
+        <text class="paid-edit-value">{{form.totalAmount || 0}} 元</text>
+      </view>
+      <view class="paid-edit-row">
+        <text class="paid-edit-label">实收金额</text>
+        <view class="paid-edit-input-wrap">
+          <input class="paid-edit-input" type="number" value="{{paidAmountEditValue}}" bindinput="onPaidEditInput" focus="{{paidEditInputFocus}}" />
+          <text class="paid-edit-unit">元</text>
+        </view>
+      </view>
+    </view>
+    <view class="phrase-modal-footer">
+      <view class="phrase-modal-btn cancel" bindtap="onPaidEditCancel">取消</view>
+      <view class="phrase-modal-btn save" bindtap="onPaidEditSave">保存</view>
+    </view>
+  </view>
+</view>
+
+  <!-- 配件成本编辑弹窗 -->
+  <view class="phrase-modal-mask" wx:if="{{showPartCostEdit}}" bindtap="onPartCostEditCancel">
+    <view class="phrase-modal" catchtap="onPartCostEditModalTap">
+      <view class="phrase-modal-header">
+        <text class="phrase-modal-title">填写配件成本</text>
+      </view>
+      <view class="paid-edit-body">
+        <view class="paid-edit-row">
+          <text class="paid-edit-label">配件成本</text>
+          <view class="paid-edit-input-wrap">
+            <input class="paid-edit-input" type="number" value="{{partCostEditValue}}" bindinput="onPartCostEditInput" focus="{{partCostEditInputFocus}}" />
+            <text class="paid-edit-unit">元</text>
+          </view>
+        </view>
+        <view class="paid-edit-row">
+          <text class="paid-edit-label">预计利润</text>
+          <text class="paid-edit-value" style="color:{{partCostEditPreview >= 0 ? '#52c41a' : '#ff4d4f'}}">
+            {{partCostEditPreview >= 0 ? '+' : ''}}¥{{partCostEditPreview}}
+          </text>
+        </view>
+        <view class="paid-edit-row">
+          <text class="paid-edit-label">毛利率</text>
+          <text class="paid-edit-value gross-rate {{partCostEditGrossRate !== '' ? (Number(partCostEditGrossRate) >= 0 ? 'positive-rate' : 'negative-rate') : ''}}">
+            {{partCostEditGrossRate !== '' ? partCostEditGrossRate + '%' : '--'}}
+          </text>
+        </view>
+      </view>
+      <view class="phrase-modal-footer">
+        <view class="phrase-modal-btn cancel" bindtap="onPartCostEditCancel">取消</view>
+        <view class="phrase-modal-btn save" bindtap="onPartCostEditSave">保存</view>
+      </view>
+    </view>
+  </view>
 
 <!-- 底部提交按钮 -->
 <view class="footer">

@@ -1,0 +1,120 @@
+<!-- 车辆列表页 -->
+<wxs src="../../utils/maskPlate.wxs" module="mask" />
+<view class="container">
+  <view class="sticky-header">
+  <!-- 搜索栏 -->
+  <view class="search-section">
+    <view class="home-btn" bindtap="onGoHome">
+      <text>🏠首页</text>
+    </view>
+    <view class="search-wrapper">
+      <text class="search-icon">🔍</text>
+      <input class="search-input" placeholder="输入车牌号搜索" placeholder-class="search-placeholder"
+        value="{{searchValue}}" bindinput="onSearchInput" maxlength="10" confirm-type="search" />
+      <view class="clear-btn" wx:if="{{searchValue}}" bindtap="onSearchClear">
+        <text class="clear-icon">✕</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 统计 + 筛选 -->
+  <view class="filter-section">
+    <!-- 汇总卡片 -->
+    <view class="stats-card">
+      <text class="stats-num">{{totalCount}}</text>
+      <text class="stats-label">辆车</text>
+    </view>
+
+    <!-- 筛选标签 -->
+    <view class="filter-tabs">
+      <view class="filter-tab {{!hasActiveFilter ? 'active all' : ''}}" data-type="all" bindtap="onFilterTap">
+        <text>全部</text>
+      </view>
+      <view class="filter-tab {{filters.member ? 'active member' : ''}}" data-type="member" bindtap="onFilterTap">
+        <text>会员</text>
+      </view>
+      <view class="filter-tab {{filters.nonMember ? 'active non-member' : ''}}" data-type="nonMember" bindtap="onFilterTap">
+        <text>非会员</text>
+      </view>
+      <view class="filter-tab {{filters.fuel ? 'active fuel' : ''}}" data-type="fuel" bindtap="onFilterTap">
+        <text>燃油车</text>
+      </view>
+      <view class="filter-tab {{filters.newEnergy ? 'active energy' : ''}}" data-type="newEnergy" bindtap="onFilterTap">
+        <text>新能源</text>
+      </view>
+    </view>
+  </view>
+  </view>
+
+  <!-- 骨架屏 -->
+  <view class="skeleton-section" wx:if="{{loading}}">
+    <view class="skeleton-card" wx:for="{{skeletonCount}}" wx:key="index">
+      <view class="skeleton-line skeleton-plate"></view>
+      <view class="skeleton-line skeleton-info"></view>
+      <view class="skeleton-line skeleton-stats"></view>
+    </view>
+  </view>
+
+  <!-- 车辆列表 -->
+  <view class="list-section" wx:if="{{!loading}}">
+    <!-- 空态 -->
+    <view class="empty-state" wx:if="{{isEmpty}}">
+      <text class="empty-icon">🚗</text>
+      <text class="empty-text">暂无车辆</text>
+      <text class="empty-hint">新增车辆后将在这里显示</text>
+    </view>
+
+    <!-- 搜索结果为空 -->
+    <view class="empty-state" wx:elif="{{carList.length === 0 && totalCount === 0}}">
+      <text class="empty-icon">🔍</text>
+      <text class="empty-text">未找到匹配车辆</text>
+      <text class="empty-hint">试试其他筛选条件</text>
+    </view>
+
+    <!-- 卡片列表 -->
+    <view class="car-list" wx:else>
+      <view class="car-card" wx:for="{{carList}}" wx:key="plate" data-plate="{{item.plate}}" bindtap="onCardTap">
+        <!-- 头部：车牌 + 会员徽章 -->
+        <view class="card-header">
+          <text class="plate">{{mask.maskPlate(item.plate)}}</text>
+          <view class="header-badges">
+            <view class="member-badge" wx:if="{{item.isMember}}">会员</view>
+            <text class="car-type-tag">{{item.carType}}</text>
+          </view>
+        </view>
+
+        <!-- 信息行：车主 + 电话 -->
+        <view class="card-info">
+          <text class="owner-name">{{item.ownerName}}</text>
+          <text class="owner-phone">{{item.phone}}</text>
+        </view>
+
+        <!-- 底栏：工单数 + 消费 + 入库时间 -->
+        <view class="card-footer">
+          <view class="footer-stats">
+            <text class="footer-item">📋 {{item.orderCount}}单</text>
+            <text class="footer-item">💰 ¥{{item.totalAmount}}</text>
+          </view>
+          <text class="footer-time">📅 {{item.createTime}}</text>
+        </view>
+      </view>
+
+      <!-- 加载更多 -->
+      <view class="load-more" wx:if="{{hasMore && !loadingMore && carList.length > 0}}">
+        <text class="load-more-text">— 上滑加载更多 —</text>
+      </view>
+      <view class="load-more" wx:if="{{!hasMore && carList.length > 0}}">
+        <text class="load-more-text">— 已显示全部 {{totalCount}} 辆车 —</text>
+      </view>
+
+      <view class="loading-more" wx:if="{{loadingMore}}">
+        <view class="loading-dot"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 浮动新增车辆按钮 -->
+  <view class="fab-add" bindtap="onAddCar">＋车辆</view>
+
+</view>

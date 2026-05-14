@@ -1,0 +1,14 @@
+{
+  "name": "aiyangche-plus-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "爱养车+ 自动化测试",
+  "scripts": {
+    "test": "jest --verbose",
+    "test:perm": "jest checkPermission --verbose",
+    "test:list": "jest listQuery --verbose"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

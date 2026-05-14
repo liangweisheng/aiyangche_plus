@@ -3,6 +3,7 @@
 
 const app = getApp()
 const util = require('../../utils/util')
+var constants = require('../../utils/constants')
 
 Page({
   data: {
@@ -16,9 +17,9 @@ Page({
     name: '',
     phone: '',
     benefits: [],
-    curBenefit: { name: '', total: '', remain: '' },
+    curBenefit: { name: '', total: '', remain: '', amount: '' },
     remark: '',
-    benefitPresets: ['10次洗车卡', '5次保养卡', '5次洗车卡', '3次洗车卡', '年检套餐'],
+    benefitPresets: ['10次洗车卡', '2次保养卡', '5次补胎卡', '3次洗车卡', '自定义卡：直接填写到下方栏位'],
     autoFocusSearch: true,
     recentCars: [],
     submitting: false
@@ -39,7 +40,7 @@ Page({
         success: function (res) {
           page.setData({ recentCars: res.data || [] })
         },
-        fail: function () { }
+        fail: function () {}
       })
   },
 
@@ -62,6 +63,13 @@ Page({
       this.searchCar(plate)
     }
     this.loadRecentCars()
+  },
+
+  onUnload() {
+    if (this.searchTimer) {
+      clearTimeout(this.searchTimer)
+      this.searchTimer = null
+    }
   },
 
   onSearchPlateInput(e) {
@@ -183,7 +191,7 @@ Page({
       name: '',
       phone: '',
       benefits: [],
-      curBenefit: { name: '', total: '', remain: '' },
+      curBenefit: { name: '', total: '', remain: '', amount: '' },
       remark: ''
     })
   },
@@ -213,12 +221,16 @@ Page({
     this.setData({ 'curBenefit.remain': e.detail.value.trim() })
   },
 
+  onCurAmountInput(e) {
+    this.setData({ 'curBenefit.amount': e.detail.value.trim() })
+  },
+
   onPresetTap(e) {
     var preset = e.currentTarget.dataset.preset
     var match = preset.match(/(\d+)次/)
     var total = match ? match[1] : ''
     this.setData({
-      curBenefit: { name: preset, total: total, remain: total }
+      curBenefit: { name: preset, total: total, remain: total, amount: '' }
     })
   },
 
@@ -237,11 +249,12 @@ Page({
     var benefits = this.data.benefits.concat([{
       name: cur.name,
       total: Number(cur.total) || 0,
-      remain: Number(cur.remain) || 0
+      remain: Number(cur.remain) || 0,
+      amount: Number(cur.amount) || 0
     }])
     this.setData({
       benefits: benefits,
-      curBenefit: { name: '', total: '', remain: '' }
+      curBenefit: { name: '', total: '', remain: '', amount: '' }
     })
   },
 
@@ -293,12 +306,12 @@ Page({
             if (existRes.data.length > 0) {
               // 已有会员 → 追加权益，不限
               page._doSubmitMember(plate, carId, name, phone, benefits, remark, existWhere)
-            } else if (totalCount >= 10) {
+            } else if (totalCount >= constants.FREE_MAX_MEMBERS) {
               // 新增会员且已达上限
               wx.hideLoading()
               wx.showModal({
                 title: '已达免费版上限',
-                content: '免费版最多添加10个会员（当前' + totalCount + '个）\n升级Pro版即可无限添加',
+                content: '免费版最多添加' + constants.FREE_MAX_MEMBERS + '个会员（当前' + totalCount + '个）\n升级Pro版即可无限添加',
                 confirmText: '去升级',
                 success: function (m) { if (m.confirm) wx.switchTab({ url: '/pages/proUnlock/proUnlock' }) }
               })
@@ -324,7 +337,8 @@ Page({
     var db = app.db()
     wx.showLoading({ title: '保存中...' })
 
-    var memberWhere = {}
+    // 使用传入的 existWhere（含门店隔离），兜底构造
+    var memberWhere = existWhere || app.shopWhere({})
     if (plate) memberWhere.plate = plate
     if (phone) memberWhere.phone = phone
 
@@ -338,7 +352,7 @@ Page({
             existingBenefits = [{ name: member.benefitName, total: member.benefitTotal || 0, remain: member.benefitRemain || 0 }]
           }
           var mergedBenefits = existingBenefits.concat(
-            benefits.map(function(b) { return { name: b.name, total: b.total, remain: b.remain, remark: remark || '', addedTime: new Date().toISOString() } })
+            benefits.map(function(b) { return { name: b.name, total: b.total, remain: b.remain, amount: Number(b.amount) || 0, remark: remark || '', addedTime: new Date().toISOString() } })
           )
 
           var updateData = {
@@ -370,10 +384,11 @@ Page({
           ownerName: name || '未填写',
           phone: phone || '无',
           benefits: benefits.map(function(b) {
-            return { name: b.name, total: b.total, remain: b.remain, addedTime: new Date().toISOString() }
+            return { name: b.name, total: b.total, remain: b.remain, amount: Number(b.amount) || 0, remark: remark || '', addedTime: new Date().toISOString() }
           }),
           remark: remark || '',
-          operatorPhone: app.getOperatorPhone()
+          operatorPhone: app.getOperatorPhone(),
+          operatorName: app.getOperatorName()
         }).then(function (res) {
           if (res && res.code === 0 && carId && (name || phone)) {
             var carUpdateData = {}
@@ -383,6 +398,36 @@ Page({
           }
           return res
         })
+      })
+      .then(function () {
+        // ★ 权益卡开卡：保存会员后自动生成工单，金额为权益卡面额（营业收入）
+        if (benefits && benefits.length > 0) {
+          var benefitItems = []
+          var benefitAmounts = []
+          benefits.forEach(function (b) {
+            if (b.name) {
+              benefitItems.push(b.name)
+              benefitAmounts.push(Number(b.amount) || 0)
+            }
+          })
+          if (benefitItems.length > 0) {
+            var orderTotal = benefitAmounts.reduce(function (s, v) { return s + v }, 0)
+            return util.callRepair('createOrder', {
+              plate: plate,
+              carDocId: carId,
+              serviceItems: benefitItems.join('，'),
+              serviceAmounts: benefitAmounts.join(','),
+              totalAmount: orderTotal,
+              paidAmount: orderTotal,
+              payMethod: '1',
+              status: '已完成',
+              remark: remark || '',
+              operatorPhone: app.getOperatorPhone(),
+              operatorName: app.getOperatorName(),
+              _skipAmountCheck: true
+            })
+          }
+        }
       })
       .then(function () {
         wx.hideLoading()

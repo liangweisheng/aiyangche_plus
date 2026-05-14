@@ -1,5 +1,5 @@
 <!-- custom-tab-bar/index.wxml -->
-<cover-view class="tab-bar">
+<cover-view class="tab-bar" wx:if="{{!_hidden}}" style="{{_hidden ? 'display:none' : ''}}">
   <cover-view
     wx:for="{{list}}"
     wx:key="pagePath"

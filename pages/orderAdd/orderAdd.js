@@ -3,13 +3,7 @@
 
 const app = getApp()
 const util = require('../../utils/util')
-
-function formatDate(d) {
-  var year = d.getFullYear()
-  var month = ('0' + (d.getMonth() + 1)).slice(-2)
-  var day = ('0' + d.getDate()).slice(-2)
-  return year + '-' + month + '-' + day
-}
+var constants = require('../../utils/constants')
 
 Page({
   data: {
@@ -32,12 +26,13 @@ Page({
       remark: '',
       setMaintainDate: '',
       setPartName: '',
-      setPartDate: ''
+      setPartDate: '',
+      partCost: ''         // 配件成本
     },
     memberInfo: null,
     isMember: false,
     carInfo: null,
-    today: formatDate(new Date()),
+    today: util.formatDate(new Date()),
     payOptions: [
       { value: '1', label: '现付', icon: '💵' },
       { value: '2', label: '挂账', icon: '📌' }
@@ -58,7 +53,32 @@ Page({
     carPickerTimer: null,
     carPickerKbHeight: 0,
     carPickerInputFocus: false,
-    carPickerWaiting: false
+    carPickerWaiting: false,
+    // 数字键盘
+    showNumberKeyboard: false,
+    numberKeyboardValue: '',
+    nameInputFocusIndex: -1,
+    // 实收金额修改弹窗
+    showPaidAmountEdit: false,
+    paidAmountEditValue: '',
+    paidEditInputFocus: false,
+    // 毛利相关
+    grossProfit: 0,                   // 本单毛利（实收金额-配件成本）
+    showPartCostEdit: false,          // 配件成本编辑弹窗
+    partCostEditValue: '',
+    partCostEditInputFocus: false,
+    partCostEditPreview: 0,           // 弹窗中实时预览利润
+    partCostEditGrossRate: ''          // 弹窗中实时毛利率
+  },
+
+  onUnload() {
+    var page = this
+    // 清计时器，防止内存泄漏
+    if (page.data.carPickerTimer) {
+      clearTimeout(page.data.carPickerTimer)
+    }
+    // 清理车牌回调 storage（编辑未完成退出时）
+    wx.removeStorageSync('orderAdd_selectedPlate')
   },
 
   onLoad(options) {
@@ -111,8 +131,11 @@ Page({
           'form.totalAmount': order.totalAmount ? String(order.totalAmount) : '',
           'form.paidAmount': order.paidAmount ? String(order.paidAmount) : '',
           'form.payMethod': order.payMethod || '1',
-          'form.remark': order.remark || ''
+          'form.remark': order.remark || '',
+          'form.partCost': order.partCost ? String(order.partCost) : ''
         })
+        // 加载完后重算利润
+        page.computeProfit()
         // 设置标题
         wx.setNavigationBarTitle({ title: '编辑工单' })
       },
@@ -150,22 +173,25 @@ Page({
     }
   },
 
-  // 查询历史消费总额
+  // 查询历史消费总额（云函数端聚合）⭐ 优化：单次请求替代客户端多次分页
   fetchTotalSpent(plate) {
     var page = this
-    var db = app.db()
-    var shopBase = app.shopWhere({ plate: plate })
-    shopBase.isVoided = db.command.neq(true)
-    db.collection('repair_orders')
-      .where(shopBase)
-      .field({ totalAmount: true })
-      .get({
-        success: function (res) {
-          var total = 0
-          res.data.forEach(function (item) { total += item.totalAmount || 0 })
-          page.setData({ totalSpent: total })
-        }
-      })
+    var shopPhone = app.getShopPhone()
+    if (!shopPhone || !plate) return
+
+    app.callFunction('repair_main', {
+      action: 'getTotalSpent',
+      shopPhone: shopPhone,
+      plate: plate
+    }).then(function (res) {
+      if (res && res.code === 0 && res.data) {
+        page.setData({ totalSpent: res.data.totalSpent || 0 })
+      } else {
+        page.setData({ totalSpent: 0 })
+      }
+    }).catch(function () {
+      page.setData({ totalSpent: 0 })
+    })
   },
 
   // ========== 车牌输入 ==========
@@ -223,7 +249,7 @@ Page({
         success: function (res) {
           page.setData({ carPickerRecent: res.data || [] })
         },
-        fail: function () { }
+        fail: function () {}
       })
   },
 
@@ -445,8 +471,108 @@ Page({
     // blur 不需要特殊处理
   },
 
-  onAmountBlur() {
-    this.calcTotalAmount()
+  // ========== 数字键盘（金额输入） ==========
+
+  onAmountTap(e) {
+    var idx = e.currentTarget.dataset.index
+    this._activeAmountField = 'row_' + idx
+    var val = this.data.serviceRows[idx].amount || ''
+    this.setData({ numberKeyboardValue: val, showNumberKeyboard: true })
+  },
+
+  onEditPaidAmount() {
+    var page = this
+    var currentVal = page.data.form.paidAmount || ''
+    page.setData({
+      showPaidAmountEdit: true,
+      paidAmountEditValue: currentVal,
+      paidEditInputFocus: false
+    })
+    setTimeout(function () {
+      page.setData({ paidEditInputFocus: true })
+    }, 300)
+  },
+
+  onPaidEditInput(e) {
+    this.setData({ paidAmountEditValue: e.detail.value })
+  },
+
+  onPaidEditCancel() {
+    this.setData({
+      showPaidAmountEdit: false,
+      paidAmountEditValue: '',
+      paidEditInputFocus: false
+    })
+  },
+
+  onPaidEditModalTap() {
+    // 空操作，阻止冒泡到遮罩层
+  },
+
+  onPaidEditSave() {
+    var val = this.data.paidAmountEditValue.trim()
+    if (val && Number(val) < 0) {
+      wx.showToast({ title: '金额不能为负数', icon: 'none' })
+      return
+    }
+    if (Number(val) > 999999) {
+      wx.showToast({ title: '金额过大，请检查', icon: 'none' })
+      return
+    }
+    this.setData({
+      'form.paidAmount': val || '',
+      showPaidAmountEdit: false,
+      paidAmountEditValue: '',
+      paidEditInputFocus: false
+    })
+    this.computeProfit()
+  },
+
+  onNumberKeyboardConfirm(e) {
+    var val = e.detail.value || ''
+    var field = this._activeAmountField
+    if (!field) return
+    this.setData({ showNumberKeyboard: false })
+    if (field === 'paidAmount') {
+      this.setData({ 'form.paidAmount': val })
+    } else {
+      var idx = parseInt(field.replace('row_', ''))
+      var key = 'serviceRows[' + idx + '].amount'
+      this.setData({ [key]: val })
+      this.calcTotalAmount()
+    }
+    this._activeAmountField = null
+  },
+
+  onNumberKeyboardCancel() {
+    this.setData({ showNumberKeyboard: false })
+    this._activeAmountField = null
+  },
+
+  onNumberKeyboardNext(e) {
+    var val = e.detail.value || ''
+    var field = this._activeAmountField
+    if (!field) return
+    this.setData({ showNumberKeyboard: false })
+    if (field === 'paidAmount') {
+      this.setData({ 'form.paidAmount': val })
+    } else {
+      var idx = parseInt(field.replace('row_', ''))
+      var key = 'serviceRows[' + idx + '].amount'
+      this.setData({ [key]: val })
+      this.calcTotalAmount()
+      // 聚焦下一行的项目名输入框
+      var nextIdx = idx + 1
+      if (nextIdx < this.data.serviceRows.length) {
+        var page = this
+        page.setData({ nameInputFocusIndex: nextIdx }, function() {
+          setTimeout(function() {
+            page.setData({ nameInputFocusIndex: -1 })
+          }, 100)
+        })
+      }
+    }
+    this._activeAmountField = null
   },
 
   onRowInput(e) {
@@ -461,18 +587,30 @@ Page({
     this.setData({ serviceRows: rows })
   },
 
-  // 计算服务项目总额并汇总到 form.totalAmount
-  // 仅在 paidAmount 为空时自动同步，避免覆盖用户手动修改的实收金额
+  // 计算服务项目总额
+  // - 新增模式：实收金额始终与总金额保持一致
+  // - 编辑模式：实收金额保持原有值，不自动覆盖
   calcTotalAmount() {
     var rows = this.data.serviceRows
     var total = 0
     rows.forEach(function (r) { total += Number(r.amount) || 0 })
     var totalStr = total > 0 ? String(total) : ''
     var updateData = { 'form.totalAmount': totalStr }
-    if (!this.data.form.paidAmount) {
+    // 编辑模式下不自动覆盖实收金额，避免覆盖用户原有的实收值
+    if (!this.data.editId) {
       updateData['form.paidAmount'] = totalStr
     }
     this.setData(updateData)
+    this.computeProfit()
+  },
+
+  // 计算本单毛利
+  computeProfit() {
+    var paid = Number(this.data.form.paidAmount) || 0
+    var cost = Number(this.data.form.partCost) || 0
+    this.setData({
+      grossProfit: paid - cost
+    })
   },
 
   // 管理短语（增删改）
@@ -481,6 +619,72 @@ Page({
     var phrases = this.data.phrases.map(function (p) { return p.text })
     var content = phrases.join('，')
     page.setData({ showPhraseEdit: true, phraseEditText: content })
+  },
+
+  // +++ 配件成本编辑 +++
+  onEditPartCost() {
+    var page = this
+    var currentVal = page.data.form.partCost || ''
+    var paid = Number(page.data.form.paidAmount) || Number(page.data.form.totalAmount) || 0
+    var preview = paid - (Number(currentVal) || 0)
+    var grossRate = paid > 0 ? (preview / paid * 100).toFixed(1) : ''
+    page.setData({
+      showPartCostEdit: true,
+      partCostEditValue: currentVal,
+      partCostEditInputFocus: false,
+      partCostEditPreview: preview,
+      partCostEditGrossRate: grossRate
+    })
+    setTimeout(function () {
+      page.setData({ partCostEditInputFocus: true })
+    }, 300)
+  },
+
+  onPartCostEditInput(e) {
+    var val = e.detail.value
+    var paid = Number(this.data.form.paidAmount) || Number(this.data.form.totalAmount) || 0
+    var preview = paid - (Number(val) || 0)
+    var grossRate = paid > 0 ? (preview / paid * 100).toFixed(1) : ''
+    this.setData({
+      partCostEditValue: val,
+      partCostEditPreview: preview,
+      partCostEditGrossRate: grossRate
+    })
+  },
+
+  onPartCostEditCancel() {
+    this.setData({
+      showPartCostEdit: false,
+      partCostEditValue: '',
+      partCostEditInputFocus: false,
+      partCostEditPreview: 0,
+      partCostEditGrossRate: ''
+    })
+  },
+
+  onPartCostEditModalTap() {
+    // 阻止冒泡到遮罩层
+  },
+
+  onPartCostEditSave() {
+    var val = this.data.partCostEditValue.trim()
+    if (val && Number(val) < 0) {
+      wx.showToast({ title: '成本不能为负数', icon: 'none' })
+      return
+    }
+    if (Number(val) > 999999) {
+      wx.showToast({ title: '金额过大，请检查', icon: 'none' })
+      return
+    }
+    this.setData({
+      'form.partCost': val || '',
+      showPartCostEdit: false,
+      partCostEditValue: '',
+      partCostEditInputFocus: false,
+      partCostEditPreview: 0,
+      partCostEditGrossRate: ''
+    })
+    this.computeProfit()
   },
 
   onPhraseEditInput(e) {
@@ -553,9 +757,12 @@ Page({
       return
     }
 
-    // 汇总表格数据
-    page.calcTotalAmount()
-    var rows = data.serviceRows
+    // 汇总服务项目总额（不覆盖实收金额，保留用户手动输入的值）
+    var _total = 0
+    page.data.serviceRows.forEach(function (r) { _total += Number(r.amount) || 0 })
+    page.setData({ 'form.totalAmount': _total > 0 ? String(_total) : '' })
+    var latestForm = page.data.form
+    var rows = page.data.serviceRows
     var hasItem = false
     var itemsText = []
     rows.forEach(function (r) {
@@ -581,36 +788,29 @@ Page({
       wx.showToast({ title: '有项目的金额未填写', icon: 'none' })
       return
     }
-    var totalAmount = data.form.totalAmount ? Number(data.form.totalAmount) : 0
-    if (totalAmount <= 0) {
+    var totalAmount = latestForm.totalAmount ? Number(latestForm.totalAmount) : 0
+    // ★ v6.x 编辑模式允许金额为 0（权益核销工单无金额）
+    if (totalAmount <= 0 && !page.data.editId) {
       wx.showToast({ title: '请输入服务金额', icon: 'none' })
       return
     }
-    var paidAmount = data.form.paidAmount ? Number(data.form.paidAmount) : 0
+    var paidAmount = latestForm.paidAmount ? Number(latestForm.paidAmount) : 0
     if (paidAmount > totalAmount) {
-      wx.showToast({ title: '实收金额不能超过总金额', icon: 'none' })
+      // ★ v6.x 实收金额大于总金额时弹窗确认
+      wx.showModal({
+        title: '实收金额大于总金额',
+        content: '实收金额（' + paidAmount + '）大于总金额（' + totalAmount + '），是否确认保存？',
+        confirmText: '确认保存',
+        cancelText: '取消',
+        success: function (modalRes) {
+          if (modalRes.confirm) {
+            page._finalizeOrderSave(latestForm, itemsText, rows, page)
+          }
+        }
+      })
       return
     }
-
-    // 金额过大校验
-    if (paidAmount > 999999) {
-      wx.showToast({ title: '金额过大，请检查！', icon: 'none' })
-      return
-    }
-
-    form.serviceItems = itemsText.join('，')
-
-    // 保存各项金额（逗号分隔）
-    var amounts = []
-    rows.forEach(function (r) {
-      if (r.name.trim()) {
-        amounts.push(Number(r.amount) || 0)
-      }
-    })
-    form.serviceAmounts = amounts.join(',')
-
-    var status = form.payMethod === '2' ? '待结算' : '已完成'
-    page.saveOrder(plate, form, status)
+    page._finalizeOrderSave(latestForm, itemsText, rows, page)
   },
 
   // 暂存工单（状态：施工中，仅要求车牌，允许项目和金额为空）
@@ -623,7 +823,10 @@ Page({
       return
     }
 
-    page.calcTotalAmount()
+    // 汇总服务项目总额（不覆盖实收金额，保留用户手动输入的值）
+    var _total = 0
+    page.data.serviceRows.forEach(function (r) { _total += Number(r.amount) || 0 })
+    page.setData({ 'form.totalAmount': _total > 0 ? String(_total) : '' })
     var form = Object.assign({}, page.data.form)
     var rows = page.data.serviceRows
     var itemsText = []
@@ -658,11 +861,11 @@ Page({
       checkDb.collection('repair_orders').where(checkWhere).count()
         .then(function (countRes) {
           var cnt = countRes.total || 0
-          if (cnt >= 100) {
+          if (cnt >= constants.FREE_MAX_ORDERS) {
             wx.hideLoading()
             wx.showModal({
               title: '已达免费版上限',
-              content: '免费版最多创建100个工单（当前' + cnt + '个）\n升级Pro版即可无限使用',
+              content: '免费版最多创建' + constants.FREE_MAX_ORDERS + '个工单（当前' + cnt + '个）\n升级Pro版即可无限使用',
               confirmText: '去升级',
               success: function (m) { if (m.confirm) wx.switchTab({ url: '/pages/proUnlock/proUnlock' }) }
             })
@@ -686,19 +889,26 @@ Page({
     wx.showLoading({ title: '保存中...' })
 
     var amount = Number(form.totalAmount) || 0
+    var paidAmount = Number(form.paidAmount) || 0
+    var partCost = Number(form.partCost) || 0
+    var profit = paidAmount - partCost
+
     var orderData = {
       plate: plate,
       serviceItems: form.serviceItems.trim(),
       serviceAmounts: form.serviceAmounts || '',
       totalAmount: amount,
-      paidAmount: Number(form.paidAmount) || 0,
+      paidAmount: paidAmount,
       payMethod: form.payMethod || '1',
       remark: form.remark.trim(),
       status: status || '施工中',
       setMaintainDate: form.setMaintainDate || '',
       setPartName: form.setPartName || '',
       setPartDate: form.setPartDate || '',
-      operatorPhone: app.getOperatorPhone()
+      operatorPhone: app.getOperatorPhone(),
+      operatorName: app.getOperatorName(),
+      partCost: partCost,
+      profit: profit
     }
 
     var carDocId = (page.data.carInfo && page.data.carInfo._id) || ''
@@ -723,7 +933,15 @@ Page({
         // 设置全局刷新标志
         getApp().globalData.shouldRefreshOrderList = true
         
-        setTimeout(function () { wx.navigateBack() }, 1500)
+        // 保存后跳转到工单详情页
+        var orderId = isEdit ? editId : (res.data && res.data.orderId)
+        if (orderId) {
+          setTimeout(function () {
+            wx.redirectTo({ url: '/pages/orderDetail/orderDetail?id=' + orderId })
+          }, 1500)
+        } else {
+          setTimeout(function () { wx.navigateBack() }, 1500)
+        }
       } else {
         wx.showToast({ title: (res && res.msg) || '保存失败', icon: 'none' })
       }
@@ -731,5 +949,29 @@ Page({
       wx.hideLoading()
       wx.showToast({ title: '保存失败', icon: 'none' })
     })
+  },
+
+  // 最终保存处理（提取为独立方法，支持实收金额超限确认后继续执行）
+  _finalizeOrderSave: function (form, itemsText, rows, page) {
+    // 金额过大校验
+    var paidAmount = Number(form.paidAmount) || 0
+    if (paidAmount > 999999) {
+      wx.showToast({ title: '金额过大，请检查！', icon: 'none' })
+      return
+    }
+
+    form.serviceItems = itemsText.join('，')
+
+    // 保存各项金额（逗号分隔）
+    var amounts = []
+    rows.forEach(function (r) {
+      if (r.name.trim()) {
+        amounts.push(Number(r.amount) || 0)
+      }
+    })
+    form.serviceAmounts = amounts.join(',')
+
+    var status = form.payMethod === '2' ? '待结算' : '已完成'
+    page.saveOrder(page.data.plate, form, status)
   }
 })

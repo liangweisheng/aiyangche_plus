@@ -2,13 +2,12 @@
 <wxs src="../../utils/maskPlate.wxs" module="mask" />
 <view class="container">
 
-  <!-- 游客模式提示 -->
-  <view class="guest-banner" wx:if="{{isGuest}}">
-    <text class="guest-banner-text">当前为游客模式，数据仅为演示</text>
-  </view>
-
+  <view class="sticky-header">
   <!-- 搜索栏 -->
   <view class="search-section">
+    <view class="home-btn" bindtap="onGoHome">
+      <text>🏠首页</text>
+    </view>
     <view class="search-wrapper">
       <text class="search-icon">🔍</text>
       <input
@@ -31,11 +30,17 @@
   <view class="stats-section" wx:if="{{!loading && !isEmpty && memberList.length > 0}}">
     <view class="stats-card">
       <text class="stats-num">{{totalCount}}</text>
-      <text class="stats-label">会员总数{{!isPro ? '（' + totalCount + '/10）' : ''}}</text>
+      <text class="stats-label">会员总数{{!isPro ? '（' + totalCount + '/' + freeMaxMembers + '）' : ''}}</text>
     </view>
     <view class="member-limit-hint" wx:if="{{memberLimitReached && !isPro}}" bindtap="goToPro">
       <text>⚠️ 免费版会员已达上限，升级Pro版 ›</text>
     </view>
+  </view>
+  </view>
+
+  <!-- 游客模式提示（放 sticky 区域外，随列表滚动） -->
+  <view class="guest-banner" wx:if="{{isGuest}}">
+    <text class="guest-banner-text">当前为游客模式，数据仅为演示</text>
   </view>
 
   <!-- 会员列表 -->
@@ -66,7 +71,7 @@
           </view>
         </view>
         <view class="card-footer">
-          <text class="phone">{{item.phone}}</text>
+          <text class="phone">{{item.phoneMasked}}</text>
           <text class="arrow">›</text>
         </view>
       </view>
@@ -121,7 +126,7 @@
   </view>
 
   <!-- 浮动添加会员按钮 -->
-  <view class="fab-add" bindtap="onAddMember">+</view>
+  <view class="fab-add" bindtap="onAddMember">＋会员</view>
 
   <!-- 隐藏Canvas：用于生成分享卡片 -->
   <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:400px;"></canvas>

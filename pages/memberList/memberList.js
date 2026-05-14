@@ -1,9 +1,12 @@
 // pages/memberList/memberList.js
-// 会员列表页面（按门店手机号隔离 + 分页加载）
+// 会员列表页面 - v6.0
+// 云函数统一数据获取（listMembers），服务端分页+多字段搜索
 
 const app = getApp()
-const PAGE_SIZE = 20
+var util = require('../../utils/util')
 var shareCardUtil = require('../../utils/shareCard')
+var constants = require('../../utils/constants')
+const PAGE_SIZE = constants.DEFAULT_PAGE_LIMIT || 20
 
 Page({
   data: {
@@ -21,18 +24,25 @@ Page({
   },
 
   onLoad(options) {
+    // 权限检查：店员不可访问会员列表
+    if (!app.checkPageAccess('admin')) return
+
     var page = this
     var shopInfo = wx.getStorageSync('shopInfo') || {}
-    var isGuest = !!(shopInfo.isGuest || shopInfo.phone === '13507720000' || wx.getStorageSync('isGuestMode'))
-    this.setData({ isGuest: isGuest })
+    var isGuest = app.isGuest ? app.isGuest() : false
+    this.setData({ isGuest: isGuest, freeMaxMembers: constants.FREE_MAX_MEMBERS })
     if (options.keyword) {
       this.setData({ searchKeyword: options.keyword })
     }
     this._firstLoad = true
 
-    app.whenCloudReady().then(function () {
-      page._resetAndFetch()
-    })
+    page._resetAndFetch()
+  },
+
+  onUnload() {
+    if (this.data.searchTimer) {
+      clearTimeout(this.data.searchTimer)
+    }
   },
 
   onReady() {
@@ -50,20 +60,19 @@ Page({
 
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().init(1)
+      this.getTabBar().init()
     }
     // Pro状态实时同步（统一方法）
     var page = this
     app.syncProStatus().then(function (isPro) {
       page.setData({ isPro: isPro })
+    }).catch(function () {
+      // 同步失败保持现有 isPro 值，不做覆盖
     })
     if (!this._firstLoad) {
-      var page = this
       // 返回时清空搜索关键字，重新加载全量列表
       page.setData({ searchKeyword: '' })
-      app.whenCloudReady().then(function () {
-        page._resetAndFetch()
-      })
+      page._resetAndFetch()
     }
     this._firstLoad = false
   },
@@ -78,7 +87,14 @@ Page({
       page.setData({ searchTimer: null })
     }
 
-    if (!val || val.trim().length < 3) {
+    // 清空内容时重置为全量列表
+    if (!val || !val.trim()) {
+      page._resetAndFetch()
+      return
+    }
+
+    // 不足3字暂不搜索，等待用户继续输入
+    if (val.trim().length < 3) {
       return
     }
 
@@ -111,73 +127,71 @@ Page({
 
   // 下拉刷新
   onPullDownRefresh() {
-    this._resetAndFetch()
-    wx.stopPullDownRefresh()
+    var page = this
+    this._resetAndFetch().then(function () {
+      wx.stopPullDownRefresh()
+    }).catch(function () {
+      wx.stopPullDownRefresh()
+    })
   },
 
   // 重置列表并重新加载
   _resetAndFetch() {
-    this.setData({ memberList: [], noMore: false, isEmpty: false, totalCount: 0 })
-    this._page = 0
-    this.fetchMemberList()
+    this._reqVersion = (this._reqVersion || 0) + 1
+    this.setData({ memberList: [], noMore: false, isEmpty: false, totalCount: 0, memberLimitReached: false })
+    this._page = 1
+    return this.fetchMemberList()
   },
 
-  // 获取会员列表（分页）
+  // 获取会员列表（云函数分页）
   fetchMemberList() {
     var page = this
-    var searchKeyword = page.data.searchKeyword
-    var db = app.db()
+    var reqVersion = page._reqVersion || 0
     page.setData({ loading: true, isEmpty: false })
 
-    var baseCondition = app.shopWhere()
+    return util.callRepair('listMembers', {
+      shopPhone: app.getShopPhone(),
+      page: page._page,
+      pageSize: PAGE_SIZE,
+      keyword: (page.data.searchKeyword || '').trim()
+    }).then(function (res) {
+      if (page._reqVersion !== reqVersion) return  // 竞态保护
 
-    if (searchKeyword.trim()) {
-      baseCondition.$or = [
-        { plate: db.RegExp({ regexp: searchKeyword.trim(), options: 'i' }) },
-        { ownerName: db.RegExp({ regexp: searchKeyword.trim(), options: 'i' }) },
-        { phone: db.RegExp({ regexp: searchKeyword.trim(), options: 'i' }) }
-      ]
-    }
+      if (res.code !== 0 || !res.data) {
+        page.setData({ loading: false })
+        return
+      }
 
-    // 先查总数（仅在第一页时）
-    if (page._page === 0) {
-      db.collection('repair_members').where(baseCondition).count().then(function (countRes) {
-        var total = countRes.total
-        var updateData = { totalCount: total }
-        if (!page.data.isPro && total >= 10) {
-          updateData.memberLimitReached = true
-        }
-        page.setData(updateData)
+      var total = res.data.total || 0
+      var newData = (res.data.list || []).map(function(item) {
+        item.phoneMasked = util.maskPhone(item.phone)
+        return item
       })
-    }
+      var list = page.data.memberList.concat(newData)
+      var noMore = newData.length < PAGE_SIZE
 
-    db.collection('repair_members')
-      .where(baseCondition)
-      .orderBy('createTime', 'desc')
-      .skip(page._page * PAGE_SIZE)
-      .limit(PAGE_SIZE)
-      .get({
-        success: function (res) {
-          page._page++
-          var newData = res.data || []
-          var list = page.data.memberList.concat(newData)
-          var noMore = newData.length < PAGE_SIZE
-          page.setData({
-            loading: false,
-            memberList: list,
-            isEmpty: list.length === 0,
-            noMore: noMore
-          })
-        },
-        fail: function (err) {
-          console.error('加载会员列表失败', err)
-          page.setData({ loading: false })
-          if (page._page === 0) {
-            page.setData({ memberList: [], isEmpty: true })
-          }
-          wx.showToast({ title: '加载失败', icon: 'none' })
-        }
-      })
+      var updateData = {
+        loading: false,
+        memberList: list,
+        isEmpty: list.length === 0,
+        noMore: noMore,
+        totalCount: total
+      }
+      // 免费版会员上限提示
+      if (!page.data.isPro && total >= constants.FREE_MAX_MEMBERS) {
+        updateData.memberLimitReached = true
+      }
+      page._page++
+      page.setData(updateData)
+    }).catch(function (err) {
+      if (page._reqVersion !== reqVersion) return
+      console.error('[memberList] 加载失败:', err)
+      page.setData({ loading: false })
+      if (page._page <= 1) {
+        page.setData({ memberList: [], isEmpty: true })
+      }
+      wx.showToast({ title: '加载失败', icon: 'none' })
+    })
   },
 
   onMemberTap(e) {
@@ -195,6 +209,10 @@ Page({
     wx.switchTab({ url: '/pages/proUnlock/proUnlock' })
   },
 
+  onGoHome: function () {
+    wx.switchTab({ url: '/pages/dashboard/dashboard' })
+  },
+
   // 分享配置
   onShareAppMessage() {
     return {
@@ -204,5 +222,6 @@ Page({
     }
   },
 
-  _page: 0
+  _page: 1,
+  _reqVersion: 0
 })

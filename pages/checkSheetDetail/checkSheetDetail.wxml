@@ -22,7 +22,7 @@
       </view>
       <view class="info-row" wx:if="{{detail.phone}}">
         <text class="label">电话</text>
-        <text class="value">{{detail.phone}}</text>
+        <text class="value">{{detail._maskedPhone}}</text>
       </view>
     </view>
   </view>
@@ -53,8 +53,8 @@
       <view class="check-item" wx:for="{{checkItems}}" wx:key="key">
         <view class="check-icon">{{item.icon}}</view>
         <text class="check-label">{{item.label}}</text>
-        <view class="check-result {{detail.checkItems[item.key].normal ? 'normal' : 'warn'}}">
-          {{detail.checkItems[item.key].value || '未检查'}}
+        <view class="check-result {{detail.checkItems[item.key] && detail.checkItems[item.key].normal ? 'normal' : 'warn'}}">
+          {{detail.checkItems[item.key] ? (detail.checkItems[item.key].value || '未检查') : '未检查'}}
         </view>
       </view>
     </view>
@@ -85,15 +85,20 @@
   <!-- 开单人 -->
   <view class="time-section" wx:if="{{detail.operatorPhone}}">
     <text class="time-label">检查人</text>
-    <text class="time-value">{{detail.operatorPhone}}</text>
+    <text class="time-value">{{detail._displayOperator}}</text>
   </view>
 
 </view>
 
-<!-- 底部分享按钮 -->
+<!-- 底部按钮 -->
 <view class="footer" wx:if="{{detail}}">
-  <view class="share-btn" bindtap="onShareSheet">
-    <text class="btn-text">📤 分享查车单</text>
+  <view class="footer-row">
+    <view class="reorder-btn" bindtap="onReorder">
+      <text class="btn-text">📝 再开一单</text>
+    </view>
+    <view class="share-btn" bindtap="onShareSheet">
+      <text class="btn-text">📤 分享</text>
+    </view>
   </view>
 </view>
 

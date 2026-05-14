@@ -36,7 +36,7 @@
     <view class="score-section card">
       <view class="score-header">
         <text class="score-label">综合评分</text>
-        <text class="score-value {{report.healthScore.level}}">{{report.healthScore.total || '--'}}<text class="score-unit">分</text></text>
+        <text class="score-value {{report.healthScore.level}}">{{report.healthScore._displayTotal}}<text class="score-unit">分</text></text>
       </view>
       <view class="score-level-tag {{report.healthScore.level}}">
         {{report.healthScore.level === 'excellent' ? '优秀' :

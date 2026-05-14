@@ -149,6 +149,16 @@
             bindinput="onCurRemainInput"
           />
         </view>
+        <view class="field-row">
+          <text class="field-label">权益卡金额</text>
+          <input
+            class="field-input"
+            type="number"
+            placeholder="生成工单时的金额（选填）"
+            value="{{curBenefit.amount}}"
+            bindinput="onCurAmountInput"
+          />
+        </view>
       </view>
       <view class="add-benefit-btn" bindtap="onAddBenefit">
         <text>+ 添加此权益</text>
@@ -166,6 +176,7 @@
           <view class="added-benefit-left">
             <text class="added-benefit-name">{{item.name}}</text>
             <text class="added-benefit-count">剩余 {{item.remain}} / {{item.total}} 次</text>
+            <text class="added-benefit-amount" wx:if="{{item.amount > 0}}">金额 ¥{{item.amount}}</text>
           </view>
           <view class="added-benefit-del" bindtap="onRemoveBenefit" data-index="{{index}}">✕</view>
         </view>
@@ -178,21 +189,21 @@
         <text class="title-icon">📝</text>
         备注说明
       </view>
-      <textarea
-        class="remark-textarea"
+      <input
+        class="remark-input"
         placeholder="请输入备注（选填）"
         value="{{remark}}"
         bindinput="onRemarkInput"
         maxlength="200"
-      ></textarea>
+      />
     </view>
 
     <!-- 操作按钮 -->
     <view class="button-group">
+      <button class="cancel-btn" bindtap="onCancel">取消</button>
       <button class="submit-btn" bindtap="onSubmit" disabled="{{submitting}}">
         {{submitting ? '保存中...' : '保存为会员'}}
       </button>
-      <button class="cancel-btn" bindtap="onCancel">取消</button>
     </view>
   </block>
 

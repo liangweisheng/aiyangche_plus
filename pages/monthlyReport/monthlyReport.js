@@ -2,6 +2,7 @@
 // 经营月报详情页（Phase 4 完整版 - 含边界处理+动态参考范围）
 
 const app = getApp()
+var constants = require('../../utils/constants')
 
 Page({
   data: {
@@ -32,6 +33,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!app.checkPageAccess('admin+pro')) return
     var page = this
     var sp = app.getShopPhone ? app.getShopPhone() : (wx.getStorageSync('shopInfo') || {}).phone || ''
     page.setData({ shopPhone: sp })
@@ -44,16 +46,24 @@ Page({
         if (idx >= 0) {
           page.setData({ currentIndex: idx })
           page._loadCurrentReport()
+          return
         }
-      } else {
-        // 默认加载当前选中的月报
-        page._loadCurrentReport()
+        // 指定月份未找到 → fallback 到默认月份
       }
+      // 默认加载当前选中的月报
+      page._loadCurrentReport()
     }).catch(function () {
       // 接口失败时回退到本地计算近3个月
       page._initMonthsFallback()
       page._loadCurrentReport()
     })
+  },
+
+  onUnload() {
+    // 关闭案例弹窗，防止页面栈混乱
+    if (this.data.caseModalVisible) {
+      this._onCaseModalClose()
+    }
   },
 
   onShow() {
@@ -132,6 +142,11 @@ Page({
     if (idx === this.data.currentIndex) return
     if (idx >= this.data.months.length) return
 
+    // 保存旧报告以便加载失败时恢复
+    var oldReport = this.data.report
+    var oldShopProfile = this.data.shopProfile
+    var oldBenchmarkText = this.data.benchmarkText
+
     this.setData({
       currentIndex: idx,
       loading: true,
@@ -141,7 +156,18 @@ Page({
       emptyHint: '',
       benchmarkText: ''
     })
-    this._loadCurrentReport()
+    var page = this
+    this._loadCurrentReport().catch(function () {
+      // 加载失败时恢复旧报告，避免白屏空态
+      if (oldReport) {
+        page.setData({
+          report: oldReport,
+          shopProfile: oldShopProfile,
+          benchmarkText: oldBenchmarkText,
+          loading: false
+        })
+      }
+    })
   },
 
   // ====== 加载当前选中的月报 =====
@@ -276,6 +302,8 @@ Page({
     if (!data.healthScore) {
       data.healthScore = { total: 0, level: 'critical', dimensions: {} }
     }
+    // 预计算评分显示值（防止 WXML 中 0 || '--' 的 falsy 陷阱）
+    data.healthScore._displayTotal = data.healthScore.total != null ? String(data.healthScore.total) : '--'
 
     return data
   },
@@ -289,7 +317,7 @@ Page({
     var openYear = shopInfo.openYear
     var now = new Date()
     var monthsSinceOpen = openYear
-      ? (now.getFullYear() - openYear) * 12 + (now.getMonth() + 1)
+      ? (now.getFullYear() - openYear) * 12 + now.getMonth()
       : 999
 
     var emptyType = 'no_data'

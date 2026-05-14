@@ -1,7 +1,7 @@
 {
   "miniVersion": "v2",
   "name": "汽修店小管家",
-  "version": "5.3.2",
+  "version": "6.0.2",
   "versionCode": 100,
   "i18nFilePath": "i18n",
   "mini-ohos": {

@@ -1,0 +1,41 @@
+<view class="number-keyboard-mask" wx:if="{{visible}}" bindtap="onMaskTap">
+  <view class="keyboard-container" catchtap="stopPropagation">
+    <!-- 显示区 -->
+    <view class="display-area">
+      <view class="display-value {{inputValue ? '' : 'placeholder'}}">
+        <text>{{inputValue || '0'}}</text>
+      </view>
+    </view>
+    <!-- 键盘区 -->
+    <view class="keys-area">
+      <!-- 第1行：1 2 3 -->
+      <view class="keyboard-row">
+        <view class="key-item" data-val="1" bindtap="onKeyPress">1</view>
+        <view class="key-item" data-val="2" bindtap="onKeyPress">2</view>
+        <view class="key-item" data-val="3" bindtap="onKeyPress">3</view>
+      </view>
+      <!-- 第2行：4 5 6 -->
+      <view class="keyboard-row">
+        <view class="key-item" data-val="4" bindtap="onKeyPress">4</view>
+        <view class="key-item" data-val="5" bindtap="onKeyPress">5</view>
+        <view class="key-item" data-val="6" bindtap="onKeyPress">6</view>
+      </view>
+      <!-- 第3行：7 8 9 -->
+      <view class="keyboard-row">
+        <view class="key-item" data-val="7" bindtap="onKeyPress">7</view>
+        <view class="key-item" data-val="8" bindtap="onKeyPress">8</view>
+        <view class="key-item" data-val="9" bindtap="onKeyPress">9</view>
+      </view>
+      <!-- 第4行（倒数第二行）：0 + ⌫ 删除 -->
+      <view class="keyboard-row">
+        <view class="key-item key-zero" data-val="0" bindtap="onKeyPress">0</view>
+        <view class="key-item key-delete" bindtap="onDelete">⌫</view>
+      </view>
+      <!-- 第5行（最后一行）：下一项 + 完成 -->
+      <view class="keyboard-row action-row">
+        <view class="key-item key-next" bindtap="onNext">下一项</view>
+        <view class="key-item key-done" bindtap="onConfirm">完成</view>
+      </view>
+    </view>
+  </view>
+</view>

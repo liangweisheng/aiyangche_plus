@@ -1,0 +1,265 @@
+/* pages/staffProfile/staffProfile.wxss */
+
+page {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  padding: 32rpx;
+}
+
+.container {
+  padding-bottom: 180rpx;
+}
+
+/* ====== 卡片通用样式（对齐 proUnlock） ====== */
+.card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
+}
+
+/* ====== 资料卡片 ====== */
+.staff-profile-card {
+  border-left: 6rpx solid #1677ff;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+}
+
+.staff-card-header {
+  margin-bottom: 24rpx;
+}
+
+.staff-card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.staff-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.staff-info-row:last-of-type {
+  border-bottom: none;
+}
+
+.staff-info-label {
+  font-size: 26rpx;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.staff-info-value {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.staff-value-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.staff-info-editable:active {
+  background: #f7f8fa;
+  margin: 0 -12rpx;
+  padding: 20rpx 12rpx;
+  border-radius: 12rpx;
+}
+
+.staff-edit-icon {
+  font-size: 24rpx;
+  color: #1677ff;
+  opacity: 0.6;
+}
+
+/* ====== 可折叠卡片（对齐 proUnlock） ====== */
+.collapsible-card {
+  padding: 32rpx;
+  min-height: 120rpx;
+}
+
+.collapsible-card .collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+
+.collapse-title {
+  display: flex;
+  align-items: center;
+}
+
+.collapse-title .icon {
+  margin-right: 12rpx;
+  font-size: 36rpx;
+}
+
+.collapse-arrow {
+  font-size: 32rpx;
+  color: #1677ff;
+  transition: transform 0.25s ease;
+  display: inline-block;
+}
+
+.collapse-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.collapsible-card .collapse-header + view {
+  padding: 24rpx 0;
+}
+
+/* ====== 联系客服（对齐 proUnlock） ====== */
+.contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.contact-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 20rpx;
+  background: #f5f7fa;
+  border-radius: 12rpx;
+}
+
+.contact-item .contact-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.contact-item .contact-value {
+  font-size: 28rpx;
+  color: #1677ff;
+  font-weight: 500;
+}
+
+/* 在线客服按钮（覆盖 button 默认样式） */
+.contact-official {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 24rpx 20rpx !important;
+  box-sizing: border-box !important;
+  background: linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%);
+  border: 2rpx solid #91caff !important;
+  border-radius: 12rpx !important;
+  font-size: 28rpx;
+  color: #1a1a1a;
+  line-height: normal;
+  overflow: hidden;
+}
+
+.contact-official::after {
+  border: none !important;
+  display: none !important;
+}
+
+.contact-official .contact-label {
+  color: #1677ff;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.contact-official .contact-value {
+  color: #0958d9;
+}
+
+.contact-official .contact-online-hint {
+  font-size: 26rpx;
+  white-space: nowrap;
+}
+
+.contact-badge {
+  font-size: 20rpx;
+  background: #1677ff;
+  color: #fff;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+  font-weight: 600;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+}
+
+.contact-value-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.contact-copy-hint {
+  font-size: 22rpx;
+  color: #bbb;
+  font-weight: 400;
+}
+
+.contact-tappable:active {
+  background: #e8f4ff;
+}
+
+/* 下载APP入口 */
+.download-app-entry {
+  margin-top: 16rpx;
+  padding: 20rpx 24rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12rpx;
+  text-align: center;
+}
+
+.download-app-text {
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* ====== 退出登录（对齐 proUnlock） ====== */
+.staff-logout-card {
+  padding: 0;
+  min-height: 0;
+}
+
+.staff-logout {
+  padding: 28rpx 0;
+  text-align: center;
+}
+
+.staff-logout:active {
+  opacity: 0.7;
+}
+
+.staff-logout-text {
+  font-size: 28rpx;
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+/* ====== 底部隐私提示 ====== */
+.privacy-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  padding: 40rpx 0 32rpx;
+}
+
+.privacy-link {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.privacy-divider {
+  font-size: 24rpx;
+  color: #ddd;
+}

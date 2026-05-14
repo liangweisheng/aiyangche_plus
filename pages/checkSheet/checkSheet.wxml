@@ -1,10 +1,65 @@
 <!-- 电子查车单 - 商用SaaS风格 -->
+<wxs src="../../utils/maskPlate.wxs" module="mask" />
 <view class="container">
+
+  <!-- 第一步：车牌搜索（未选车辆时显示） -->
+  <view class="card search-card" wx:if="{{!carInfo}}">
+    <view class="card-title">
+      <text class="title-icon">🔍</text>
+      搜索车辆
+    </view>
+    <view class="search-hint">请先输入车牌号，选择要检查的车辆</view>
+    <view class="search-row">
+      <input
+        class="search-input"
+        placeholder="请输入车牌号（3位自动搜索）"
+        value="{{searchPlate}}"
+        bindinput="onSearchPlateInput"
+        confirm-type="search"
+        bindconfirm="onSearchCar"
+        focus="{{autoFocusSearch}}"
+      />
+    </view>
+
+    <!-- 模糊搜索下拉结果 -->
+    <view class="dropdown-list" wx:if="{{searchResults.length > 0}}">
+      <view class="dropdown-item" wx:for="{{searchResults}}" wx:key="_id"
+        bindtap="onSelectCar" data-plate="{{item.plate}}">
+        <text class="dropdown-plate">{{mask.maskPlate(item.plate)}}</text>
+        <text class="dropdown-owner">{{item.ownerName || '未知车主'}}</text>
+      </view>
+    </view>
+
+    <!-- 无结果提示 -->
+    <view class="dropdown-empty" wx:if="{{searched && searchResults.length === 0}}">
+      <text class="empty-text">未找到相关车辆</text>
+    </view>
+
+    <!-- 最近添加的车辆 -->
+    <view class="recent-section" wx:if="{{recentCars.length > 0}}">
+      <view class="recent-title">最近添加</view>
+      <view class="recent-grid">
+        <view class="recent-tag" wx:for="{{recentCars}}" wx:key="_id"
+          data-plate="{{item.plate}}" bindtap="onRecentTap">
+          <text class="recent-plate">{{mask.maskPlate(item.plate)}}</text>
+          <text class="recent-owner" wx:if="{{item.ownerName}}">{{item.ownerName}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 车辆已选定：显示检查表单 -->
+  <view wx:if="{{carInfo}}">
 
   <!-- 车辆信息卡片 -->
   <view class="vehicle-card" wx:if="{{carInfo}}">
     <view class="card-header">
-      <text class="plate">{{plate}}</text>
+      <text class="plate" bindtap="onPlateTap">{{plate}}</text>
+      <view class="plate-actions-inline">
+        <view class="action-btn-sm" bindtap="onViewHistory">
+          <text>📋 历史查车单</text>
+        </view>
+      </view>
       <view class="badge">待检查</view>
     </view>
     <view class="card-body">
@@ -92,12 +147,19 @@
     </view>
   </view>
 
+  </view>
+
 </view>
 
-<!-- 底部保存按钮 -->
-<view class="footer">
-  <view class="save-btn" bindtap="onSave">
-    <text class="btn-text">保存查车单</text>
+<!-- 底部操作栏（有车辆时才显示） -->
+<view class="footer" wx:if="{{carInfo}}">
+  <view class="btn-row">
+    <view class="cancel-btn" catchtap="onCancel">
+      <text class="cancel-text">取消</text>
+    </view>
+    <view class="save-btn" catchtap="onSave">
+      <text class="btn-text">保存查车单</text>
+    </view>
   </view>
 </view>
 
