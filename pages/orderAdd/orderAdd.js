@@ -4,6 +4,7 @@
 const app = getApp()
 const util = require('../../utils/util')
 var constants = require('../../utils/constants')
+var ocrHelper = require('../../utils/ocrHelper')
 
 Page({
   data: {
@@ -25,6 +26,7 @@ Page({
       payMethod: '1',
       remark: '',
       setMaintainDate: '',
+      setMileage: '',
       setPartName: '',
       setPartDate: '',
       partCost: ''         // 配件成本
@@ -132,7 +134,11 @@ Page({
           'form.paidAmount': order.paidAmount ? String(order.paidAmount) : '',
           'form.payMethod': order.payMethod || '1',
           'form.remark': order.remark || '',
-          'form.partCost': order.partCost ? String(order.partCost) : ''
+          'form.partCost': order.partCost ? String(order.partCost) : '',
+          'form.setMaintainDate': order.setMaintainDate || '',
+          'form.setMileage': order.setMileage ? String(order.setMileage) : '',
+          'form.setPartName': order.setPartName || '',
+          'form.setPartDate': order.setPartDate || ''
         })
         // 加载完后重算利润
         page.computeProfit()
@@ -361,6 +367,39 @@ Page({
     // 空操作，阻止冒泡
   },
 
+  // 📷 车牌OCR识别 - 主页面（v6.1.0）
+  onScanPlate() {
+    var page = this
+    ocrHelper.scanPlate(function (plate) {
+      wx.showModal({
+        title: '识别结果',
+        content: '识别到车牌：' + plate,
+        success: function (res) {
+          if (res.confirm) {
+            page.setPlate(plate)
+          }
+        }
+      })
+    })
+  },
+
+  // 📷 车牌OCR识别 - car-picker弹层（v6.1.0）
+  onCarPickerScanPlate() {
+    var page = this
+    ocrHelper.scanPlate(function (plate) {
+      wx.showModal({
+        title: '识别结果',
+        content: '识别到车牌：' + plate,
+        success: function (res) {
+          if (res.confirm) {
+            page.setPlate(plate)
+            page.setData({ showCarPicker: false })
+          }
+        }
+      })
+    })
+  },
+
   onViewHistory() {
     wx.navigateTo({ url: '/pages/orderList/orderList?plate=' + this.data.plate })
   },
@@ -394,7 +433,15 @@ Page({
     db.collection('repair_cars').where(carWhere).get({
       success: function (res) {
         if (res.data.length > 0) {
-          page.setData({ carInfo: res.data[0] })
+          var car = res.data[0]
+          page.setData({ carInfo: car })
+          // 预填提醒字段（仅当对应表单字段为空时，避免覆盖编辑模式已回填的值）
+          var prefill = {}
+          if (car.mileage && !page.data.form.setMileage) prefill['form.setMileage'] = String(car.mileage)
+          if (car.maintainDate && !page.data.form.setMaintainDate) prefill['form.setMaintainDate'] = car.maintainDate
+          if (car.partReplaceName && !page.data.form.setPartName) prefill['form.setPartName'] = car.partReplaceName
+          if (car.partReplaceDate && !page.data.form.setPartDate) prefill['form.setPartDate'] = car.partReplaceDate
+          if (Object.keys(prefill).length > 0) page.setData(prefill)
         }
       }
     })
@@ -903,6 +950,7 @@ Page({
       remark: form.remark.trim(),
       status: status || '施工中',
       setMaintainDate: form.setMaintainDate || '',
+      setMileage: form.setMileage ? Number(form.setMileage) : 0,
       setPartName: form.setPartName || '',
       setPartDate: form.setPartDate || '',
       operatorPhone: app.getOperatorPhone(),

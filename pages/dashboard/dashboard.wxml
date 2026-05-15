@@ -85,7 +85,7 @@
       <input
         class="quick-search-input"
         type="text"
-        placeholder="搜索车牌号、手机号或车主姓名"
+        placeholder="搜索车牌号、手机号、车主姓名或车型"
         placeholder-class="quick-search-placeholder"
         value="{{searchKeyword}}"
         bindinput="onQuickSearchInput"
@@ -94,6 +94,9 @@
       />
       <view class="quick-search-clear-btn" wx:if="{{searchKeyword}}" bindtap="onClearQuickSearch">
         <text class="quick-search-clear-icon">✕</text>
+      </view>
+      <view class="ocr-btn" bindtap="onScanPlate">
+        <image class="ocr-icon" src="/images/camera.png" mode="aspectFit" />
       </view>
     </view>
 
@@ -116,6 +119,7 @@
           <view class="quick-search-item-info">
             <text wx:if="{{item.ownerName}}">{{item.ownerName}}</text>
             <text wx:if="{{item.brand}}"> · {{item.brand}}</text>
+            <text wx:if="{{item.carType}}"> · {{item.carType}}</text>
             <text wx:if="{{item.color}}"> · {{item.color}}</text>
             <text wx:if="{{item.phone}}"> · {{mask.maskPhone(item.phone)}}</text>
           </view>

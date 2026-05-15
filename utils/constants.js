@@ -13,7 +13,7 @@
 // ===========================
 
 /** 应用版本号（唯一来源，全局统一引用） */
-var APP_VERSION = 'v6.0.9'
+var APP_VERSION = 'v6.1.0'
 
 
 // ===========================
@@ -141,6 +141,9 @@ var TAB_BAR_PAGES = [
 /** 搜索防抖延迟（毫秒） */
 var SEARCH_DEBOUNCE_MS = 500
 
+/** OCR 车牌识别超时时间（毫秒） */
+var OCR_TIMEOUT_MS = 15000
+
 
 // ===========================
 // Pro 状态判定（唯一来源）
@@ -212,6 +215,7 @@ module.exports = {
   // 页面路由
   TAB_BAR_PAGES: TAB_BAR_PAGES,
   SEARCH_DEBOUNCE_MS: SEARCH_DEBOUNCE_MS,
+  OCR_TIMEOUT_MS: OCR_TIMEOUT_MS,
 
   // Pro 状态判定
   checkProFromRecord: checkProFromRecord

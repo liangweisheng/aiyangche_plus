@@ -1,6 +1,6 @@
 // 云函数：repair_main（聚合路由）
 // 职责：统一入口，通过 action 路由到各子业务模块
-// action 列表（共38个）：getOpenId / loginByPhoneCode / registerShop / activatePro / addCar / addMember / createOrder / editOrder / voidOrder / getDashboardStats / getReportOrders / getTotalSpent / getCarOrderStats / saveCheckSheet / updateCarInfo / updateMember / useBenefit / updateOpenid / updateShopInfo / updateMyDisplayName / getCustomerRanking / addStaff / removeStaff / updateStaffRole / listStaffs / updateStaffOpenid / generateMonthlyReport / getMonthlyReport / listRecentReports / updateShopProfile / getShopProfile / batchGenerateMonthlyReports / getCarListAggregation / listCars / listOrders / listMembers / listCheckSheets / exportData
+// action 列表（共40个）：getOpenId / loginByPhoneCode / registerShop / activatePro / addCar / addMember / createOrder / editOrder / voidOrder / getDashboardStats / getReportOrders / getTotalSpent / getCarOrderStats / saveCheckSheet / updateCarInfo / updateMember / useBenefit / updateOpenid / updateShopInfo / updateMyDisplayName / getCustomerRanking / addStaff / removeStaff / updateStaffRole / listStaffs / updateStaffOpenid / generateMonthlyReport / getMonthlyReport / listRecentReports / updateShopProfile / getShopProfile / batchGenerateMonthlyReports / getCarListAggregation / listCars / listOrders / listMembers / listCheckSheets / exportData / ocrPlate / ocrVIN
 
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
@@ -66,7 +66,11 @@ var ACTION_PERMISSIONS = {
   generateMonthlyReport: 'admin+pro',
   getMonthlyReport: 'registered',
   listRecentReports: 'registered',
-  batchGenerateMonthlyReports: 'public'   // ★ 定时触发器，内部校验
+  batchGenerateMonthlyReports: 'public',   // ★ 定时触发器，内部校验
+
+  // OCR 域
+  ocrPlate: 'registered',
+  ocrVIN: 'registered'
 }
 
 // ============================
@@ -388,6 +392,7 @@ async function createOrder(event, openid) {
   var status = event.status || '施工中'
   var shopPhone = event.shopPhone || ''
   var setMaintainDate = event.setMaintainDate || ''
+  var setMileage = event.setMileage ? Number(event.setMileage) : 0
   var setPartName = event.setPartName || ''
   var setPartDate = event.setPartDate || ''
   var carDocId = event.carDocId || ''
@@ -433,6 +438,7 @@ async function createOrder(event, openid) {
     if (carDocId) {
       var carUpdate = {}
       if (setMaintainDate) carUpdate.maintainDate = setMaintainDate
+      if (setMileage) carUpdate.mileage = setMileage
       if (setPartName) carUpdate.partReplaceName = setPartName
       if (setPartDate) carUpdate.partReplaceDate = setPartDate
 
@@ -452,6 +458,7 @@ async function createOrder(event, openid) {
       }
       if (openid) carRecord._openid = openid
       if (setMaintainDate) carRecord.maintainDate = setMaintainDate
+      if (setMileage) carRecord.mileage = setMileage
       if (setPartName) carRecord.partReplaceName = setPartName
       if (setPartDate) carRecord.partReplaceDate = setPartDate
       try {
@@ -747,7 +754,8 @@ async function updateCarInfo(event, openid) {
 
     var allowedFields = [
       'carType', 'color', 'mileage', 'phone', 'remark', 'ownerName',
-      'maintainDate', 'insuranceDate', 'partReplaceName', 'partReplaceDate', 'vin'
+      'maintainDate', 'insuranceDate', 'partReplaceName', 'partReplaceDate', 'vin',
+      'photos'
     ]
     var safeData = {}
     allowedFields.forEach(function (key) {
@@ -921,6 +929,30 @@ async function editOrder(event, openid) {
       return { code: -3, msg: '无权操作此工单' }
     }
     await db.collection('repair_orders').doc(docId).update({ data: updateData })
+
+    // 同步提醒字段到车辆档案
+    var setMaintainDate = updateData.setMaintainDate || ''
+    var setMileage = updateData.setMileage ? Number(updateData.setMileage) : 0
+    var setPartName = updateData.setPartName || ''
+    var setPartDate = updateData.setPartDate || ''
+    if (order.data.plate && order.data.shopPhone) {
+      var carUpdate = {}
+      if (setMaintainDate) carUpdate.maintainDate = setMaintainDate
+      if (setMileage) carUpdate.mileage = setMileage
+      if (setPartName) carUpdate.partReplaceName = setPartName
+      if (setPartDate) carUpdate.partReplaceDate = setPartDate
+      if (Object.keys(carUpdate).length > 0) {
+        try {
+          await db.collection('repair_cars').where({
+            plate: order.data.plate,
+            shopPhone: order.data.shopPhone
+          }).update({ data: carUpdate })
+        } catch (e) {
+          console.error('editOrder 同步车辆档案失败:', e)
+        }
+      }
+    }
+
     return { code: 0, msg: '保存成功', data: updateData }
   } catch (err) {
     console.error('editOrder 错误:', err)
@@ -2464,6 +2496,250 @@ async function exportData(event, openid) {
 }
 
 // ============================
+// ocrPlate - 车牌OCR识别（TC3-HMAC-SHA256 直调腾讯云 REST API）
+// 零外部依赖，使用内置 https + crypto 模块
+// 入参：imgBase64 (String) - 图片的base64编码
+// 返回：{ code: 0, data: { plate: '粤B12345' } }
+//       或 { code: -2, msg: '未识别到车牌' }
+// ============================
+async function ocrPlate(event, openid) {
+  var imgBase64 = event.imgBase64 || ''
+  if (!imgBase64) {
+    return { code: -1, msg: '缺少图片数据' }
+  }
+
+  var secretId = process.env.TENCENT_SECRET_ID || ''
+  var secretKey = process.env.TENCENT_SECRET_KEY || ''
+  if (!secretId || !secretKey) {
+    return { code: -2, msg: '服务器OCR配置异常' }
+  }
+
+  try {
+    var crypto = require('crypto')
+    var https = require('https')
+
+    var service = 'ocr'
+    var host = 'ocr.tencentcloudapi.com'
+    var region = 'ap-guangzhou'
+    var action = 'LicensePlateOCR'
+    var version = '2018-11-19'
+    var timestamp = Math.floor(Date.now() / 1000)
+    var d = new Date(timestamp * 1000)
+    var dateStr = d.getUTCFullYear() + '-' +
+      String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getUTCDate()).padStart(2, '0')
+
+    // 1. 构建请求体
+    var payload = JSON.stringify({ ImageBase64: imgBase64 })
+
+    // 2. CanonicalRequest
+    var algorithm = 'TC3-HMAC-SHA256'
+    var httpRequestMethod = 'POST'
+    var canonicalUri = '/'
+    var canonicalQueryString = ''
+    var canonicalHeaders = 'content-type:application/json\nhost:' + host + '\n'
+    var signedHeaders = 'content-type;host'
+    var hashedRequestPayload = crypto.createHash('sha256').update(payload).digest('hex')
+    var canonicalRequest = [
+      httpRequestMethod,
+      canonicalUri,
+      canonicalQueryString,
+      canonicalHeaders,
+      signedHeaders,
+      hashedRequestPayload
+    ].join('\n')
+
+    // 3. StringToSign
+    var credentialScope = dateStr + '/' + service + '/tc3_request'
+    var hashedCanonicalRequest = crypto.createHash('sha256').update(canonicalRequest).digest('hex')
+    var stringToSign = [
+      algorithm,
+      timestamp,
+      credentialScope,
+      hashedCanonicalRequest
+    ].join('\n')
+
+    // 4. 派生签名密钥
+    var kDate = crypto.createHmac('sha256', 'TC3' + secretKey).update(dateStr).digest()
+    var kService = crypto.createHmac('sha256', kDate).update(service).digest()
+    var kSigning = crypto.createHmac('sha256', kService).update('tc3_request').digest()
+    var signature = crypto.createHmac('sha256', kSigning).update(stringToSign).digest('hex')
+
+    // 5. Authorization
+    var authorization = algorithm + ' Credential=' + secretId + '/' + credentialScope +
+      ', SignedHeaders=' + signedHeaders + ', Signature=' + signature
+
+    // 6. 发送 HTTPS 请求
+    return new Promise(function (resolve) {
+      var req = https.request({
+        hostname: host,
+        path: '/',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Host': host,
+          'X-TC-Action': action,
+          'X-TC-Timestamp': String(timestamp),
+          'X-TC-Version': version,
+          'X-TC-Region': region,
+          'Authorization': authorization
+        }
+      }, function (res) {
+        var body = ''
+        res.on('data', function (chunk) { body += chunk })
+        res.on('end', function () {
+          try {
+            var json = JSON.parse(body)
+            if (json.Response && json.Response.Number) {
+              resolve({ code: 0, data: { plate: json.Response.Number } })
+            } else if (json.Response && json.Response.Error) {
+              console.error('[ocrPlate] API错误:', json.Response.Error)
+              resolve({ code: -99, msg: 'OCR识别失败: ' + (json.Response.Error.Message || '未知错误') })
+            } else {
+              resolve({ code: -2, msg: '未识别到车牌' })
+            }
+          } catch (e) {
+            console.error('[ocrPlate] 解析响应失败:', e)
+            resolve({ code: -99, msg: 'OCR识别服务异常' })
+          }
+        })
+      })
+      req.on('error', function (e) {
+        console.error('[ocrPlate] 请求异常:', e)
+        resolve({ code: -99, msg: 'OCR识别服务异常' })
+      })
+      req.write(payload)
+      req.end()
+    })
+  } catch (err) {
+    console.error('[ocrPlate] 识别失败:', err)
+    return { code: -99, msg: 'OCR识别服务异常' }
+  }
+}
+
+// ============================
+// ocrVIN - 车架号(VIN)OCR识别（TC3-HMAC-SHA256 直调腾讯云 REST API）
+// 零外部依赖，使用内置 https + crypto 模块
+// 入参：imgBase64 (String) - 图片的base64编码
+// 返回：{ code: 0, data: { vin: 'LSVAU2A34N1234567' } }
+//       或 { code: -2, msg: '未识别到车架号' }
+// ============================
+async function ocrVIN(event, openid) {
+  var imgBase64 = event.imgBase64 || ''
+  if (!imgBase64) {
+    return { code: -1, msg: '缺少图片数据' }
+  }
+
+  var secretId = process.env.TENCENT_SECRET_ID || ''
+  var secretKey = process.env.TENCENT_SECRET_KEY || ''
+  if (!secretId || !secretKey) {
+    return { code: -2, msg: '服务器OCR配置异常' }
+  }
+
+  try {
+    var crypto = require('crypto')
+    var https = require('https')
+
+    var service = 'ocr'
+    var host = 'ocr.tencentcloudapi.com'
+    var region = 'ap-guangzhou'
+    var action = 'VinOCR'
+    var version = '2018-11-19'
+    var timestamp = Math.floor(Date.now() / 1000)
+    var d = new Date(timestamp * 1000)
+    var dateStr = d.getUTCFullYear() + '-' +
+      String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getUTCDate()).padStart(2, '0')
+
+    // 1. 构建请求体
+    var payload = JSON.stringify({ ImageBase64: imgBase64 })
+
+    // 2. CanonicalRequest
+    var algorithm = 'TC3-HMAC-SHA256'
+    var httpRequestMethod = 'POST'
+    var canonicalUri = '/'
+    var canonicalQueryString = ''
+    var canonicalHeaders = 'content-type:application/json\nhost:' + host + '\n'
+    var signedHeaders = 'content-type;host'
+    var hashedRequestPayload = crypto.createHash('sha256').update(payload).digest('hex')
+    var canonicalRequest = [
+      httpRequestMethod,
+      canonicalUri,
+      canonicalQueryString,
+      canonicalHeaders,
+      signedHeaders,
+      hashedRequestPayload
+    ].join('\n')
+
+    // 3. StringToSign
+    var credentialScope = dateStr + '/' + service + '/tc3_request'
+    var hashedCanonicalRequest = crypto.createHash('sha256').update(canonicalRequest).digest('hex')
+    var stringToSign = [
+      algorithm,
+      timestamp,
+      credentialScope,
+      hashedCanonicalRequest
+    ].join('\n')
+
+    // 4. 派生签名密钥
+    var kDate = crypto.createHmac('sha256', 'TC3' + secretKey).update(dateStr).digest()
+    var kService = crypto.createHmac('sha256', kDate).update(service).digest()
+    var kSigning = crypto.createHmac('sha256', kService).update('tc3_request').digest()
+    var signature = crypto.createHmac('sha256', kSigning).update(stringToSign).digest('hex')
+
+    // 5. Authorization
+    var authorization = algorithm + ' Credential=' + secretId + '/' + credentialScope +
+      ', SignedHeaders=' + signedHeaders + ', Signature=' + signature
+
+    // 6. 发送 HTTPS 请求
+    return new Promise(function (resolve) {
+      var req = https.request({
+        hostname: host,
+        path: '/',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Host': host,
+          'X-TC-Action': action,
+          'X-TC-Timestamp': String(timestamp),
+          'X-TC-Version': version,
+          'X-TC-Region': region,
+          'Authorization': authorization
+        }
+      }, function (res) {
+        var body = ''
+        res.on('data', function (chunk) { body += chunk })
+        res.on('end', function () {
+          try {
+            var json = JSON.parse(body)
+            if (json.Response && json.Response.Vin) {
+              resolve({ code: 0, data: { vin: json.Response.Vin } })
+            } else if (json.Response && json.Response.Error) {
+              console.error('[ocrVIN] API错误:', json.Response.Error)
+              resolve({ code: -99, msg: 'OCR识别失败: ' + (json.Response.Error.Message || '未知错误') })
+            } else {
+              resolve({ code: -2, msg: '未识别到车架号' })
+            }
+          } catch (e) {
+            console.error('[ocrVIN] 解析响应失败:', e)
+            resolve({ code: -99, msg: 'OCR识别服务异常' })
+          }
+        })
+      })
+      req.on('error', function (e) {
+        console.error('[ocrVIN] 请求异常:', e)
+        resolve({ code: -99, msg: 'OCR识别服务异常' })
+      })
+      req.write(payload)
+      req.end()
+    })
+  } catch (err) {
+    console.error('[ocrVIN] 识别失败:', err)
+    return { code: -99, msg: 'OCR识别服务异常' }
+  }
+}
+
+// ============================
 // 统一鉴权函数 — Phase 2
 // 根据 ACTION_PERMISSIONS 配置校验调用者权限
 // 返回 { ok: true } 或 { ok: false, code, msg }
@@ -2754,7 +3030,9 @@ exports.main = async (event, context) => {
     listOrders: listOrders,
     listMembers: listMembers,
     listCheckSheets: listCheckSheets,
-    exportData: exportData
+    exportData: exportData,
+    ocrPlate: ocrPlate,
+    ocrVIN: ocrVIN
   }
 
   if (!handler[action]) {

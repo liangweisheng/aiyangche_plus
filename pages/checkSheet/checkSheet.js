@@ -5,6 +5,7 @@
 const app = getApp()
 const util = require('../../utils/util')
 var constants = require('../../utils/constants')
+var ocrHelper = require('../../utils/ocrHelper')
 
 Page({
   data: {
@@ -187,6 +188,24 @@ Page({
         this.setData({ [fKey]: '正常' })
       }
     }
+  },
+
+  // 📷 车牌OCR识别（v6.1.0）
+  onScanPlate() {
+    var page = this
+    ocrHelper.scanPlate(function (plate) {
+      wx.showModal({
+        title: '识别结果',
+        content: '识别到车牌：' + plate,
+        success: function (res) {
+          if (res.confirm) {
+            page.setData({ searchPlate: plate, searchResults: [], searched: false })
+            page.setData({ plate: plate })
+            page.fetchCarInfo(plate)
+          }
+        }
+      })
+    })
   },
 
   // 取消并返回上一页

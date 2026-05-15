@@ -6,6 +6,7 @@ const app = getApp()
 var util = require('../../utils/util')
 var shareCardUtil = require('../../utils/shareCard')
 var constants = require('../../utils/constants')
+var ocrHelper = require('../../utils/ocrHelper')
 const PAGE_SIZE = constants.DEFAULT_PAGE_LIMIT || 20
 
 Page({
@@ -220,6 +221,21 @@ Page({
       path: '/pages/memberList/memberList',
       imageUrl: this.data.shareImagePath || ''
     }
+  },
+
+  // 📷 车牌OCR识别（v6.1.0）
+  onScanPlate() {
+    var page = this
+    ocrHelper.scanPlate(function (plate) {
+      page.setData({ searchKeyword: plate })
+      if (page.data.searchTimer) clearTimeout(page.data.searchTimer)
+      page.setData({
+        searchTimer: setTimeout(function () {
+          page.setData({ searchTimer: null })
+          page._resetAndFetch()
+        }, 100)
+      })
+    })
   },
 
   _page: 1,

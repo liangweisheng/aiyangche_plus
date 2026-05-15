@@ -1,5 +1,9 @@
 {
   "simulatorPluginLibVersion": {
     "wxext14566970e7e9f62": "2.27.3"
+  },
+  "setting": {
+    "enhance": true,
+    "es6": true
   }
 }

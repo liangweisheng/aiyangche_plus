@@ -2,6 +2,59 @@
 
 ---
 
+## v6.1.0（2026-05-15）
+
+### 功能新增
+
+1. **车牌OCR识别系统（全新核心能力）**
+   - 新增 `utils/ocrHelper.js` 统一入口，封装拍照→压缩→base64→云函数识别→回调回填的完整流程（`scanPlate` / `scanVIN` 两个 API）
+   - **10 个页面集成车牌拍照识别**：新增车辆、编辑车辆、快速开单（主页面+车牌选择器弹层）、工单列表、车辆列表、会员列表、新增会员、查车单、查车单列表、Dashboard 首页快速搜索
+   - 各页面拍照识别后弹确认框，确认后自动回填车牌号到输入框
+   - 云函数新增 `ocrPlate` action（权限等级：registered），调用腾讯云 OCR 通用识别接口
+
+2. **VIN车架号OCR识别（新增）**
+   - `ocrHelper.js` 新增 `scanVIN()` 函数，调用云函数 `ocrVIN` action
+   - 云函数 `ocrVIN` 使用 TC3-HMAC-SHA256 签名直调腾讯云 `VinOCR` API，零外部依赖（仅内置 https + crypto 模块）
+   - 新增车辆页、编辑车辆弹窗的车架号输入框旁增加拍照按钮，OCR 识别结果确认后回填
+
+3. **车辆详情页新增照片管理功能**
+   - 新增照片网格展示区，支持拍照/相册选择上传，最多 9 张
+   - 照片以三列网格布局展示，单张支持全屏预览和单独删除
+   - 上传至跨账号云存储，通过临时 URL 展示
+   - 无照片时显示引导占位区，点击即可添加照片
+
+4. **Dashboard 快速搜索增强**
+   - 搜索字段扩展：支持模糊搜索车型（`carType` 字段），与手机号、车主姓名的第二步搜索合并执行
+   - 搜索结果列表新增车型展示，格式为 ` · 卡罗拉`
+
+### 云函数变更
+
+5. **repair_main 新增 2 个 action**
+   - `ocrPlate` — 车牌OCR识别（触发腾讯云通用OCR API）
+   - `ocrVIN` — 车架号VIN码OCR识别（触发腾讯云 VinOCR API）
+   - 全部注册 `ACTION_PERMISSIONS` 权限配置（`registered` 级别）
+   - 全部加入 handler 路由表
+   - action 列表总计更新为 40 个
+
+### 代码质量
+
+6. **零 lint 错误通过** — 新增代码全部遵守 eslint 规范
+
+**变更统计：** ~23 文件
+- 🆕 `utils/ocrHelper.js`（~125行，scanPlate + scanVIN）
+- 📝 `cloudfunctions/repair_main/index.js`（ocrPlate + ocrVIN 双 action，含 TC3-HMAC-SHA256 签名）
+- 📝 `pages/dashboard/`（搜索增强 + 车牌识别按钮）
+- 📝 `pages/carAdd/`（VIN 拍照识别）
+- 📝 `pages/carDetail/`（车辆照片管理 + 编辑弹窗 VIN 拍照识别）
+- 📝 `pages/orderAdd/`、`pages/orderList/`、`pages/carList/`、`pages/memberAdd/`、`pages/memberList/`、`pages/checkSheet/`、`pages/checkSheetList/`（车牌 OCR 识别集成）
+- 📝 `utils/constants.js`（版本号更新至 v6.1.0）
+
+**向后兼容性：** ✅ 数据库字段未变更，action 入参/出参新增不破坏旧调用，历史页面无感知
+
+**部署注意：** ⚠️ 云函数有变更，**需要上传并部署** `repair_main` 云函数到正式环境
+
+---
+
 ## v6.0.9（2026-05-14）
 
 ### 功能新增

@@ -5,6 +5,7 @@ const app = getApp()
 var util = require('../../utils/util')
 var shareCardUtil = require('../../utils/shareCard')
 var constants = require('../../utils/constants')
+var ocrHelper = require('../../utils/ocrHelper')
 
 Page({
   data: {
@@ -544,7 +545,7 @@ Page({
     }
   },
 
-  // 执行快速搜索：优先车牌 → 不足8条再补搜索手机号/车主姓名
+  // 执行快速搜索：优先车牌 → 不足8条再补搜索手机号/车主姓名/车型
   doQuickSearch(keyword) {
     var page = this
     if (!keyword || keyword.length < 2) return
@@ -565,7 +566,7 @@ Page({
           page.setData({ searchLoading: false, searchResults: plateResults, searchEmpty: false })
           return
         }
-        // 未满8条，剩余额度搜索手机号/车主姓名
+        // 未满8条，剩余额度搜索手机号/车主姓名/车型
         var remaining = 8 - plateResults.length
         var excludeIds = plateResults.map(function (c) { return c._id })
         return db.collection('repair_cars')
@@ -573,7 +574,8 @@ Page({
             { shopPhone: app.getShopPhone() },
             _.or([
               { phone: regExp },
-              { ownerName: regExp }
+              { ownerName: regExp },
+              { carType: regExp }
             ]),
             { _id: _.nin(excludeIds) }
           ]))
@@ -616,5 +618,16 @@ Page({
     if (plate) {
       wx.navigateTo({ url: '/pages/carDetail/carDetail?plate=' + plate })
     }
+  },
+
+  // 📷 车牌OCR识别（v6.1.0）
+  onScanPlate() {
+    var page = this
+    ocrHelper.scanPlate(function (plate) {
+      page.setData({ searchKeyword: plate })
+      page.doQuickSearch(plate)
+      // 清除等待提示
+      page.setData({ searchWaiting: false })
+    })
   }
 })

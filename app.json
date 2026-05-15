@@ -69,5 +69,6 @@
     ]
   },
   "sitemapLocation": "sitemap.json",
+  "__usePrivacy__": true,
   "style": "v2"
 }

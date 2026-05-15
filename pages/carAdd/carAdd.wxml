@@ -4,9 +4,14 @@
   <!-- 车牌号（必填） -->
   <view class="form-group">
     <text class="label required">车牌号</text>
-    <view class="plate-trigger" bindtap="showPlateKeyboard">
-      <view class="plate-display {{form.plateNumber ? '' : 'placeholder'}}">
-        <text>{{form.plateNumber || '请输入车牌号（7/8位）'}}</text>
+    <view class="plate-row">
+      <view class="plate-trigger" bindtap="showPlateKeyboard">
+        <view class="plate-display {{form.plateNumber ? '' : 'placeholder'}}">
+          <text>{{form.plateNumber || '请输入车牌号（7/8位）'}}</text>
+        </view>
+      </view>
+      <view class="ocr-btn" bindtap="onScanPlate">
+        <image class="ocr-icon" src="/images/camera.png" mode="aspectFit" />
       </view>
     </view>
   </view>
@@ -96,9 +101,14 @@
   <!-- 车架号（选填） -->
   <view class="form-group">
     <text class="label">车架号(VIN)</text>
-    <view class="vin-trigger" bindtap="showVinKeyboard">
-      <view class="vin-display {{form.vin ? '' : 'placeholder'}}">
-        <text>{{form.vin || '选填，17位车辆识别码'}}</text>
+    <view class="plate-row">
+      <view class="vin-trigger" bindtap="showVinKeyboard">
+        <view class="vin-display {{form.vin ? '' : 'placeholder'}}">
+          <text>{{form.vin || '选填，17位车辆识别码'}}</text>
+        </view>
+      </view>
+      <view class="ocr-btn" bindtap="onScanVin">
+        <image class="ocr-icon" src="/images/camera.png" mode="aspectFit" />
       </view>
     </view>
   </view>
@@ -170,12 +180,14 @@
       data-field="partReplaceName"
       bindinput="onInput"
     />
-    <picker mode="date" value="{{form.partReplaceDate}}" bindchange="onDatePick" data-field="partReplaceDate" style="margin-top: 12rpx;">
-      <view class="picker-input {{form.partReplaceDate ? '' : 'placeholder'}}">
-        <text>{{form.partReplaceDate || '建议更换日期'}}</text>
-      </view>
-    </picker>
-    <text class="picker-clear-btn" wx:if="{{form.partReplaceDate}}" catchtap="onClearDateField" data-field="partReplaceDate" style="margin-top: 12rpx;">✕</text>
+    <view class="picker-with-clear">
+      <picker mode="date" value="{{form.partReplaceDate}}" bindchange="onDatePick" data-field="partReplaceDate">
+        <view class="picker-input {{form.partReplaceDate ? '' : 'placeholder'}}">
+          <text>{{form.partReplaceDate || '建议更换日期'}}</text>
+        </view>
+      </picker>
+      <text class="picker-clear-btn" wx:if="{{form.partReplaceDate}}" catchtap="onClearDateField" data-field="partReplaceDate">✕</text>
+    </view>
   </view>
 
   <!-- 备注（选填） -->

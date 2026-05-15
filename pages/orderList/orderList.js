@@ -5,6 +5,7 @@
 const app = getApp()
 const util = require('../../utils/util')
 var constants = require('../../utils/constants')
+var ocrHelper = require('../../utils/ocrHelper')
 const PAGE_SIZE = constants.DEFAULT_PAGE_LIMIT || 20
 
 Page({
@@ -187,6 +188,21 @@ Page({
 
   onGoHome: function () {
     wx.switchTab({ url: '/pages/dashboard/dashboard' })
+  },
+
+  // 📷 车牌OCR识别（v6.1.0）
+  onScanPlate() {
+    var page = this
+    ocrHelper.scanPlate(function (plate) {
+      page.setData({ searchKeyword: plate })
+      if (page.data.searchTimer) clearTimeout(page.data.searchTimer)
+      page.setData({
+        searchTimer: setTimeout(function () {
+          page.setData({ searchTimer: null })
+          page._resetAndFetch()
+        }, 100)
+      })
+    })
   },
 
   _reqVersion: 0,

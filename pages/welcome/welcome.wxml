@@ -18,12 +18,12 @@
 
     <view class="input-wrapper">
       <text class="input-label">门店名称</text>
-      <input class="name-input" type="text" placeholder="请输入汽修厂/门店名称" value="{{shopName}}" bindinput="onNameInput" maxlength="30" />
+      <input class="name-input" type="text" placeholder="请输入汽修厂/门店名称" value="{{shopName}}" bindinput="onNameInput" maxlength="30" adjust-position="{{false}}" cursor-spacing="20" />
     </view>
 
     <view class="input-wrapper">
       <text class="input-label">联系电话</text>
-      <input class="name-input" type="number" placeholder="请输入11位手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11" />
+      <input class="name-input" type="number" placeholder="请输入11位手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11" adjust-position="{{false}}" cursor-spacing="20" />
     </view>
 
     <view class="phone-usage-tip">
@@ -31,9 +31,30 @@
       <text class="usage-tip-text">手机号作为门店唯一身份标识，用于数据隔离和安全认证</text>
     </view>
 
-    <button class="submit-btn" bindtap="onSubmit" disabled="{{!shopName || !phone || submitting}}">
-      {{submitting ? '注册中...' : '确认注册并进入'}}
-    </button>
+    <!-- 隐私协议勾选 -->
+    <view class="register-privacy-row">
+      <view class="privacy-checkbox {{registerPrivacyChecked ? 'checked' : ''}}" catchtap="onToggleRegisterPrivacy">
+        <text wx:if="{{registerPrivacyChecked}}">✓</text>
+      </view>
+      <text class="privacy-check-text">我已阅读并同意</text>
+      <text class="privacy-link" catchtap="onGoPrivacy">《隐私政策》</text>
+      <text class="privacy-check-text">和</text>
+      <text class="privacy-link" catchtap="onGoAgreement">《用户服务协议》</text>
+    </view>
+
+    <!-- 隐私协议未勾选引导提示 -->
+    <view class="privacy-hint" wx:if="{{!registerPrivacyChecked}}">
+      <text class="privacy-hint-icon">⚠️</text>
+      <text class="privacy-hint-text">请先勾选上方隐私协议后点击注册</text>
+    </view>
+
+    <!-- 按钮行：注册 + 取消（多端App隐藏取消按钮） -->
+    <view class="btn-row">
+      <button class="submit-btn btn-flex" bindtap="onSubmit" disabled="{{submitting}}">
+        {{submitting ? '注册中...' : '确认注册并进入'}}
+      </button>
+      <button class="cancel-btn" wx:if="{{!_isMultiEnd}}" bindtap="onCancelRegister">取消</button>
+    </view>
 
     <view class="switch-link" bindtap="switchToLogin">
       <text class="switch-text">已有账号？</text>
@@ -60,16 +81,33 @@
 
     <view class="input-wrapper">
       <text class="input-label">门店手机号</text>
-      <input class="name-input" type="number" placeholder="请输入注册时的手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11" />
+      <input class="name-input" type="number" placeholder="请输入注册时的手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11" adjust-position="{{false}}" cursor-spacing="20" />
     </view>
 
     <view class="input-wrapper">
       <text class="input-label">门店码</text>
-      <input class="name-input code-input" type="digit" placeholder="请输入6位数字门店码" value="{{shopCode}}" bindinput="onCodeInput" maxlength="6" />
+      <input class="name-input code-input" type="digit" placeholder="请输入6位数字门店码" value="{{shopCode}}" bindinput="onCodeInput" maxlength="6" adjust-position="{{false}}" cursor-spacing="20" />
       <view class="forgot-code-tip">
         <text class="forgot-text">忘记门店码？</text>
         <text class="forgot-link" bindtap="onContactService">点击联系客服获取</text>
       </view>
+    </view>
+
+    <!-- 隐私协议勾选（登录模式，与注册模式一致的内联设计） -->
+    <view class="register-privacy-row">
+      <view class="privacy-checkbox {{loginPrivacyChecked ? 'checked' : ''}}" catchtap="onToggleLoginPrivacy">
+        <text wx:if="{{loginPrivacyChecked}}">✓</text>
+      </view>
+      <text class="privacy-check-text">我已阅读并同意</text>
+      <text class="privacy-link" catchtap="onGoPrivacy">《隐私政策》</text>
+      <text class="privacy-check-text">和</text>
+      <text class="privacy-link" catchtap="onGoAgreement">《用户服务协议》</text>
+    </view>
+
+    <!-- 隐私协议未勾选引导提示 -->
+    <view class="privacy-hint" wx:if="{{!loginPrivacyChecked}}">
+      <text class="privacy-hint-icon">⚠️</text>
+      <text class="privacy-hint-text">请先勾选上方隐私协议后点击登录</text>
     </view>
 
     <!-- 按钮行：登录 + 取消（多端App隐藏取消按钮，强制必须登录） -->
@@ -88,39 +126,7 @@
     <!-- #endif -->
   </view>
 
-  <!-- ===== 隐私确认弹窗（覆盖在 login 之上） ===== -->
-  <view class="privacy-overlay" wx:if="{{showPrivacyModal}}">
-    <view class="privacy-mask" bindtap="onClosePrivacyModal"></view>
-    <view class="privacy-modal">
-      <view class="modal-title">📋 使用须知</view>
-      <view class="modal-body">
-        <view class="modal-desc">
-          欢迎使用 AI养车 门店管理系统。在使用本服务前，请您仔细阅读以下协议：
-        </view>
-        <view class="modal-agreements">
-          <view class="modal-agreement-item" catchtap="onGoPrivacy">
-            <text>《隐私政策》</text><text class="modal-arrow">›</text>
-          </view>
-          <view class="modal-agreement-item" catchtap="onGoAgreement">
-            <text>《用户服务协议》</text><text class="modal-arrow">›</text>
-          </view>
-        </view>
-        <view class="modal-tip">
-          点击"同意"即表示您已阅读并同意上述全部协议
-        </view>
-        <view class="privacy-check-row" bindtap="onTogglePrivacyCheck">
-          <view class="privacy-checkbox {{privacyChecked ? 'checked' : ''}}">
-            <text wx:if="{{privacyChecked}}">✓</text>
-          </view>
-          <text class="privacy-check-text">我已阅读并同意《隐私政策》和《用户服务协议》</text>
-        </view>
-      </view>
-      <view class="modal-actions">
-        <button class="modal-agree-btn" bindtap="onAgreeFromModal" disabled="{{!privacyChecked}}">同意并继续</button>
-        <button class="modal-cancel-btn" wx:if="{{!_isMultiEnd}}" bindtap="onCancelPrivacyModal">暂不登录</button>
-      </view>
-    </view>
-  </view>
+
 
   <!-- 底部提示 -->
   <view class="footer">

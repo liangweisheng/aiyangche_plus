@@ -15,6 +15,9 @@ var _resourceDb = null
 var _cloudReady = false
 var _cloudInitPromise = null
 
+// 隐私授权 resolve 缓存（微信官方隐私 API）
+var _privacyResolve = null
+
 // ===========================
 // 多端平台检测
 // ===========================
@@ -99,11 +102,11 @@ App({
 
     if (_platformDetected) {
       // ====== 多端模式：必须显式指定 AppID 和环境ID ======
-      // 官方要求：非小程序端使用云开发时需在 cloud.init 时指定 appid 和 envid
+      // 官方要求：非小程序端使用云开发时需在 cloud.init 时指定 appid 和 env
       // 使用资源方的 AppID + 环境（数据都在这个环境里）
       wx.cloud.init({
         appid: RESOURCE_APPID,
-        envid: RESOURCE_ENV,
+        env: RESOURCE_ENV,
         traceUser: true
       })
       // 多端模式下直接使用 wx.cloud.database()，不需要跨账号
@@ -114,7 +117,7 @@ App({
       // ====== 小程序模式（IDE/多端项目也需传 appid）======
       wx.cloud.init({
         appid: RESOURCE_APPID,
-        envid: RESOURCE_ENV,
+        env: RESOURCE_ENV,
         traceUser: true
       })
       // 初始化跨账号资源共享
@@ -131,6 +134,9 @@ App({
 
     // 全局网络状态监听
     this._initNetworkWatcher()
+
+    // 微信官方隐私 API：注册系统隐私授权监听
+    this._initPrivacyAuthorization()
   },
 
   /**
@@ -324,6 +330,54 @@ App({
         wx.showToast({ title: '网络已断开，请检查网络', icon: 'none', duration: 3000 })
       }
     })
+  },
+
+  // ===========================
+  // 微信官方隐私 API 授权
+  // ===========================
+
+  /**
+   * 初始化系统隐私授权监听（微信官方隐私 API）
+   * 配合 app.json 中的 __usePrivacy__: true
+   * 调用 wx.chooseImage 等隐私接口时自动触发回调，弹窗引导用户授权
+   */
+  _initPrivacyAuthorization() {
+    var app = this
+    if (typeof wx.onNeedPrivacyAuthorization !== 'function') return
+
+    wx.onNeedPrivacyAuthorization(function (resolve) {
+      // 每次触发都更新 resolve（避免闭包引用旧值）
+      _privacyResolve = resolve
+
+      wx.showModal({
+        title: '授权提示',
+        content: '使用拍照/相册功能需要您的授权，用于车牌识别、车架号(VIN)识别和车辆照片上传',
+        confirmText: '同意授权',
+        cancelText: '拒绝',
+        success: function (res) {
+          if (res.confirm) {
+            app._completePrivacy('agree')
+          } else {
+            app._completePrivacy('disagree')
+          }
+        },
+        fail: function () {
+          // 弹窗异常时拒绝授权（避免界面卡死无法响应后续操作）
+          app._completePrivacy('disagree')
+        }
+      })
+    })
+  },
+
+  /**
+   * 完成隐私授权
+   * @param {string} event 'agree' | 'disagree'
+   */
+  _completePrivacy(event) {
+    if (_privacyResolve) {
+      _privacyResolve({ event: event })
+      _privacyResolve = null
+    }
   },
 
   // ===========================

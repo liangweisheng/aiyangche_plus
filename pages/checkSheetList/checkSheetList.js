@@ -5,6 +5,7 @@
 const app = getApp()
 var util = require('../../utils/util')
 var constants = require('../../utils/constants')
+var ocrHelper = require('../../utils/ocrHelper')
 
 Page({
   data: {
@@ -141,5 +142,14 @@ Page({
 
   onGoHome: function () {
     wx.switchTab({ url: '/pages/dashboard/dashboard' })
+  },
+
+  // 📷 车牌OCR识别（v6.1.0）
+  onScanPlate() {
+    var page = this
+    ocrHelper.scanPlate(function (plate) {
+      page.setData({ keyword: plate })
+      page.onSearch()
+    })
   }
 })

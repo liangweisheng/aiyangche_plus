@@ -23,6 +23,10 @@
             <text class="action-btn-icon">🔍</text>
             <text class="action-btn-text">选择车辆</text>
           </view>
+          <view class="action-btn ocr-btn" bindtap="onScanPlate">
+            <image class="action-btn-icon ocr-img-icon" src="/images/camera.png" mode="aspectFit" />
+            <text class="action-btn-text">拍照识别</text>
+          </view>
         </view>
       </view>
     </block>
@@ -212,6 +216,23 @@
     <view class="section-title">到期提醒设置</view>
     <view class="alert-tip">开单时设置下次提醒，保存后自动同步到车辆档案</view>
     <view class="form-card">
+      <!-- 当前里程 -->
+      <view class="alert-row">
+        <view class="alert-label">
+          <text class="alert-emoji">📏</text>
+          <text>当前里程</text>
+        </view>
+        <input
+          class="alert-input"
+          type="number"
+          placeholder="如：50000"
+          placeholder-class="placeholder"
+          value="{{form.setMileage}}"
+          data-field="setMileage"
+          bindinput="onInput"
+        />
+      </view>
+      <view class="alert-divider"></view>
       <!-- 下次保养时间 -->
       <view class="alert-row">
         <view class="alert-label">
@@ -289,6 +310,9 @@
           bindkeyboardheightchange="onCarPickerKBChange"
         />
         <text class="car-picker-clear" wx:if="{{carPickerKeyword}}" bindtap="onCarPickerClear">✕</text>
+        <view class="car-picker-ocr" bindtap="onCarPickerScanPlate">
+          <image class="car-picker-ocr-icon" src="/images/camera.png" mode="aspectFit" />
+        </view>
       </view>
     </view>
     <!-- 搜索结果 -->

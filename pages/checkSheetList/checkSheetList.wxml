@@ -14,6 +14,9 @@
       <view class="clear-btn" wx:if="{{keyword}}" bindtap="onClear">
         <text class="clear-icon">✕</text>
       </view>
+      <view class="ocr-btn" bindtap="onScanPlate">
+        <image class="ocr-icon" src="/images/camera.png" mode="aspectFit" />
+      </view>
     </view>
   </view>
 

@@ -4,6 +4,7 @@
 const app = getApp()
 const util = require('../../utils/util')
 var constants = require('../../utils/constants')
+var ocrHelper = require('../../utils/ocrHelper')
 
 Page({
   data: {
@@ -100,9 +101,38 @@ Page({
     if (this.data.keyboardVisible) {
       this.setData({ keyboardVisible: false })
     }
-    if (this.data.vinKeyboardVisible) {
-      this.setData({ vinKeyboardVisible: false })
-    }
+  },
+
+  // 📷 车牌OCR识别（v6.1.0）
+  onScanPlate() {
+    var page = this
+    ocrHelper.scanPlate(function (plate) {
+      wx.showModal({
+        title: '识别结果',
+        content: '识别到车牌：' + plate,
+        success: function (res) {
+          if (res.confirm) {
+            page.setData({ 'form.plateNumber': plate })
+          }
+        }
+      })
+    })
+  },
+
+  // 📷 VIN车架号OCR识别
+  onScanVin() {
+    var page = this
+    ocrHelper.scanVIN(function (vin) {
+      wx.showModal({
+        title: '识别结果',
+        content: '识别到车架号：' + vin,
+        success: function (res) {
+          if (res.confirm) {
+            page.setData({ 'form.vin': vin })
+          }
+        }
+      })
+    })
   },
 
   // 保存车辆（自动写入 shopPhone 实现门店隔离）

@@ -8,8 +8,8 @@ var constants = require('../../utils/constants')
 Page({
   data: {
     mode: 'register', // 默认优先显示注册 | 'login' 登录
-    showPrivacyModal: false, // 隐私弹窗控制
-    privacyChecked: false, // 隐私条款勾选状态
+    loginPrivacyChecked: false, // 登录页隐私条款勾选状态
+    registerPrivacyChecked: false, // 注册页隐私条款勾选状态
     shopName: '',
     phone: '',
     shopCode: '',
@@ -47,19 +47,16 @@ Page({
     }
 
     // 设置 mode（默认优先显示注册模式；多端模式已强制登录）
+    // 若已同意过隐私协议，登录模式复选框默认勾选
     page.setData({
       mode: initMode === 'login' ? 'login' : 'register',
-      _isMultiEnd: _isMultiEnd
+      _isMultiEnd: _isMultiEnd,
+      loginPrivacyChecked: false // 登录模式始终不勾选，用户必须主动勾选
     })
-
-    // login 模式且未同意过隐私 → 自动弹出隐私确认弹窗（仅在显式指定登录时弹出）
-    if (!agreed && initMode === 'login') {
-      this.setData({ showPrivacyModal: true })
-    }
   },
 
   // ===========================
-  // 隐私弹窗
+  // 隐私协议
   // ===========================
 
   // 查看隐私政策
@@ -72,40 +69,31 @@ Page({
     wx.navigateTo({ url: '/pages/userAgreement/userAgreement' })
   },
 
-  // 弹窗内同意隐私 → 关闭弹窗，留在当前页面继续操作
-  onAgreeFromModal() {
-    if (!this.data.privacyChecked) {
-      wx.showToast({ title: '请先勾选同意隐私条款', icon: 'none' })
-      return
-    }
-    wx.setStorageSync('privacyAgreed', 'yes')
-    this.setData({ showPrivacyModal: false, privacyChecked: false })
+  // 切换登录页隐私条款勾选状态
+  onToggleLoginPrivacy() {
+    this.setData({ loginPrivacyChecked: !this.data.loginPrivacyChecked })
   },
 
-  // 切换隐私条款勾选状态
-  onTogglePrivacyCheck() {
-    this.setData({ privacyChecked: !this.data.privacyChecked })
+  // 切换注册页隐私条款勾选状态
+  onToggleRegisterPrivacy() {
+    this.setData({ registerPrivacyChecked: !this.data.registerPrivacyChecked })
   },
 
-  // 弹窗内取消 / 点击蒙层 → 小程序回退游客 / 多端模式关闭弹窗留页
-  onCancelPrivacyModal() {
-    var page = this
+  // 取消登录 → 小程序回退游客 / 多端模式留在登录页
+  onCancelLogin() {
     var app = getApp()
     var _isMultiEnd = app.globalData._isMultiEndMode
-    // ★ 多端模式：仅关闭弹窗，留在登录页
+    // ★ 多端模式：不允许取消/跳过，必须登录
     if (_isMultiEnd) {
-      page.setData({ showPrivacyModal: false })
+      app.toastFail('App端需要登录后才能使用')
       return
     }
 
-    // 小程序模式：恢复游客缓存并回退到 dashboard
-    page.setData({ showPrivacyModal: false })
-    if (page._guestShopInfo) {
-      wx.setStorageSync('shopInfo', page._guestShopInfo)
-      if (page._guestMode) wx.setStorageSync('isGuestMode', page._guestMode)
-      setTimeout(function () {
-        wx.reLaunch({ url: '/pages/dashboard/dashboard' })
-      }, 200)
+    // 小程序模式：恢复游客缓存并回退
+    if (this._guestShopInfo) {
+      wx.setStorageSync('shopInfo', this._guestShopInfo)
+      if (this._guestMode) wx.setStorageSync('isGuestMode', this._guestMode)
+      wx.reLaunch({ url: '/pages/dashboard/dashboard' })
       return
     }
 
@@ -120,18 +108,13 @@ Page({
     })
   },
 
-  // 点击蒙层也视为取消
-  onClosePrivacyModal() {
-    this.onCancelPrivacyModal()
-  },
-
-  // 取消登录 → 小程序回退游客 / 多端模式留在登录页
-  onCancelLogin() {
+  // 取消注册 → 小程序回退游客 / 多端模式留在注册页
+  onCancelRegister() {
     var app = getApp()
     var _isMultiEnd = app.globalData._isMultiEndMode
-    // ★ 多端模式：不允许取消/跳过，必须登录
+    // ★ 多端模式：不允许取消/跳过，必须注册或登录
     if (_isMultiEnd) {
-      app.toastFail('App端需要登录后才能使用')
+      app.toastFail('App端暂不支持注册，请在微信小程序中完成注册')
       return
     }
 
@@ -168,12 +151,11 @@ Page({
 
   // 切换到登录
   switchToLogin() {
-    this.setData({ mode: 'login' })
-    // 切换到登录模式时检查隐私协议是否已同意
     var agreed = wx.getStorageSync('privacyAgreed') || ''
-    if (!agreed) {
-      this.setData({ showPrivacyModal: true })
-    }
+    this.setData({
+      mode: 'login',
+      loginPrivacyChecked: false // 登录模式始终不勾选，用户必须主动勾选
+    })
   },
 
   // 联系客服（忘记门店码）
@@ -212,6 +194,7 @@ Page({
 
     if (!util.isValidPhone(phone)) { app.toastFail('请输入正确的11位手机号'); return }
     if (shopCode.length !== 6) { app.toastFail('请输入6位数字门店码'); return }
+    if (!page.data.loginPrivacyChecked) { app.toastFail('请先阅读并同意隐私协议'); return }
 
     if (page.data.submitting) return
     page.setData({ submitting: true })
@@ -336,6 +319,8 @@ Page({
         wx.setStorageSync('shopInfo', shopInfo)
         wx.setStorageSync('shopName', shopInfo.name || '')
         wx.setStorageSync('roleLabel', roleText)
+        // 标记隐私已同意，后续切换到登录模式时默认勾选
+        wx.setStorageSync('privacyAgreed', 'yes')
         // 同步门店联系方式到独立缓存（proUnlock 等页面直接读取）
         if (shopInfo.shopTel) { wx.setStorageSync('shopTel', shopInfo.shopTel) }
         if (shopInfo.shopAddr) { wx.setStorageSync('shopAddr', shopInfo.shopAddr) }
@@ -400,6 +385,7 @@ Page({
     if (!shopName) { app.toastFail('请输入门店名称'); return }
     if (!phone) { app.toastFail('请输入联系电话'); return }
     if (!util.isValidPhone(phone)) { app.toastFail('请输入正确的11位手机号'); return }
+    if (!page.data.registerPrivacyChecked) { app.toastFail('请先阅读并同意隐私协议'); return }
 
     if (page.data.submitting) return
     page.setData({ submitting: true })
@@ -440,6 +426,8 @@ Page({
         wx.removeStorageSync('isGuestMode')
         wx.setStorageSync('isPro', false)       // 新注册账号默认非Pro，清除游客模式残留
         wx.removeStorageSync('proType')
+        // 标记隐私已同意，后续切换到登录模式不再弹窗
+        wx.setStorageSync('privacyAgreed', 'yes')
         if (openid) {
           wx.setStorageSync('openid', openid)
         }

@@ -19,6 +19,9 @@
         bindconfirm="onSearchCar"
         focus="{{autoFocusSearch}}"
       />
+      <view class="ocr-btn" bindtap="onScanPlate">
+        <image class="ocr-icon" src="/images/camera.png" mode="aspectFit" />
+      </view>
     </view>
 
     <!-- 模糊搜索下拉结果 -->

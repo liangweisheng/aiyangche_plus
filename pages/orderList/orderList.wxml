@@ -23,6 +23,9 @@
       <view class="clear-btn" wx:if="{{searchKeyword}}" bindtap="onClearSearch">
         <text class="clear-icon">✕</text>
       </view>
+      <view class="ocr-btn" bindtap="onScanPlate">
+        <image class="ocr-icon" src="/images/camera.png" mode="aspectFit" />
+      </view>
     </view>
   </view>
 
@@ -79,12 +82,13 @@
             <view class="amount-row">
               <text class="amount-label">金额：</text>
               <text class="amount-value">¥{{item.totalAmount}}</text>
-              <!-- 两者都有：合并到一个括号内 -->
-              <text wx:if="{{item.paidAmount > 0 && item.profit !== undefined && item.partCost > 0}}" class="amount-extra {{item.profit >= 0 ? 'profit-positive' : 'profit-negative'}}">（实收¥{{item.paidAmount}}，利润¥{{item.profit}}）</text>
-              <!-- 仅有实收 -->
-              <text wx:elif="{{item.paidAmount > 0}}" class="amount-extra">（实收¥{{item.paidAmount}}）</text>
-              <!-- 仅有利润 -->
-              <text wx:elif="{{item.profit !== undefined && item.partCost > 0}}" class="amount-extra {{item.profit >= 0 ? 'profit-positive' : 'profit-negative'}}">（利润¥{{item.profit}}）</text>
+              <!-- 实收≠总金额且有利润 → 金额：¥300（实收¥280，利润¥105） -->
+              <text wx:if="{{item.paidAmount > 0 && item.paidAmount !== item.totalAmount && item.partCost > 0 && item.profit !== undefined}}" class="amount-extra {{item.profit >= 0 ? 'profit-positive' : 'profit-negative'}}">（实收¥{{item.paidAmount}}，利润¥{{item.profit}}）</text>
+              <!-- 实收≠总金额且无利润 → 金额：¥300（实收¥280） -->
+              <text wx:elif="{{item.paidAmount > 0 && item.paidAmount !== item.totalAmount}}" class="amount-extra">（实收¥{{item.paidAmount}}）</text>
+              <!-- 实收=总金额但有利润 → 金额：¥300（利润¥105） -->
+              <text wx:elif="{{item.partCost > 0 && item.profit !== undefined}}" class="amount-extra {{item.profit >= 0 ? 'profit-positive' : 'profit-negative'}}">（利润¥{{item.profit}}）</text>
+              <!-- 实收=总金额且无利润：不显示括号 -->
             </view>
           </view>
           <text class="time-text">{{item.createTime}}</text>

@@ -23,6 +23,9 @@
       <view class="clear-btn" wx:if="{{searchKeyword}}" bindtap="onClearSearch">
         <text class="clear-icon">✕</text>
       </view>
+      <view class="ocr-btn" bindtap="onScanPlate">
+        <image class="ocr-icon" src="/images/camera.png" mode="aspectFit" />
+      </view>
     </view>
   </view>
 

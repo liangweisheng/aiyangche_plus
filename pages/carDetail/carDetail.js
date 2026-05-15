@@ -3,6 +3,7 @@
 
 const app = getApp()
 const util = require('../../utils/util')
+var ocrHelper = require('../../utils/ocrHelper')
 
 Page({
   data: {
@@ -14,6 +15,7 @@ Page({
     alertForm: {
       maintainDate: '',
       insuranceDate: '',
+      mileage: '',
       partReplaceName: '',
       partReplaceDate: ''
     },
@@ -61,8 +63,9 @@ Page({
     }
     var plate = this.data.carInfo && this.data.carInfo.plate
     if (plate) {
-      this.fetchCarDetail(plate)
+      // 只刷新会员信息和统计数据，车辆基础数据（含照片）不会从子页面改变
       this.fetchMemberInfo(plate)
+      this._fetchCarStats(plate)
     }
   },
 
@@ -86,9 +89,16 @@ Page({
           carData.createTime = util.formatDateTime(carData.createTime)
         }
         carData._maskedPhone = util.maskPhone(carData.phone)
+        carData._displayPhotoUrls = (carData.photos || []).slice()
         page.setData({ carInfo: carData })
         page.fetchMemberInfo(carData.plate)
         page._fetchCarStats(carData.plate)
+        // 异步转换跨账号云存储 fileID 为可访问临时 URL
+        if (carData.photos && carData.photos.length > 0) {
+          page._convertPhotosToUrls(carData.photos).then(function(urls) {
+            page.setData({ 'carInfo._displayPhotoUrls': urls })
+          })
+        }
       },
       fail: function () {
         wx.hideLoading()
@@ -143,8 +153,15 @@ Page({
               carData.createTime = util.formatDateTime(carData.createTime)
             }
             carData._maskedPhone = util.maskPhone(carData.phone)
+            carData._displayPhotoUrls = (carData.photos || []).slice()
             page.setData({ carInfo: carData })
             page._fetchCarStats(carData.plate)
+            // 异步转换跨账号云存储 fileID 为可访问临时 URL
+            if (carData.photos && carData.photos.length > 0) {
+              page._convertPhotosToUrls(carData.photos).then(function(urls) {
+                page.setData({ 'carInfo._displayPhotoUrls': urls })
+              })
+            }
           }
         },
         fail: function () {
@@ -489,6 +506,22 @@ Page({
     })
   },
 
+  // 📷 VIN车架号OCR识别
+  onScanVin() {
+    var page = this
+    ocrHelper.scanVIN(function (vin) {
+      wx.showModal({
+        title: '识别结果',
+        content: '识别到车架号：' + vin,
+        success: function (res) {
+          if (res.confirm) {
+            page.setData({ 'vehicleForm.vin': vin })
+          }
+        }
+      })
+    })
+  },
+
   // 编辑详细信息
   onEditDetail() {
     var car = this.data.carInfo
@@ -547,6 +580,7 @@ Page({
       alertForm: {
         maintainDate: car.maintainDate || '',
         insuranceDate: car.insuranceDate || '',
+        mileage: car.mileage ? String(car.mileage) : '',
         partReplaceName: car.partReplaceName || '',
         partReplaceDate: car.partReplaceDate || ''
       }
@@ -587,6 +621,7 @@ Page({
       updateData: {
         maintainDate: form.maintainDate,
         insuranceDate: form.insuranceDate,
+        mileage: form.mileage ? Number(form.mileage) : 0,
         partReplaceName: form.partReplaceName,
         partReplaceDate: form.partReplaceDate
       }
@@ -598,6 +633,7 @@ Page({
           showAlertModal: false,
           'carInfo.maintainDate': form.maintainDate,
           'carInfo.insuranceDate': form.insuranceDate,
+          'carInfo.mileage': form.mileage ? Number(form.mileage) : 0,
           'carInfo.partReplaceName': form.partReplaceName,
           'carInfo.partReplaceDate': form.partReplaceDate
         })
@@ -607,6 +643,181 @@ Page({
     }).catch(function () {
       wx.hideLoading()
       wx.showToast({ title: '保存失败', icon: 'none' })
+    })
+  },
+
+  // ===== 车辆照片管理 =====
+
+  // 选择照片（最多9张）
+  onChoosePhoto() {
+    var page = this
+    var carInfo = page.data.carInfo
+    if (!carInfo || !carInfo._id) return
+
+    var existing = carInfo.photos || []
+    var remain = 9 - existing.length
+    if (remain <= 0) {
+      wx.showToast({ title: '最多9张照片', icon: 'none' })
+      return
+    }
+
+    wx.chooseImage({
+      count: remain,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: function (res) {
+        var tempFiles = res.tempFilePaths
+        if (!tempFiles || tempFiles.length === 0) return
+        page._doUploadPhotos(tempFiles)
+      }
+    })
+  },
+
+  // 执行批量上传
+  _doUploadPhotos(tempFiles) {
+    var page = this
+    var carInfo = page.data.carInfo
+    var total = tempFiles.length
+
+    // 确保资源方云环境已就绪（跨账号实例）
+    if (!app._resourceCloud) {
+      wx.hideLoading()
+      wx.showToast({ title: '云环境未就绪，请重试', icon: 'none' })
+      return
+    }
+
+    wx.showLoading({ title: '上传中 0/' + total })
+
+    var uploadTasks = tempFiles.map(function(filePath, index) {
+      var match = filePath.match(/\.(\w+)$/)
+      var ext = (match && match[1]) || 'jpg'
+      var cloudPath = 'carPhotos/' + app.getShopPhone() + '/' + carInfo._id + '/' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.' + ext
+
+      // 使用跨账号资源方云实例上传（小程序模式下 wx.cloud 无资源方环境直接访问权限）
+      return app._resourceCloud.uploadFile({
+        cloudPath: cloudPath,
+        filePath: filePath
+      }).then(function(res) {
+        wx.showLoading({ title: '上传中 ' + (index + 1) + '/' + total })
+        return res.fileID
+      })
+    })
+
+    Promise.all(uploadTasks).then(function(fileIDs) {
+      var existing = carInfo.photos || []
+      var newPhotos = existing.concat(fileIDs)
+
+      wx.showLoading({ title: '保存中...' })
+      util.callRepair('updateCarInfo', {
+        docId: carInfo._id,
+        updateData: { photos: newPhotos }
+      }).then(function(res) {
+        if (res && res.code === 0) {
+          // 先全量转换 URL，再一次性 setData，避免增量合并的复杂性
+          page._convertPhotosToUrls(newPhotos).then(function(urls) {
+            wx.hideLoading()
+            page.setData({ 'carInfo.photos': newPhotos, 'carInfo._displayPhotoUrls': urls })
+            wx.showToast({ title: '上传成功', icon: 'success' })
+          })
+        } else {
+          wx.hideLoading()
+          wx.showToast({ title: '保存失败', icon: 'none' })
+        }
+      }).catch(function() {
+        wx.hideLoading()
+        wx.showToast({ title: '保存失败', icon: 'none' })
+      })
+    }).catch(function(err) {
+      wx.hideLoading()
+      console.error('[carDetail] 照片上传失败:', err.errMsg || err)
+      wx.showToast({ title: '上传失败', icon: 'none' })
+    })
+  },
+
+  // 将资源方云存储 fileID 转换为可访问临时 URL（返回 Promise<urls>）
+  _convertPhotosToUrls(fileIDs) {
+    if (!fileIDs || fileIDs.length === 0) {
+      return Promise.resolve([])
+    }
+    var cloudInst = app._resourceCloud || wx.cloud
+    return cloudInst.getTempFileURL({
+      fileList: fileIDs.map(function(fid) {
+        return { fileID: fid, maxAge: 60 * 60 }
+      })
+    }).then(function(res) {
+      return res.fileList.map(function(item) {
+        return item.tempFileURL || item.fileID
+      })
+    }).catch(function() {
+      // fallback: 保持原始 cloud:// fileID
+      return fileIDs.slice()
+    })
+  },
+
+  // 预览照片（全屏浏览）
+  onPreviewPhoto(e) {
+    var urls = this.data.carInfo._displayPhotoUrls || this.data.carInfo.photos || []
+    var idx = e.currentTarget.dataset.index
+    wx.previewImage({
+      urls: urls,
+      current: urls[idx] || urls[0]
+    })
+  },
+
+  // 删除照片（同步删除云端存储）
+  onDeletePhoto(e) {
+    var page = this
+    var carInfo = page.data.carInfo
+    var photos = carInfo.photos || []
+    var idx = e.currentTarget.dataset.index
+
+    wx.showModal({
+      title: '删除照片',
+      content: '确定删除这张照片吗？',
+      confirmText: '删除',
+      confirmColor: '#ff4d4f',
+      success: function(modalRes) {
+        if (!modalRes.confirm) return
+
+        var newPhotos = photos.slice()
+        var deletedFileID = newPhotos.splice(idx, 1)[0]
+
+        wx.showLoading({ title: '删除中...' })
+
+        // 先尝试删除云端文件（fire-and-forget：失败不阻断 DB 更新）
+        var cloudDeletePromise
+        if (deletedFileID && app._resourceCloud) {
+          cloudDeletePromise = app._resourceCloud.deleteFile({
+            fileList: [deletedFileID]
+          }).catch(function(err) {
+            console.warn('[carDetail] 云端文件删除失败，继续更新数据库:', err)
+          })
+        } else {
+          cloudDeletePromise = Promise.resolve()
+        }
+
+        cloudDeletePromise.then(function() {
+          util.callRepair('updateCarInfo', {
+            docId: carInfo._id,
+            updateData: { photos: newPhotos }
+          }).then(function(res) {
+            if (res && res.code === 0) {
+              // 先全量转换 URL，再一次性 setData
+              page._convertPhotosToUrls(newPhotos).then(function(urls) {
+                wx.hideLoading()
+                page.setData({ 'carInfo.photos': newPhotos, 'carInfo._displayPhotoUrls': urls })
+                wx.showToast({ title: '已删除', icon: 'success' })
+              })
+            } else {
+              wx.hideLoading()
+              wx.showToast({ title: '删除失败', icon: 'none' })
+            }
+          }).catch(function() {
+            wx.hideLoading()
+            wx.showToast({ title: '删除失败', icon: 'none' })
+          })
+        })
+      }
     })
   }
 })

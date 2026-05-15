@@ -80,6 +80,22 @@
   color: #999;
 }
 
+/* 📷 OCR 识别按钮 */
+.ocr-btn {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 8rpx;
+}
+.ocr-icon {
+  width: 64rpx;
+  height: 64rpx;
+  display: block;
+}
+
 /* ======================== */
 /* 统计 + 筛选               */
 /* ======================== */

@@ -234,6 +234,12 @@
 .action-btn-icon {
   font-size: 28rpx;
 }
+/* OCR 图片图标（覆盖 action-btn-icon 的字体样式） */
+.action-btn-icon.ocr-img-icon {
+  width: 64rpx;
+  height: 64rpx;
+  vertical-align: middle;
+}
 
 .action-btn-text {
   font-size: 26rpx;
@@ -1160,6 +1166,22 @@
 
 .car-picker-clear:active {
   color: #999;
+}
+
+/* 📷 car-picker OCR 识别按钮 */
+.car-picker-ocr {
+  font-size: 28rpx;
+  padding: 8rpx;
+  flex-shrink: 0;
+  margin-left: 4rpx;
+}
+.car-picker-ocr:active {
+  opacity: 0.6;
+}
+.car-picker-ocr-icon {
+  width: 64rpx;
+  height: 64rpx;
+  display: block;
 }
 
 .car-picker-body {
