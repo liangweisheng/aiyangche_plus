@@ -448,7 +448,7 @@
   </view>
 
   <!-- ★ 库存管理（可折叠，同"使用帮助"样式，受进销存开关控制） -->
-  <view class="card collapsible-card" wx:if="{{isPro && inventoryEnabled && (isOwner || isGuest || !isStaff)}}">
+  <view class="card collapsible-card" wx:if="{{isPro && inventoryEnabled && (isOwner || isGuest || isAdminRole || !isStaff)}}">
     <view class="collapse-header" bindtap="toggleInventory">
       <view class="collapse-title">
         <text class="icon">📦</text>
