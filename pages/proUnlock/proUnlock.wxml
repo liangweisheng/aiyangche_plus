@@ -393,6 +393,19 @@
           <text class="nav-count-tip-text">选中则显示，取消则隐藏。固定显示：首页、报表、我的</text>
         </view>
       </block>
+      <!-- 进销存管理开关 -->
+      <view class="settings-divider"></view>
+      <view class="settings-section-title">
+        <text class="settings-section-icon">📦</text>
+        <text>进销存管理</text>
+      </view>
+      <view class="inventory-toggle-row">
+        <text class="toggle-label">启用进销存功能</text>
+        <switch checked="{{inventoryEnabled}}" bindchange="onToggleInventorySwitch" color="#1677ff" />
+      </view>
+      <view class="inventory-toggle-tip">
+        <text>开启后可在录单时选择商品关联库存，关闭后入口隐藏</text>
+      </view>
     </view>
   </view>
 
@@ -429,6 +442,31 @@
       </view>
       <view class="help-item help-tappable" bindtap="onGoOfficialAccount">
         <text class="help-item-text">点击前往 【公众号】 学习教程</text>
+        <text class="help-item-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ★ 库存管理（可折叠，同"使用帮助"样式，受进销存开关控制） -->
+  <view class="card collapsible-card" wx:if="{{isPro && inventoryEnabled && (isOwner || isGuest || !isStaff)}}">
+    <view class="collapse-header" bindtap="toggleInventory">
+      <view class="collapse-title">
+        <text class="icon">📦</text>
+        库存管理
+      </view>
+      <text class="collapse-arrow {{inventoryExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{inventoryExpanded}}">
+      <view class="help-item help-tappable" bindtap="onGoProductAdd">
+        <text class="help-item-text">📦 新建商品</text>
+        <text class="help-item-arrow">›</text>
+      </view>
+      <view class="help-item help-tappable" bindtap="onGoProductStockIn">
+        <text class="help-item-text">📥 商品入库</text>
+        <text class="help-item-arrow">›</text>
+      </view>
+      <view class="help-item help-tappable" bindtap="onGoProductStockList">
+        <text class="help-item-text">📋 库存明细</text>
         <text class="help-item-arrow">›</text>
       </view>
     </view>

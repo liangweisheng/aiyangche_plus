@@ -1,0 +1,52 @@
+<view class="container">
+  <view class="form-card">
+    <view class="form-group">
+      <text class="form-label">商品名称 <text class="required">*</text></text>
+      <input class="form-input" type="text" placeholder="如：嘉实多磁护" value="{{name}}" bindinput="onInput" data-field="name" maxlength="30" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">商品分类 <text class="required">*</text></text>
+      <picker mode="selector" range="{{categoryOptions}}" value="{{categoryIndex}}" bindchange="onCategoryChange">
+        <view class="form-picker {{categoryIndex === 0 ? 'placeholder' : ''}}">{{categoryOptions[categoryIndex]}}</view>
+      </picker>
+    </view>
+    <view class="form-group">
+      <text class="form-label">单位</text>
+      <picker mode="selector" range="{{unitOptions}}" value="{{unitIndex}}" bindchange="onUnitChange">
+        <view class="form-picker">{{unitOptions[unitIndex]}}</view>
+      </picker>
+    </view>
+    <view class="form-group">
+      <text class="form-label">售价 <text class="required">*</text></text>
+      <input class="form-input" type="digit" placeholder="请输入售价" value="{{price}}" bindinput="onInput" data-field="price" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">进价（选填）</text>
+      <input class="form-input" type="digit" placeholder="用于入库参考" value="{{cost}}" bindinput="onInput" data-field="cost" />
+    </view>
+
+    <!-- 规格管理 -->
+    <view class="form-group">
+      <view class="form-label-row">
+        <text class="form-label">规格选项（选填）</text>
+        <text class="form-add-spec" bindtap="onAddSpec">+ 添加规格</text>
+      </view>
+      <view class="spec-list">
+        <view class="spec-row" wx:for="{{specs}}" wx:key="index">
+          <input class="spec-input" type="text" placeholder="如：5W-30" value="{{item}}" data-index="{{index}}" bindinput="onSpecInput" />
+          <text class="spec-del" wx:if="{{specs.length > 1}}" data-index="{{index}}" bindtap="onDelSpec">✕</text>
+        </view>
+      </view>
+      <text class="form-tip">多规格商品可添加多个，如机油有 5W-30、5W-40</text>
+    </view>
+
+    <view class="form-group">
+      <text class="form-label">备注</text>
+      <textarea class="form-textarea" placeholder="选填" value="{{remark}}" bindinput="onInput" data-field="remark" maxlength="200" />
+    </view>
+  </view>
+
+  <view class="footer">
+    <button class="save-btn" bindtap="onSave" disabled="{{saving}}">{{saving ? '保存中...' : '保存商品'}}</button>
+  </view>
+</view>

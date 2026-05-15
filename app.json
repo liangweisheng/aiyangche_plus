@@ -20,7 +20,12 @@
     "pages/privacy/privacy",
     "pages/userAgreement/userAgreement",
     "pages/monthlyReport/monthlyReport",
-    "pages/staffProfile/staffProfile"
+    "pages/staffProfile/staffProfile",
+    "pages/product/productAdd/productAdd",
+    "pages/product/productStockIn/productStockIn",
+    "pages/product/productStockList/productStockList",
+    "pages/product/productSelect/productSelect",
+    "pages/product/productDetail/productDetail"
   ],
   "window": {
     "navigationBarBackgroundColor": "#1677ff",

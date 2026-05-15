@@ -70,7 +70,9 @@ Page({
     partCostEditValue: '',
     partCostEditInputFocus: false,
     partCostEditPreview: 0,           // 弹窗中实时预览利润
-    partCostEditGrossRate: ''          // 弹窗中实时毛利率
+    partCostEditGrossRate: '',          // 弹窗中实时毛利率
+    // 进销存
+    inventoryEnabled: false
   },
 
   onUnload() {
@@ -97,6 +99,13 @@ Page({
       page.loadOrderForEdit(editId)
     } else if (plate) {
       page.setPlate(plate)
+    }
+    // 加载进销存开关状态
+    var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
+    if (invEnabled !== false) {
+      page.setData({ inventoryEnabled: true })
+    } else {
+      page.setData({ inventoryEnabled: false })
     }
   },
 
@@ -153,11 +162,60 @@ Page({
   },
 
   onShow() {
+    var page = this
+    // 刷新进销存开关状态（用户可能在 proUnlock 设置中切换）
+    var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
+    if (invEnabled !== false) {
+      page.setData({ inventoryEnabled: true })
+    } else {
+      page.setData({ inventoryEnabled: false })
+    }
+
     // 从车辆搜索页返回时检查是否有回调车牌
     var selectedPlate = wx.getStorageSync('orderAdd_selectedPlate') || ''
-    if (selectedPlate && selectedPlate !== this.data.plate) {
+    if (selectedPlate && selectedPlate !== page.data.plate) {
       wx.removeStorageSync('orderAdd_selectedPlate')
       this.setPlate(selectedPlate)
+    }
+
+    // 从商品选择页返回时检查是否有回调商品
+    var selectedProducts = wx.getStorageSync('orderAdd_selectedProducts') || []
+    if (selectedProducts.length > 0) {
+      wx.removeStorageSync('orderAdd_selectedProducts')
+      // 将选中商品追加到 serviceRows
+      var rows = page.data.serviceRows
+      selectedProducts.forEach(function (item) {
+        // 跳过已填写的空行，找到第一个空行填充
+        var filledRow = false
+        for (var i = 0; i < rows.length; i++) {
+          if (!rows[i].name.trim()) {
+            rows[i] = {
+              name: item.name,
+              spec: item.spec || '',
+              amount: item.amount || '',
+              _productId: item._productId || '',
+              _productItemSpec: item._productItemSpec || '',
+              _productQuantity: item._productQuantity || 0,
+              _fromProduct: true
+            }
+            filledRow = true
+            break
+          }
+        }
+        if (!filledRow) {
+          rows.push({
+            name: item.name,
+            spec: item.spec || '',
+            amount: item.amount || '',
+            _productId: item._productId || '',
+            _productItemSpec: item._productItemSpec || '',
+            _productQuantity: item._productQuantity || 0,
+            _fromProduct: true
+          })
+        }
+      })
+      page.setData({ serviceRows: rows })
+      page.calcTotalAmount()
     }
   },
 
@@ -769,6 +827,45 @@ Page({
     wx.showToast({ title: '已恢复默认', icon: 'success' })
   },
 
+  // ========== 进销存 - 选择商品 ==========
+
+  /** 跳转商品选择页 */
+  onSelectProduct() {
+    wx.navigateTo({ url: '/pages/product/productSelect/productSelect' })
+  },
+
+  /** 检查 serviceRows 中是否有来自商品选择的行，有则执行库存扣减 */
+  _deductStockIfNeeded(form, rows, page) {
+    var productItems = []
+    rows.forEach(function (r) {
+      if (r._fromProduct && r._productId && r._productQuantity > 0) {
+        productItems.push({
+          productId: r._productId,
+          spec: r._productItemSpec || '',
+          quantity: r._productQuantity
+        })
+      }
+    })
+    if (productItems.length === 0) return Promise.resolve() // 无商品行，直接继续
+
+    var shopPhone = app.getShopPhone()
+    return app.callFunction('repair_inventory', {
+      action: 'deductStock',
+      shopPhone: shopPhone,
+      items: productItems,
+      operator: app.getOperatorName() || '管理员'
+    }).then(function (res) {
+      if (res && res.code === 0) {
+        return Promise.resolve()
+      } else {
+        // 库存不足时阻止保存
+        return Promise.reject({ msg: (res && res.msg) || '库存扣减失败' })
+      }
+    }).catch(function (err) {
+      return Promise.reject({ msg: (err && err.msg) || '库存扣减网络异常' })
+    })
+  },
+
   // ========== 表单操作 ==========
 
   onDatePick(e) {
@@ -935,6 +1032,10 @@ Page({
     var page = this
     wx.showLoading({ title: '保存中...' })
 
+    // 先尝试库存扣减（包括库存不足时的阻止）
+    var rowsForDeduction = page.data.serviceRows
+    page._deductStockIfNeeded(form, rowsForDeduction, page).then(function () {
+
     var amount = Number(form.totalAmount) || 0
     var paidAmount = Number(form.paidAmount) || 0
     var partCost = Number(form.partCost) || 0
@@ -997,6 +1098,16 @@ Page({
       wx.hideLoading()
       wx.showToast({ title: '保存失败', icon: 'none' })
     })
+  }).catch(function (err) {
+    // 库存扣减失败（含库存不足）
+    wx.hideLoading()
+    wx.showModal({
+      title: '库存不足',
+      content: (err && err.msg) || '部分商品库存不足，无法保存工单',
+      showCancel: false,
+      confirmText: '我知道了'
+    })
+  })
   },
 
   // 最终保存处理（提取为独立方法，支持实收金额超限确认后继续执行）

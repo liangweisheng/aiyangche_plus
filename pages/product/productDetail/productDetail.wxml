@@ -1,0 +1,54 @@
+<view class="container">
+  <!-- 商品基本信息 -->
+  <view class="info-card" wx:if="{{product}}">
+    <view class="product-header">
+      <text class="product-name">{{product.name}}</text>
+      <text class="product-cat-tag">{{product.category}}</text>
+    </view>
+    <view class="info-rows">
+      <view class="info-row">
+        <text class="info-label">售价</text>
+        <text class="info-value price">¥{{product.price}}/{{product.unit}}</text>
+      </view>
+      <view class="info-row" wx:if="{{product.cost > 0}}">
+        <text class="info-label">进价</text>
+        <text class="info-value">¥{{product.cost}}/{{product.unit}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">当前库存</text>
+        <text class="info-value stock">{{product.stock || 0}} {{product.unit}}</text>
+      </view>
+      <view class="info-row" wx:if="{{product.specs && product.specs.length > 0}}">
+        <text class="info-label">规格</text>
+        <text class="info-value">{{product.specs.join('、')}}</text>
+      </view>
+      <view class="info-row" wx:if="{{product.remark}}">
+        <text class="info-label">备注</text>
+        <text class="info-value">{{product.remark}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 出入库流水 -->
+  <view class="section-title">出入库流水</view>
+  <view class="log-list">
+    <view class="log-item" wx:for="{{stockLogs}}" wx:key="_id">
+      <view class="log-type-row">
+        <text class="log-type {{item.type === 'in' ? 'type-in' : 'type-out'}}">{{item.type === 'in' ? '入库' : '出库'}}</text>
+        <text class="log-spec" wx:if="{{item.spec}}">{{item.spec}}</text>
+      </view>
+      <view class="log-meta">
+        <text class="log-qty">{{item.type === 'in' ? '+' : '-'}}{{item.quantity}}{{product.unit}}</text>
+        <text class="log-cost" wx:if="{{item.cost > 0}}">单价¥{{item.cost}}</text>
+        <text class="log-time">{{util.formatDateTime(item.createTime)}}</text>
+      </view>
+      <text class="log-remark" wx:if="{{item.remark}}">{{item.remark}}</text>
+    </view>
+    <view class="log-empty" wx:if="{{stockLogs.length === 0}}">
+      <text>暂无流水记录</text>
+    </view>
+    <view class="log-loading" wx:if="{{loadingLogs}}">
+      <text>加载中...</text>
+    </view>
+  </view>
+</view>

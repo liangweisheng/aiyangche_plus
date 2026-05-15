@@ -1,0 +1,90 @@
+/* pages/product/productStockIn/productStockIn.wxss */
+.container {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 24rpx;
+  padding-bottom: 160rpx;
+}
+
+.form-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.04);
+}
+
+.form-group {
+  margin-bottom: 28rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+
+.form-tip-static {
+  font-size: 26rpx;
+  color: #999;
+  padding: 16rpx 0;
+}
+
+.required { color: #ff4d4f; }
+
+.form-input {
+  width: 100%;
+  height: 72rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.form-picker {
+  height: 72rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.form-picker.placeholder { color: #bbb; }
+
+.form-tip {
+  display: block;
+  font-size: 22rpx;
+  color: #bbb;
+  margin-top: 8rpx;
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -4rpx 24rpx rgba(0,0,0,0.06);
+}
+
+.save-btn {
+  width: 100%;
+  height: 88rpx;
+  background: linear-gradient(135deg, #1677ff, #4096ff);
+  border-radius: 44rpx;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+}
+
+.save-btn[disabled] { opacity: 0.6; }
+.save-btn::after { border: none; }

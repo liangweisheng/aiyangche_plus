@@ -1,0 +1,36 @@
+<view class="container">
+  <view class="form-card">
+    <view class="form-group">
+      <text class="form-label">选择商品 <text class="required">*</text></text>
+      <picker mode="selector" range="{{productNames}}" value="{{productIndex}}" bindchange="onProductChange">
+        <view class="form-picker {{productIndex === -1 ? 'placeholder' : ''}}">{{productIndex >= 0 ? productNames[productIndex] : '请选择商品'}}</view>
+      </picker>
+    </view>
+    <view class="form-group" wx:if="{{selectedProduct && selectedProduct.specs && selectedProduct.specs.length > 0}}">
+      <text class="form-label">选择规格</text>
+      <picker mode="selector" range="{{selectedProduct.specs}}" value="{{specIndex}}" bindchange="onSpecChange">
+        <view class="form-picker {{specIndex === -1 ? 'placeholder' : ''}}">{{specIndex >= 0 ? selectedProduct.specs[specIndex] : '请选择规格'}}</view>
+      </picker>
+    </view>
+    <view class="form-group" wx:if="{{selectedProduct.specs && selectedProduct.specs.length === 0}}">
+      <text class="form-tip-static">该商品无规格选项</text>
+    </view>
+    <view class="form-group">
+      <text class="form-label">入库数量 <text class="required">*</text></text>
+      <input class="form-input" type="number" placeholder="请输入数量" value="{{quantity}}" bindinput="onInput" data-field="quantity" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">入库单价</text>
+      <input class="form-input" type="digit" placeholder="选填" value="{{cost}}" bindinput="onInput" data-field="cost" />
+      <text class="form-tip" wx:if="{{selectedProduct && selectedProduct.cost > 0}}">参考进价：¥{{selectedProduct.cost}}</text>
+    </view>
+    <view class="form-group">
+      <text class="form-label">备注</text>
+      <input class="form-input" type="text" placeholder="选填" value="{{remark}}" bindinput="onInput" data-field="remark" />
+    </view>
+  </view>
+
+  <view class="footer">
+    <button class="save-btn" bindtap="onSave" disabled="{{saving}}">{{saving ? '保存中...' : '确认入库'}}</button>
+  </view>
+</view>

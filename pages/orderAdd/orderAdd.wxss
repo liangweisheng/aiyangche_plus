@@ -274,6 +274,25 @@
   border-radius: 8rpx;
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.product-pick-btn {
+  font-size: 22rpx;
+  color: #52c41a;
+  padding: 6rpx 16rpx;
+  background: rgba(82, 196, 26, 0.06);
+  border-radius: 8rpx;
+  border: 2rpx solid rgba(82, 196, 26, 0.2);
+}
+
+.product-pick-btn:active {
+  background: rgba(82, 196, 26, 0.15);
+}
+
 /* 快捷短语 */
 .phrase-section {
   margin-bottom: 16rpx;

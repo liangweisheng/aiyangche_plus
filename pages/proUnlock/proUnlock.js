@@ -54,7 +54,11 @@ Page({
     // 系统设置（合并 AI诊断设置 + 导航栏设置）
     systemSettingsExpanded: false,
     // 使用帮助折叠状态
-    useHelpExpanded: false
+    useHelpExpanded: false,
+    // 库存管理折叠状态
+    inventoryExpanded: false,
+    // 进销存功能开关（默认开启）
+    inventoryEnabled: true
   },
 
   // 切换激活 Pro 版卡片展开/收起
@@ -91,6 +95,14 @@ Page({
       freeMaxMembers: constants.FREE_MAX_MEMBERS,
       servicePhone: constants.SERVICE_PHONE
     })
+    // 加载进销存开关状态
+    var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
+    // 默认开启（未设置时 = 开启）
+    if (invEnabled !== false) {
+      page.setData({ inventoryEnabled: true })
+    } else {
+      page.setData({ inventoryEnabled: false })
+    }
   },
 
   onShow: function () {
@@ -125,6 +137,9 @@ Page({
     if (addr) patch.shopAddr = addr
     if (localDisplayName) patch.displayName = localDisplayName
     if (Object.keys(patch).length > 0) this.setData(patch)
+    // 刷新进销存开关状态
+    var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
+    page.setData({ inventoryEnabled: invEnabled !== false })
   },
 
   onUnload: function () {
@@ -1151,5 +1166,40 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
+  },
+
+  // ===========================
+  // 进销存管理
+  // ===========================
+
+  /** 切换库存管理展开/收起 */
+  toggleInventory: function () {
+    this.setData({ inventoryExpanded: !this.data.inventoryExpanded })
+  },
+
+  /** 进销存功能开关切换 */
+  onToggleInventorySwitch: function (e) {
+    var enabled = !!e.detail.value
+    this.setData({ inventoryEnabled: enabled })
+    wx.setStorageSync(constants.INVENTORY_ENABLED_KEY, enabled)
+    // 关闭时折叠库存管理卡片
+    if (!enabled) {
+      this.setData({ inventoryExpanded: false })
+    }
+  },
+
+  /** 跳转新建商品 */
+  onGoProductAdd: function () {
+    wx.navigateTo({ url: '/pages/product/productAdd/productAdd' })
+  },
+
+  /** 跳转商品入库 */
+  onGoProductStockIn: function () {
+    wx.navigateTo({ url: '/pages/product/productStockIn/productStockIn' })
+  },
+
+  /** 跳转库存明细 */
+  onGoProductStockList: function () {
+    wx.navigateTo({ url: '/pages/product/productStockList/productStockList' })
   }
 })

@@ -2,6 +2,94 @@
 
 ---
 
+## v6.2.0（2026-05-16）
+
+### 功能新增：进销存管理系统（全新模块）
+
+1. **商品管理（CRUD）**
+   - 新建商品表单：支持商品名称、分类（机油/轮胎/刹车系统等10类）、规格选项（动态添加/删除）、售价、进价、单位、备注
+   - 保存至云数据库 `repair_products` 集合，门店隔离（`shopPhone`）
+
+2. **商品入库**
+   - 选择商品 → 选规格 → 填数量 → 确认入库
+   - 自动写入 `repair_stock_logs` 流水记录，支持记录入库单价和操作人
+
+3. **库存明细列表**
+   - 搜索栏（商品名模糊搜索，400ms 防抖）
+   - 顶部横向滚动分类标签（全部/机油/轮胎等）
+   - 卡片列表展示：商品名、分类标签、规格、售价、当前库存、进价
+   - 点击商品卡片跳转商品详情页
+
+4. **商品详情+出入库流水**
+   - 展示商品基本信息（售价、进价、库存、规格、备注）
+   - 出入库流水时间线列表（类型 in/out + 数量 + 单价 + 时间 + 备注）
+
+5. **商品选择器（录单联动，核心交互）**
+   - 左侧 30% 分类栏 + 右侧 70% 商品列表 + 底部确认栏
+   - 商品卡片展示规格行，每行含 `[−] 数量 [+]` 三段式按钮
+   - 多规格商品可分别选择不同规格的数量
+   - 底部固定栏实时统计已选件数和合计金额
+   - 点击确定后序列化回传给 orderAdd
+
+6. **工单与库存联动**
+   - orderAdd 录单时，"服务项目"表头新增 **"选择商品"** 按钮（绿色主题，与管理短语并列）
+   - 点击跳转商品选择器，选品确定后回填到 serviceRows
+   - **手动输入项目名不关联库存**，仅带 `_fromProduct:true` 标记的行才触发库存扣减
+   - 工单保存时自动调用库存扣减（`repair_inventory.deductStock`）
+   - 库存不足时弹窗阻止保存并提示具体商品名和缺少数量
+
+### UI 变更
+
+7. **"我的"页面新增库存管理入口**
+   - 新增 **"库存管理"** 折叠卡片（Pro+管理员可见，同员工管理卡片逻辑）
+   - 展开后三个入口：新建商品、商品入库、库存明细（help-item 风格，与"使用帮助"一致）
+   - 底部固定栏样式与新页面统一样式
+
+8. **"我的"→系统设置新增进销存开关**
+   - 进销存管理分区（📦 图标）：`启用进销存功能` 开关
+   - 关闭后：proUnlock 库存管理卡片隐藏、orderAdd 选择商品按钮隐藏
+   - 开关状态缓存到本地 `wx.setStorageSync`，即时生效
+
+### 云函数变更
+
+9. **新增独立云函数 `repair_inventory`**
+   - 不掺杂到 `repair_main`（现有云函数已臃肿）
+   - 7 个 action：`addProduct` / `updateProduct` / `addStock` / `deductStock` / `listProducts` / `getProductDetail` / `getStockLogs`
+   - 内置完整鉴权系统（`checkPermission`），支持权限等级：public / registered / admin / +pro
+   - `deductStock` 批量扣减，支持逐项检查库存，部分失败返回详细错误信息
+   - 所有操作按 `shopPhone` 门店隔离
+
+### 数据库变更
+
+10. **新增 2 个云数据库集合**
+    - `repair_products` — 商品主表（shopPhone/name/category/specs/price/cost/stock/unit/remark）
+    - `repair_stock_logs` — 出入库流水表（shopPhone/productId/productName/spec/type/quantity/cost/operator/remark）
+
+### 代码质量
+
+11. **零 lint 错误通过** — 全部新增代码遵守 eslint 规范
+
+**变更统计：** ~30 文件
+- 🆕 `cloudfunctions/repair_inventory/index.js` + `package.json`（~260行，7 actions + 鉴权系统）
+- 🆕 `pages/product/productAdd/`（4文件）
+- 🆕 `pages/product/productStockIn/`（4文件）
+- 🆕 `pages/product/productStockList/`（4文件）
+- 🆕 `pages/product/productSelect/`（4文件）
+- 🆕 `pages/product/productDetail/`（4文件）
+- 📝 `app.json`（注册5条路由）
+- 📝 `pages/proUnlock/proUnlock.wxml`（库存卡片+系统设置开关）
+- 📝 `pages/proUnlock/proUnlock.js`（3跳转+开关切换+本地持久化）
+- 📝 `pages/proUnlock/proUnlock.wxss`（开关样式）
+- 📝 `pages/orderAdd/orderAdd.wxml`（选择商品按钮）
+- 📝 `pages/orderAdd/orderAdd.wxss`（按钮绿色主题样式）
+- 📝 `pages/orderAdd/orderAdd.js`（onSelectProduct+onShow回调回填+_deductStockIfNeeded扣减+库存不足弹窗阻止）
+- 📝 `utils/constants.js`（PRODUCT_CATEGORIES/PRODUCT_UNITS/INVENTORY_ENABLED_KEY）
+
+**向后兼容性：** ✅ 新增集合独立于原有数据，旧页面零感知；orderAdd 手动输入项目名逻辑不变；功能开关默认开启
+**部署注意：** ⚠️ 云函数有变更，**需要上传并部署** `repair_inventory` 云函数到正式环境，并新建 `repair_products` 和 `repair_stock_logs` 两个数据库集合
+
+---
+
 ## v6.1.0（2026-05-15）
 
 ### 功能新增

@@ -1,0 +1,9 @@
+{
+  "name": "repair_inventory",
+  "version": "1.0.0",
+  "description": "进销存管理云函数 - 入库/出库扣减/商品列表",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

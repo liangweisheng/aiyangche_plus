@@ -13,7 +13,7 @@
 // ===========================
 
 /** 应用版本号（唯一来源，全局统一引用） */
-var APP_VERSION = 'v6.1.0'
+var APP_VERSION = 'v6.2.0'
 
 
 // ===========================
@@ -138,6 +138,19 @@ var TAB_BAR_PAGES = [
   '/pages/proUnlock/proUnlock'
 ]
 
+// ===========================
+// 进销存管理配置
+// ===========================
+
+/** 商品分类选项 */
+var PRODUCT_CATEGORIES = ['其他', '机油', '轮胎', '刹车系统', '空调系统', '电器', '美容保养', '传动系统', '悬挂系统', '冷却系统']
+
+/** 商品单位选项 */
+var PRODUCT_UNITS = ['个', '瓶', '桶', '套', '只', '根', '对', '片', '支', '盒']
+
+/** 进销存功能开关缓存 key */
+var INVENTORY_ENABLED_KEY = 'inventoryEnabled'
+
 /** 搜索防抖延迟（毫秒） */
 var SEARCH_DEBOUNCE_MS = 500
 
@@ -211,6 +224,11 @@ module.exports = {
   CHECK_ITEMS: CHECK_ITEMS,
   CHECK_STATUS: CHECK_STATUS,
   CHECK_STATUS_LABELS: CHECK_STATUS_LABELS,
+
+  // 进销存
+  PRODUCT_CATEGORIES: PRODUCT_CATEGORIES,
+  PRODUCT_UNITS: PRODUCT_UNITS,
+  INVENTORY_ENABLED_KEY: INVENTORY_ENABLED_KEY,
 
   // 页面路由
   TAB_BAR_PAGES: TAB_BAR_PAGES,
