@@ -153,11 +153,20 @@ Page({
   },
 
   onShow() {
+    var page = this
     // 从车辆搜索页返回时检查是否有回调车牌
     var selectedPlate = wx.getStorageSync('orderAdd_selectedPlate') || ''
-    if (selectedPlate && selectedPlate !== this.data.plate) {
+    if (selectedPlate && selectedPlate !== page.data.plate) {
       wx.removeStorageSync('orderAdd_selectedPlate')
-      this.setPlate(selectedPlate)
+      page.setPlate(selectedPlate)
+    }
+    // OCR fallback: cameraScan 返回时的兜底处理
+    var ocrResult = app.globalData._ocrResult
+    if (ocrResult && ocrResult.plate) {
+      app.globalData._ocrResult = null
+      page._showOcrConfirm(ocrResult.plate, function (plate) {
+        page.setPlate(plate)
+      })
     }
   },
 
@@ -367,36 +376,66 @@ Page({
     // 空操作，阻止冒泡
   },
 
-  // 📷 车牌OCR识别 - 主页面（v6.1.0）
+  // 📷 车牌OCR识别 - 主页面 → cameraScan 蒙层相机页
   onScanPlate() {
     var page = this
-    ocrHelper.scanPlate(function (plate) {
-      wx.showModal({
-        title: '识别结果',
-        content: '识别到车牌：' + plate,
-        success: function (res) {
-          if (res.confirm) {
-            page.setPlate(plate)
+    wx.navigateTo({
+      url: '/pages/cameraScan/cameraScan?mode=plate',
+      events: {
+        ocrResult: function (res) {
+          if (res && res.plate) {
+            page._showOcrConfirm(res.plate, function (plate) {
+              page.setPlate(plate)
+            })
           }
         }
-      })
+      },
+      fail: function () {
+        ocrHelper.scanPlate(function (plate) {
+          page._showOcrConfirm(plate, function (p) {
+            page.setPlate(p)
+          })
+        })
+      }
     })
   },
 
-  // 📷 车牌OCR识别 - car-picker弹层（v6.1.0）
+  // 📷 车牌OCR识别 - car-picker弹层 → cameraScan 蒙层相机页
   onCarPickerScanPlate() {
     var page = this
-    ocrHelper.scanPlate(function (plate) {
-      wx.showModal({
-        title: '识别结果',
-        content: '识别到车牌：' + plate,
-        success: function (res) {
-          if (res.confirm) {
-            page.setPlate(plate)
-            page.setData({ showCarPicker: false })
+    wx.navigateTo({
+      url: '/pages/cameraScan/cameraScan?mode=plate',
+      events: {
+        ocrResult: function (res) {
+          if (res && res.plate) {
+            page._showOcrConfirm(res.plate, function (plate) {
+              page.setPlate(plate)
+              page.setData({ showCarPicker: false })
+            })
           }
         }
-      })
+      },
+      fail: function () {
+        ocrHelper.scanPlate(function (plate) {
+          page._showOcrConfirm(plate, function (p) {
+            page.setPlate(p)
+            page.setData({ showCarPicker: false })
+          })
+        })
+      }
+    })
+  },
+
+  // OCR识别确认弹窗（复用）
+  _showOcrConfirm(plate, callback) {
+    wx.showModal({
+      title: '识别结果',
+      content: '识别到车牌：' + plate,
+      success: function (res) {
+        if (res.confirm) {
+          callback(plate)
+        }
+      }
     })
   },
 

@@ -29,6 +29,16 @@ Page({
     this.fetchList(true)
   },
 
+  onShow() {
+    // OCR fallback: cameraScan 返回时的兜底处理
+    var ocrResult = app.globalData._ocrResult
+    if (ocrResult && ocrResult.plate) {
+      app.globalData._ocrResult = null
+      this.setData({ keyword: ocrResult.plate })
+      this.onSearch()
+    }
+  },
+
   onPullDownRefresh() {
     var page = this
     page._reqVersion = (page._reqVersion || 0) + 1
@@ -144,12 +154,25 @@ Page({
     wx.switchTab({ url: '/pages/dashboard/dashboard' })
   },
 
-  // 📷 车牌OCR识别（v6.1.0）
+  // 📷 车牌OCR识别 → cameraScan 蒙层相机页
   onScanPlate() {
     var page = this
-    ocrHelper.scanPlate(function (plate) {
-      page.setData({ keyword: plate })
-      page.onSearch()
+    wx.navigateTo({
+      url: '/pages/cameraScan/cameraScan?mode=plate',
+      events: {
+        ocrResult: function (res) {
+          if (res && res.plate) {
+            page.setData({ keyword: res.plate })
+            page.onSearch()
+          }
+        }
+      },
+      fail: function () {
+        ocrHelper.scanPlate(function (plate) {
+          page.setData({ keyword: plate })
+          page.onSearch()
+        })
+      }
     })
   }
 })

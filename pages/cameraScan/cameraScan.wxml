@@ -1,0 +1,99 @@
+<!--
+  cameraScan.wxml
+  全屏拍照OCR扫描页面（蒙层镂空效果）
+  mode: plate → 车牌识别 | vin → 车架号识别
+-->
+<view class="ocr-page">
+
+  <!-- 相机层 -->
+  <camera
+    wx:if="{{!cameraError}}"
+    class="camera"
+    device-position="back"
+    flash="{{flashMode}}"
+    binderror="onCameraError"
+    bindinitdone="onCameraReady"
+  />
+
+  <!-- 相机加载中 -->
+  <view wx:if="{{!cameraReady && !cameraError}}" class="camera-loading">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">正在启动相机...</text>
+  </view>
+
+  <!-- 相机失败降级方案 -->
+  <view wx:if="{{cameraError}}" class="fallback-container">
+    <view class="fallback-content">
+      <view class="fallback-icon-view">📷</view>
+      <text class="fallback-title">无法启动相机</text>
+      <text class="fallback-desc">请允许相机权限后重试，或使用相册识别</text>
+      <view class="fallback-btn" bindtap="onChooseAlbum">从相册选择</view>
+      <view class="fallback-cancel" bindtap="onGoBack">取消</view>
+    </view>
+  </view>
+
+  <!-- 遮罩层（相机就绪后显示） -->
+  <view wx:if="{{cameraReady}}" class="mask-container">
+
+    <!-- === 顶部遮罩 === -->
+    <view class="mask-top">
+      <view class="nav-bar">
+        <view class="back-btn" bindtap="onGoBack">
+          <text class="back-arrow">‹</text>
+        </view>
+        <text class="nav-title">{{scanTitle}}</text>
+        <view class="nav-placeholder"></view>
+      </view>
+      <text class="tip-text">{{scanTip}}</text>
+    </view>
+
+    <!-- === 中间区域：左右遮罩 + 扫描框 === -->
+    <view class="mask-middle">
+      <view class="mask-side left"></view>
+      <view class="scan-box">
+        <!-- 四角装饰 -->
+        <view class="corner corner-tl"></view>
+        <view class="corner corner-tr"></view>
+        <view class="corner corner-bl"></view>
+        <view class="corner corner-br"></view>
+        <!-- 扫描线动画 -->
+        <view class="scan-line"></view>
+      </view>
+      <view class="mask-side right"></view>
+    </view>
+
+    <!-- === 底部遮罩 === -->
+    <view class="mask-bottom">
+      <view class="manual-input" bindtap="onGoBack">
+        <text>识别不出来？手动输入 ›</text>
+      </view>
+
+      <view class="bottom-controls">
+        <!-- 补光灯 -->
+        <view class="bottom-btn" bindtap="onSwitchFlash">
+          <view class="btn-icon-circle">
+            <text wx:if="{{flashMode === 'torch'}}" class="btn-icon-text">💡</text>
+            <text wx:else class="btn-icon-text">🔅</text>
+          </view>
+          <text class="btn-label">{{flashMode === 'torch' ? '关灯' : '补光'}}</text>
+        </view>
+
+        <!-- 拍照按钮 -->
+        <view class="shutter-btn" bindtap="takePhoto">
+          <view class="shutter-outer">
+            <view class="shutter-inner"></view>
+          </view>
+        </view>
+
+        <!-- 相册 -->
+        <view class="bottom-btn" bindtap="onChooseAlbum">
+          <view class="btn-icon-circle">
+            <text class="btn-icon-text">🖼</text>
+          </view>
+          <text class="btn-label">相册</text>
+        </view>
+      </view>
+    </view>
+
+  </view>
+</view>

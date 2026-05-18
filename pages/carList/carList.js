@@ -64,6 +64,15 @@ Page({
   },
 
   onShow() {
+    var page = this
+    // OCR fallback: cameraScan 返回时的兜底处理
+    var ocrResult = app.globalData._ocrResult
+    if (ocrResult && ocrResult.plate) {
+      app.globalData._ocrResult = null
+      page.setData({ searchValue: ocrResult.plate })
+      if (page._searchTimer) clearTimeout(page._searchTimer)
+      page._searchTimer = setTimeout(page._applyFiltersAndRender.bind(page, 1), 100)
+    }
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
@@ -410,13 +419,27 @@ Page({
     wx.switchTab({ url: '/pages/dashboard/dashboard' })
   },
 
-  // 📷 车牌OCR识别（v6.1.0）
+  // 📷 车牌OCR识别 → cameraScan 蒙层相机页
   onScanPlate() {
     var page = this
-    ocrHelper.scanPlate(function (plate) {
-      page.setData({ searchValue: plate })
-      if (page._searchTimer) clearTimeout(page._searchTimer)
-      page._searchTimer = setTimeout(page._applyFiltersAndRender.bind(page, 1), 100)
+    wx.navigateTo({
+      url: '/pages/cameraScan/cameraScan?mode=plate',
+      events: {
+        ocrResult: function (res) {
+          if (res && res.plate) {
+            page.setData({ searchValue: res.plate })
+            if (page._searchTimer) clearTimeout(page._searchTimer)
+            page._searchTimer = setTimeout(page._applyFiltersAndRender.bind(page, 1), 100)
+          }
+        }
+      },
+      fail: function () {
+        ocrHelper.scanPlate(function (plate) {
+          page.setData({ searchValue: plate })
+          if (page._searchTimer) clearTimeout(page._searchTimer)
+          page._searchTimer = setTimeout(page._applyFiltersAndRender.bind(page, 1), 100)
+        })
+      }
     })
   }
 })

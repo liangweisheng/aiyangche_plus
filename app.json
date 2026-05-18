@@ -20,7 +20,8 @@
     "pages/privacy/privacy",
     "pages/userAgreement/userAgreement",
     "pages/monthlyReport/monthlyReport",
-    "pages/staffProfile/staffProfile"
+    "pages/staffProfile/staffProfile",
+    "pages/cameraScan/cameraScan"
   ],
   "window": {
     "navigationBarBackgroundColor": "#1677ff",

@@ -103,35 +103,114 @@ Page({
     }
   },
 
-  // 📷 车牌OCR识别（v6.1.0）
+  // cameraScan 返回后的 OCR 结果兜底（EventChannel fallback via globalData）
+  onShow() {
+    var appObj = app
+    if (appObj.globalData && appObj.globalData._ocrResult) {
+      var ocrResult = appObj.globalData._ocrResult
+      appObj.globalData._ocrResult = null
+      if (ocrResult.value) {
+        var page = this
+        var field = ocrResult.mode === 'plate' ? 'form.plateNumber' : 'form.vin'
+        var label = ocrResult.mode === 'plate' ? '车牌' : '车架号'
+        wx.showModal({
+          title: '识别结果',
+          content: '识别到' + label + '：' + ocrResult.value,
+          success: function (res) {
+            if (res.confirm) {
+              page.setData({ [field]: ocrResult.value })
+            }
+          }
+        })
+      }
+    }
+  },
+
+  // ===== OCR 识别（蒙层相机页面 cameraScan） =====
+
+  // 📷 车牌OCR识别
   onScanPlate() {
     var page = this
-    ocrHelper.scanPlate(function (plate) {
-      wx.showModal({
-        title: '识别结果',
-        content: '识别到车牌：' + plate,
-        success: function (res) {
-          if (res.confirm) {
-            page.setData({ 'form.plateNumber': plate })
+    var appObj = app
+
+    // 清空上次结果
+    if (appObj.globalData) {
+      appObj.globalData._ocrResult = null
+    }
+
+    wx.navigateTo({
+      url: '/pages/cameraScan/cameraScan?mode=plate',
+      events: {
+        ocrResult: function (data) {
+          if (data && data.value) {
+            wx.showModal({
+              title: '识别结果',
+              content: '识别到车牌：' + data.value,
+              success: function (res) {
+                if (res.confirm) {
+                  page.setData({ 'form.plateNumber': data.value })
+                }
+              }
+            })
           }
         }
-      })
+      },
+      fail: function () {
+        // navigateTo 失败时降级到旧方法
+        ocrHelper.scanPlate(function (plate) {
+          wx.showModal({
+            title: '识别结果',
+            content: '识别到车牌：' + plate,
+            success: function (res) {
+              if (res.confirm) {
+                page.setData({ 'form.plateNumber': plate })
+              }
+            }
+          })
+        })
+      }
     })
   },
 
   // 📷 VIN车架号OCR识别
   onScanVin() {
     var page = this
-    ocrHelper.scanVIN(function (vin) {
-      wx.showModal({
-        title: '识别结果',
-        content: '识别到车架号：' + vin,
-        success: function (res) {
-          if (res.confirm) {
-            page.setData({ 'form.vin': vin })
+    var appObj = app
+
+    if (appObj.globalData) {
+      appObj.globalData._ocrResult = null
+    }
+
+    wx.navigateTo({
+      url: '/pages/cameraScan/cameraScan?mode=vin',
+      events: {
+        ocrResult: function (data) {
+          if (data && data.value) {
+            wx.showModal({
+              title: '识别结果',
+              content: '识别到车架号：' + data.value,
+              success: function (res) {
+                if (res.confirm) {
+                  page.setData({ 'form.vin': data.value })
+                }
+              }
+            })
           }
         }
-      })
+      },
+      fail: function () {
+        ocrHelper.scanVIN(function (vin) {
+          wx.showModal({
+            title: '识别结果',
+            content: '识别到车架号：' + vin,
+            success: function (res) {
+              if (res.confirm) {
+                page.setData({ 'form.vin': vin })
+              }
+            }
+          })
+        })
+      }
     })
   },
 

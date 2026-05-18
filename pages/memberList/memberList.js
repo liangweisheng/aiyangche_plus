@@ -60,11 +60,24 @@ Page({
   },
 
   onShow() {
+    var page = this
+    // OCR fallback: cameraScan 返回时的兜底处理
+    var ocrResult = app.globalData._ocrResult
+    if (ocrResult && ocrResult.plate) {
+      app.globalData._ocrResult = null
+      page.setData({ searchKeyword: ocrResult.plate })
+      if (page.data.searchTimer) clearTimeout(page.data.searchTimer)
+      page.setData({
+        searchTimer: setTimeout(function () {
+          page.setData({ searchTimer: null })
+          page._resetAndFetch()
+        }, 100)
+      })
+    }
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
     // Pro状态实时同步（统一方法）
-    var page = this
     app.syncProStatus().then(function (isPro) {
       page.setData({ isPro: isPro })
     }).catch(function () {
@@ -223,18 +236,37 @@ Page({
     }
   },
 
-  // 📷 车牌OCR识别（v6.1.0）
+  // 📷 车牌OCR识别 → cameraScan 蒙层相机页
   onScanPlate() {
     var page = this
-    ocrHelper.scanPlate(function (plate) {
-      page.setData({ searchKeyword: plate })
-      if (page.data.searchTimer) clearTimeout(page.data.searchTimer)
-      page.setData({
-        searchTimer: setTimeout(function () {
-          page.setData({ searchTimer: null })
-          page._resetAndFetch()
-        }, 100)
-      })
+    wx.navigateTo({
+      url: '/pages/cameraScan/cameraScan?mode=plate',
+      events: {
+        ocrResult: function (res) {
+          if (res && res.plate) {
+            page.setData({ searchKeyword: res.plate })
+            if (page.data.searchTimer) clearTimeout(page.data.searchTimer)
+            page.setData({
+              searchTimer: setTimeout(function () {
+                page.setData({ searchTimer: null })
+                page._resetAndFetch()
+              }, 100)
+            })
+          }
+        }
+      },
+      fail: function () {
+        ocrHelper.scanPlate(function (plate) {
+          page.setData({ searchKeyword: plate })
+          if (page.data.searchTimer) clearTimeout(page.data.searchTimer)
+          page.setData({
+            searchTimer: setTimeout(function () {
+              page.setData({ searchTimer: null })
+              page._resetAndFetch()
+            }, 100)
+          })
+        })
+      }
     })
   },
 

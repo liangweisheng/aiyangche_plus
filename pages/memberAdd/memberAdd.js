@@ -66,6 +66,15 @@ Page({
     this.loadRecentCars()
   },
 
+  onShow() {
+    // OCR fallback: cameraScan 返回时的兜底处理
+    var ocrResult = app.globalData._ocrResult
+    if (ocrResult && ocrResult.plate) {
+      app.globalData._ocrResult = null
+      this._showOcrConfirm(ocrResult.plate)
+    }
+  },
+
   onUnload() {
     if (this.searchTimer) {
       clearTimeout(this.searchTimer)
@@ -451,20 +460,38 @@ Page({
     wx.navigateBack()
   },
 
-  // 📷 车牌OCR识别（v6.1.0）
+  // 📷 车牌OCR识别 → cameraScan 蒙层相机页
   onScanPlate() {
     var page = this
-    ocrHelper.scanPlate(function (plate) {
-      wx.showModal({
-        title: '识别结果',
-        content: '识别到车牌：' + plate,
-        success: function (res) {
-          if (res.confirm) {
-            page.setData({ searchPlate: plate, searchResults: [], searched: false })
-            page.searchCar(plate)
+    wx.navigateTo({
+      url: '/pages/cameraScan/cameraScan?mode=plate',
+      events: {
+        ocrResult: function (res) {
+          if (res && res.plate) {
+            page._showOcrConfirm(res.plate)
           }
         }
-      })
+      },
+      fail: function () {
+        ocrHelper.scanPlate(function (plate) {
+          page._showOcrConfirm(plate)
+        })
+      }
+    })
+  },
+
+  // OCR识别确认后处理
+  _showOcrConfirm(plate) {
+    var page = this
+    wx.showModal({
+      title: '识别结果',
+      content: '识别到车牌：' + plate,
+      success: function (res) {
+        if (res.confirm) {
+          page.setData({ searchPlate: plate, searchResults: [], searched: false })
+          page.searchCar(plate)
+        }
+      }
     })
   }
 })

@@ -56,6 +56,25 @@ Page({
 
   // 从子页面（memberAdd/orderAdd等）返回时刷新数据
   onShow() {
+    // cameraScan 返回后的 OCR 结果兜底（EventChannel fallback via globalData）
+    var appObj = app
+    if (appObj.globalData && appObj.globalData._ocrResult) {
+      var ocrResult = appObj.globalData._ocrResult
+      appObj.globalData._ocrResult = null
+      if (ocrResult.value && ocrResult.mode === 'vin') {
+        var page = this
+        wx.showModal({
+          title: '识别结果',
+          content: '识别到车架号：' + ocrResult.value,
+          success: function (res) {
+            if (res.confirm) {
+              page.setData({ 'vehicleForm.vin': ocrResult.value })
+            }
+          }
+        })
+      }
+    }
+
     // 首次加载跳过（onLoad已拉取），仅从子页面返回时刷新
     if (this._firstLoad) {
       this._firstLoad = false
@@ -506,19 +525,46 @@ Page({
     })
   },
 
-  // 📷 VIN车架号OCR识别
+  // 📷 VIN车架号OCR识别（蒙层相机页面 cameraScan）
   onScanVin() {
     var page = this
-    ocrHelper.scanVIN(function (vin) {
-      wx.showModal({
-        title: '识别结果',
-        content: '识别到车架号：' + vin,
-        success: function (res) {
-          if (res.confirm) {
-            page.setData({ 'vehicleForm.vin': vin })
+    var appObj = app
+
+    if (appObj.globalData) {
+      appObj.globalData._ocrResult = null
+    }
+
+    wx.navigateTo({
+      url: '/pages/cameraScan/cameraScan?mode=vin',
+      events: {
+        ocrResult: function (data) {
+          if (data && data.value) {
+            wx.showModal({
+              title: '识别结果',
+              content: '识别到车架号：' + data.value,
+              success: function (res) {
+                if (res.confirm) {
+                  page.setData({ 'vehicleForm.vin': data.value })
+                }
+              }
+            })
           }
         }
-      })
+      },
+      fail: function () {
+        // navigateTo 失败时降级到旧方法
+        ocrHelper.scanVIN(function (vin) {
+          wx.showModal({
+            title: '识别结果',
+            content: '识别到车架号：' + vin,
+            success: function (res) {
+              if (res.confirm) {
+                page.setData({ 'vehicleForm.vin': vin })
+              }
+            }
+          })
+        })
+      }
     })
   },
 
