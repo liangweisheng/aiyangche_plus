@@ -128,6 +128,7 @@ async function registerShop(event, openid) {
     var addResult = await db.collection('repair_activationCodes').add({
       data: {
         name: shopName,
+        displayName: '店主',
         phone: shopPhone,
         openid: openid,
         shopCode: shopCode,
@@ -973,6 +974,66 @@ async function voidOrder(event, openid) {
     if (order.data.shopPhone && order.data.shopPhone !== shopPhone) {
       return { code: -3, msg: '无权操作此工单' }
     }
+    // 仅已完成工单可作废（草稿可直接删除、待结算应走收银流程）
+    if (order.data.isVoided) return { code: -4, msg: '工单已作废' }
+    if (order.data.status !== '已完成') return { code: -5, msg: '仅已完成工单可作废' }
+
+    // === 库存回滚：如果该工单有扣减项，按规格恢复库存 ===
+    var deductedItems = order.data._deductedItems || []
+    var orderStockRef = order.data._orderStockRef || docId
+    if (deductedItems.length > 0) {
+      for (var i = 0; i < deductedItems.length; i++) {
+        var item = deductedItems[i]
+        try {
+          // 查询商品
+          var productRes = await db.collection('repair_products')
+            .where({ _id: item.productId, shopPhone: shopPhone })
+            .get()
+          if (!productRes.data || productRes.data.length === 0) continue
+          var product = productRes.data[0]
+
+          if (item.spec && product.specStock) {
+            // 有规格：按规格回补库存
+            var newSpecStock = product.specStock.map(function (s) {
+              if (s.label === item.spec) {
+                return { label: s.label, stock: (s.stock || 0) + item.quantity }
+              }
+              return s
+            })
+            var newTotal = 0
+            newSpecStock.forEach(function (s) { newTotal += s.stock || 0 })
+            await db.collection('repair_products')
+              .where({ _id: item.productId, shopPhone: shopPhone })
+              .update({ data: { stock: newTotal, specStock: newSpecStock, updateTime: new Date() } })
+          } else {
+            // 无规格：直接回补总库存
+            await db.collection('repair_products')
+              .where({ _id: item.productId, shopPhone: shopPhone })
+              .update({ data: { stock: _.inc(item.quantity), updateTime: new Date() } })
+          }
+
+          // 写入回补流水
+          await db.collection('repair_stock_logs').add({
+            data: {
+              shopPhone: shopPhone,
+              productId: item.productId,
+              productName: product.name,
+              spec: item.spec || '',
+              type: 'adjust',
+              quantity: Number(item.quantity),
+              cost: 0,
+              operator: '系统',
+              remark: '工单作废回补',
+              orderRef: orderStockRef,
+              createTime: new Date()
+            }
+          })
+        } catch (e) {
+          console.error('voidOrder 回滚库存失败:', item.productId, e.message)
+        }
+      }
+    }
+
     await db.collection('repair_orders').doc(docId).update({
       data: { isVoided: true, voidTime: db.serverDate() }
     })
@@ -1401,9 +1462,9 @@ async function addStaff(event, openid) {
     var callerAdmin = await getCallerAdminInfo(openid, event.shopPhone)
     var realShopPhone = callerAdmin.phone || shopPhone
 
-    // ★ v6.0 收紧权限：仅超级管理员(type='free')可添加员工
+    // ★ v6.0 收紧权限：仅店主账号(type='free')可添加员工
     if (callerAdmin._callerType !== 'free') {
-      return { code: -7, msg: '仅超级管理员可添加员工' }
+      return { code: -7, msg: '仅店主账号可添加员工' }
     }
 
     // 2. 验证门店是 Pro 版
@@ -1497,9 +1558,9 @@ async function removeStaff(event, openid) {
     if (!callerAdmin) {
       return { code: -2, msg: '仅管理员可移除员工' }
     }
-    // ★ v6.0 收紧权限：仅超级管理员可移除员工
+    // ★ v6.0 收紧权限：仅店主账号可移除员工
     if (callerAdmin._callerType !== 'free') {
-      return { code: -7, msg: '仅超级管理员可移除员工' }
+      return { code: -7, msg: '仅店主账号可移除员工' }
     }
     var realShopPhone = callerAdmin.phone || shopPhone
 
@@ -1534,9 +1595,9 @@ async function updateStaffRole(event, openid) {
     if (!callerAdmin) {
       return { code: -2, msg: '仅管理员可修改角色' }
     }
-    // ★ v6.0 收紧权限：仅超级管理员可修改员工角色
+    // ★ v6.0 收紧权限：仅店主账号可修改员工角色
     if (callerAdmin._callerType !== 'free') {
-      return { code: -7, msg: '仅超级管理员可修改员工角色' }
+      return { code: -7, msg: '仅店主账号可修改员工角色' }
     }
 
     await db.collection('repair_activationCodes').doc(staffDocId).update({
@@ -2449,7 +2510,7 @@ async function listCheckSheets(event, openid) {
 }
 
 // ============================
-// exportData - 数据导出（全量查询，仅Pro版超级管理员）
+// exportData - 数据导出（全量查询，仅Pro版店主账号）
 // 替代客户端 _fetchAll 的 N 次分批请求，服务端一次返回全部数据
 // ============================
 async function exportData(event, openid) {
@@ -2457,15 +2518,30 @@ async function exportData(event, openid) {
   var type = event.type || ''
 
   if (!shopPhone) return { code: -1, msg: '缺少门店标识' }
-  if (!type || ['cars', 'members', 'orders'].indexOf(type) === -1) {
+  if (!type || ['cars', 'members', 'orders', 'stock_logs'].indexOf(type) === -1) {
     return { code: -1, msg: '导出类型参数错误' }
   }
 
   try {
-    var collectionName = type === 'cars' ? 'repair_cars' : type === 'members' ? 'repair_members' : 'repair_orders'
+    var collectionName = type === 'cars' ? 'repair_cars' : type === 'members' ? 'repair_members' : type === 'stock_logs' ? 'repair_stock_logs' : 'repair_orders'
     var where = { shopPhone: shopPhone }
     if (type === 'orders') {
       where.isVoided = _.neq(true)
+    }
+    // inventory 流水可选筛选：流水类型 + 时间范围
+    if (type === 'stock_logs') {
+      if (event.logType && ['in', 'out', 'adjust'].indexOf(event.logType) !== -1) {
+        where.type = event.logType
+      }
+      if (event.startDate) {
+        where.createTime = where.createTime || {}
+        where.createTime.$gte = new Date(event.startDate + ' 00:00:00')
+      }
+      if (event.endDate) {
+        where.createTime = where.createTime || {}
+        // endDate 取当天 23:59:59，确保包含当天数据
+        where.createTime.$lte = new Date(event.endDate + ' 23:59:59')
+      }
     }
 
     var countRes = await db.collection(collectionName).where(where).count()
@@ -2474,10 +2550,14 @@ async function exportData(event, openid) {
       return { code: 0, data: { list: [], total: 0 } }
     }
 
-    // 服务端分批获取全部数据（limit=100）
+    // 限制最大导出记录数
+    var maxRecords = 5000
+    var fetchTotal = total > maxRecords ? maxRecords : total
+
+    // 服务端分批获取数据（limit=100）
     var allData = []
     var batch = 0
-    while (batch * MAX_LIMIT < total) {
+    while (batch * MAX_LIMIT < fetchTotal) {
       var res = await db.collection(collectionName)
         .where(where)
         .orderBy('createTime', 'desc')
@@ -2819,7 +2899,7 @@ async function checkPermission(action, event, openid) {
   if (isGuestShop) {
     if (roleRequired === 'superAdmin') {
       console.warn('[PERM] action=' + action + ' REJECTED: 游客无superAdmin权限')
-      return { ok: false, code: -403, msg: '需要超级管理员权限' }
+      return { ok: false, code: -403, msg: '需要店主账号权限' }
     }
     // admin 级别放行，Pro 状态按需检查
     if (needPro) {
@@ -2857,7 +2937,7 @@ async function checkPermission(action, event, openid) {
   } else if (roleRequired === 'superAdmin') {
     if (!callerRecord.isSuperAdmin) {
       console.warn('[PERM] action=' + action + ' REJECTED: isSuperAdmin=false')
-      return { ok: false, code: -403, msg: '需要超级管理员权限' }
+      return { ok: false, code: -403, msg: '需要店主账号权限' }
     }
   }
 

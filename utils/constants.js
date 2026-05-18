@@ -13,7 +13,7 @@
 // ===========================
 
 /** 应用版本号（唯一来源，全局统一引用） */
-var APP_VERSION = 'v6.1.0'
+var APP_VERSION = 'v6.3.1'
 
 
 // ===========================
@@ -71,6 +71,9 @@ var GET_TEMP_URL_TIMEOUT_MS = 10000
 
 /** 数据导出单次最大记录数 */
 var EXPORT_MAX_RECORDS = 5000
+
+/** 低库存预警阈值（库存 ≤ 此值时显示警告） */
+var LOW_STOCK_THRESHOLD = 5
 
 /** 分页查询默认 limit */
 var DEFAULT_PAGE_LIMIT = 20
@@ -137,6 +140,22 @@ var TAB_BAR_PAGES = [
   '/pages/report/report',
   '/pages/proUnlock/proUnlock'
 ]
+
+// ===========================
+// 进销存管理配置
+// ===========================
+
+/** 商品分类选项 */
+var PRODUCT_CATEGORIES = ['其他', '机油', '轮胎', '刹车系统', '空调系统', '电器', '美容保养', '传动系统', '悬挂系统', '冷却系统']
+
+/** 商品单位选项 */
+var PRODUCT_UNITS = ['个', '瓶', '桶', '套', '只', '根', '对', '片', '支', '盒']
+
+/** 进销存功能开关缓存 key */
+var INVENTORY_ENABLED_KEY = 'inventoryEnabled'
+
+/** 自由开单模式缓存 key */
+var FREE_ORDER_MODE_KEY = 'freeOrderMode'
 
 /** 搜索防抖延迟（毫秒） */
 var SEARCH_DEBOUNCE_MS = 500
@@ -211,6 +230,13 @@ module.exports = {
   CHECK_ITEMS: CHECK_ITEMS,
   CHECK_STATUS: CHECK_STATUS,
   CHECK_STATUS_LABELS: CHECK_STATUS_LABELS,
+
+  // 进销存
+  LOW_STOCK_THRESHOLD: LOW_STOCK_THRESHOLD,
+  PRODUCT_CATEGORIES: PRODUCT_CATEGORIES,
+  PRODUCT_UNITS: PRODUCT_UNITS,
+  INVENTORY_ENABLED_KEY: INVENTORY_ENABLED_KEY,
+  FREE_ORDER_MODE_KEY: FREE_ORDER_MODE_KEY,
 
   // 页面路由
   TAB_BAR_PAGES: TAB_BAR_PAGES,

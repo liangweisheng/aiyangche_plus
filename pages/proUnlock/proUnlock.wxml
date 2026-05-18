@@ -18,7 +18,7 @@
     <text class="guest-login-btn">登录 ›</text>
   </view>
 
-  <!-- ★ 合并门店头部卡片（名称+badge+详情折叠） -->
+  <!-- ★ ① 门店信息 -->
   <view class="card shop-header-card">
     <view class="shop-header">
       <view class="shop-name-row">
@@ -55,7 +55,7 @@
       <view class="shop-detail-divider" wx:if="{{isOwner || shopTel || shopAddr}}">
         <text class="divider-text">门店联系方式</text>
       </view>
-      <!-- 超级管理员：可编辑 -->
+      <!-- 店主账号：可编辑 -->
       <view class="info-item info-item-editable" wx:if="{{isOwner}}" bindtap="onEditShopTel">
         <text class="info-label">门店电话</text>
         <view class="info-value-row">
@@ -70,7 +70,7 @@
           <text class="edit-icon-sm">📝</text>
         </view>
       </view>
-      <!-- 非超级管理员：只读展示 -->
+      <!-- 非店主账号：只读展示 -->
       <view class="info-item" wx:if="{{!isOwner && shopTel}}">
         <text class="info-label">门店电话</text>
         <text class="info-value info-value-dark">{{shopTel}}</text>
@@ -83,40 +83,185 @@
     </view>
   </view>
 
-  <!-- 免费版权益（已隐藏） -->
-  <view class="card benefit-card" wx:if="{{false}}">
-    <view class="card-title">
-      <text class="icon">🎁</text>
-      免费版权益
-    </view>
-    <view class="benefit-list">
-      <view class="benefit-row">
-        <view class="benefit-item">
-          <text class="benefit-label">工单数量</text>
-          <text class="benefit-value">{{freeMaxOrders}} 单</text>
-        </view>
-        <view class="benefit-item">
-          <text class="benefit-label">会员管理</text>
-          <text class="benefit-value">{{freeMaxMembers}} 人</text>
-        </view>
-      </view>
-      <view class="benefit-row">
-        <view class="benefit-item">
-          <text class="benefit-label">数据导出</text>
-          <text class="benefit-value text-disabled">❌</text>
-        </view>
-        <view class="benefit-item">
-          <text class="benefit-label">高级报表</text>
-          <text class="benefit-value text-disabled">❌</text>
-        </view>
-      </view>
-    </view>
-    <view class="benefit-tip">
-      已使用 {{usedCount}} / {{freeMaxOrders}} 单
+  <!-- ★ ② Pro续费提醒（Pro版且剩余<30天时显示） -->
+  <view class="renew-banner" wx:if="{{showRenew}}">
+    <view class="renew-icon">⚠️</view>
+    <view class="renew-content">
+      <text class="renew-text">{{renewTip}}</text>
+      <text class="renew-action">续费请联系客服获取续费激活码</text>
     </view>
   </view>
 
-  <!-- Pro版特权（仅免费版显示） -->
+  <!-- ★ ③ 系统设置 -->
+  <view class="card system-settings-card" wx:if="{{isOwner || isAdminRole || isGuest}}">
+    <view class="collapse-header" bindtap="toggleSystemSettings">
+      <view class="collapse-title">
+        <text class="icon">⚙️</text>
+        <text>系统设置</text>
+      </view>
+      <text class="collapse-arrow {{systemSettingsExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{systemSettingsExpanded}}">
+      <!-- 导航栏设置 -->
+      <block>
+        <view class="settings-section-title">
+          <text>🧭 导航栏设置</text>
+        </view>
+        <view class="nav-hint">选择要在底部导航栏显示的功能入口</view>
+        <view class="nav-checkboxes">
+          <view class="nav-checkbox-item" bindtap="onToggleNavTab" data-key="member">
+            <view class="nav-checkbox {{navTabs.member ? 'checked' : ''}}">
+              <text wx:if="{{navTabs.member}}">✓</text>
+            </view>
+            <text class="nav-checkbox-label">{{navTabs.member ? '会员已显示' : '会员已隐藏'}}</text>
+          </view>
+          <view class="nav-checkbox-item" bindtap="onToggleNavTab" data-key="car">
+            <view class="nav-checkbox {{navTabs.car ? 'checked' : ''}}">
+              <text wx:if="{{navTabs.car}}">✓</text>
+            </view>
+            <text class="nav-checkbox-label">{{navTabs.car ? '车辆已显示' : '车辆已隐藏'}}</text>
+          </view>
+        </view>
+        <view class="nav-count-tip">
+          <text class="nav-count-tip-text">选中则显示，取消则隐藏。固定显示：首页、报表、我的</text>
+        </view>
+      </block>
+      <!-- 开单设置 -->
+      <view class="settings-divider"></view>
+      <view class="settings-section-title">
+        <text class="settings-section-icon">📋</text>
+        <text>开单设置</text>
+      </view>
+      <!-- 开关1：进销存模式 -->
+      <view class="inventory-toggle-row">
+        <text class="toggle-label">进销存模式</text>
+        <switch checked="{{inventoryEnabled}}" bindchange="onToggleInventorySwitch" color="#1677ff" />
+      </view>
+      <view class="inventory-toggle-tip">
+        <text>开启后可在录单时选择商品关联库存</text>
+      </view>
+      <!-- 开关2：自由开单模式 -->
+      <view class="inventory-toggle-row">
+        <text class="toggle-label">自由开单模式</text>
+        <switch checked="{{freeOrderMode}}" bindchange="onToggleFreeOrderSwitch" color="#1677ff" />
+      </view>
+      <view class="inventory-toggle-tip">
+        <text>关闭后只能通过"选择商品"添加项目，快捷短语和手动编辑将不可用</text>
+      </view>
+      <!-- 经营诊断配置（仅店主账号） -->
+      <block wx:if="{{isOwner}}">
+        <view class="settings-divider"></view>
+        <view class="settings-section-title">
+          <text>📊 经营诊断配置</text>
+        </view>
+        <view class="profile-row">
+          <view class="profile-form-item profile-form-half" bindtap="onEditShopProfile">
+            <text class="profile-label">施工工位数</text>
+            <view class="profile-value-row">
+              <text class="profile-value">{{shopBayCount}} 个</text>
+              <text class="profile-edit-icon">📝</text>
+            </view>
+          </view>
+          <view class="profile-form-item profile-form-half" bindtap="onEditShopProfile">
+            <text class="profile-label">开业年份</text>
+            <view class="profile-value-row">
+              <text class="profile-value">{{shopOpenYear}} 年</text>
+              <text class="profile-edit-icon">📝</text>
+            </view>
+          </view>
+        </view>
+        <view class="profile-tip">
+          <text>用于每月经营报告的基准值对标和诊断分析</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- ★ ④ 数据导出 -->
+  <view class="card data-export-card {{isPro && isOwner ? 'export-enabled' : 'export-disabled'}}" bindtap="onGoDataExport">
+    <view class="export-row">
+      <view class="export-icon-wrap">
+        <text class="export-icon">📊</text>
+      </view>
+      <view class="export-info">
+        <text class="export-title">数据导出</text>
+        <text class="export-desc" wx:if="{{isPro && isOwner}}">导出工单、车辆、会员数据</text>
+        <text class="export-desc export-desc-lock" wx:if="{{!isPro || !isOwner}}">仅店主账号可用</text>
+      </view>
+      <text class="export-arrow" wx:if="{{isPro && isOwner}}">›</text>
+      <text class="export-lock" wx:if="{{!isPro || !isOwner}}">🔒</text>
+    </view>
+  </view>
+
+  <!-- ★ ⑤ 库存管理 -->
+  <view class="card collapsible-card" wx:if="{{inventoryEnabled && (isOwner || isGuest || isAdminRole || !isStaff)}}">
+    <view class="collapse-header" bindtap="toggleInventory">
+      <view class="collapse-title">
+        <text class="icon">📦</text>
+        库存管理
+      </view>
+      <text class="collapse-arrow {{inventoryExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{inventoryExpanded}}">
+      <view class="help-item help-tappable" bindtap="onGoProductTemplateImport">
+        <text class="help-item-text">📦 新建商品</text>
+        <text class="help-item-arrow">›</text>
+      </view>
+      <view class="help-item help-tappable" bindtap="onGoProductStockIn">
+        <text class="help-item-text">📥 商品入库</text>
+        <text class="help-item-arrow">›</text>
+      </view>
+      <view class="help-item help-tappable" bindtap="onGoProductStockList">
+        <text class="help-item-text">📋 库存明细</text>
+        <text class="help-item-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ★ ⑥ 员工管理 -->
+  <view class="card staff-card" wx:if="{{isPro && (isOwner || isGuest || !isStaff)}}">
+    <view class="collapse-header" bindtap="toggleStaff">
+      <view class="collapse-title">
+        <text class="icon">👥</text>
+        员工管理
+      </view>
+      <text class="collapse-arrow {{staffExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{staffExpanded}}">
+      <!-- 添加员工 -->
+      <view class="staff-add-section">
+        <view class="staff-add-row">
+          <input class="staff-phone-input" type="number" placeholder="员工手机号" maxlength="11" value="{{staffPhoneInput}}" bindinput="onStaffPhoneInput" />
+        </view>
+        <view class="staff-add-row">
+          <input class="staff-name-input" type="text" placeholder="显示名称(选填)" maxlength="10" value="{{staffDisplayNameInput}}" bindinput="onStaffDisplayNameInput" />
+          <picker mode="selector" range="{{staffRoleOptions}}" range-key="label" value="{{staffRoleIndex}}" bindchange="onStaffRoleChange">
+            <view class="staff-role-picker">{{staffRoleOptions[staffRoleIndex].label}}</view>
+          </picker>
+          <button class="staff-add-btn" size="mini" bindtap="onAddStaff" disabled="{{staffAdding || !staffPhoneInput}}">添加</button>
+        </view>
+      </view>
+      <!-- 员工列表 -->
+      <view wx:if="{{staffList.length > 0}}" class="staff-list">
+        <view class="staff-item" wx:for="{{staffList}}" wx:key="_id">
+          <view class="staff-info">
+            <text class="staff-phone">{{item.phone}}</text>
+            <text class="staff-role-tag {{item.role === 'admin' ? 'tag-admin' : 'tag-staff'}}">{{item.role === 'admin' ? '管理员' : '店员'}}</text>
+            <text class="staff-display-name" wx:if="{{item.displayName}}">{{item.displayName}}</text>
+          </view>
+          <view class="staff-actions">
+            <text class="staff-action-btn" wx:if="{{item.role !== 'admin'}}" bindtap="onToggleStaffRole" data-id="{{item._id}}" data-role="{{item.role}}">升为管理员</text>
+            <text class="staff-action-btn staff-action-del" bindtap="onRemoveStaff" data-id="{{item._id}}">移除</text>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="staff-empty">
+        <text class="staff-empty-text">暂无员工</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ★ ⑦ Pro版特权（仅免费版显示） -->
   <view class="card pro-card" wx:if="{{!isPro}}">
     <view class="card-title pro-title">
       <text class="icon">⭐</text>
@@ -175,7 +320,7 @@
     </view>
   </view>
 
-  <!-- 激活 Pro 版（仅免费版显示，折叠卡片样式） -->
+  <!-- ★ ⑧ 激活 Pro 版（仅免费版显示） -->
   <view class="card activation-card" wx:if="{{!isPro}}">
     <view class="collapse-header" bindtap="toggleActivation">
       <view class="collapse-title">
@@ -208,16 +353,7 @@
     </view>
   </view>
 
-  <!-- Pro续费提醒横幅（Pro版且剩余<30天时显示） -->
-  <view class="renew-banner" wx:if="{{showRenew}}">
-    <view class="renew-icon">⚠️</view>
-    <view class="renew-content">
-      <text class="renew-text">{{renewTip}}</text>
-      <text class="renew-action">续费请联系客服获取续费激活码</text>
-    </view>
-  </view>
-
-  <!-- ★ 联系客服（可折叠，默认收起，标题随版本变化） -->
+  <!-- ★ ⑨ 联系客服（可折叠，默认收起，标题随版本变化） -->
   <view class="card collapsible-card">
     <view class="collapse-header" bindtap="toggleContact">
       <view class="collapse-title">
@@ -256,147 +392,12 @@
       </view>
       <!-- #11 下载APP入口 -->
       <view class="download-app-entry" bindtap="onDownloadApp">
-        <text class="download-app-text">📱 下载 “汽修店小管家” 手机APP</text>
+        <text class="download-app-text">📱 下载 "汽修店小管家" 手机APP</text>
       </view>
       <!-- #12 电脑版入口 -->
       <view class="pc-version-entry" bindtap="onUsePcVersion">
         <text class="pc-version-text">💻 使用电脑版"汽修店小管家"</text>
       </view>
-    </view>
-  </view>
-
-  <!-- ★ 数据导出独立卡片（仅 Pro+超级管理员） -->
-  <view class="card data-export-card {{isPro && isOwner ? 'export-enabled' : 'export-disabled'}}" bindtap="onGoDataExport">
-    <view class="export-row">
-      <view class="export-icon-wrap">
-        <text class="export-icon">📊</text>
-      </view>
-      <view class="export-info">
-        <text class="export-title">数据导出</text>
-        <text class="export-desc" wx:if="{{isPro && isOwner}}">导出工单、车辆、会员数据</text>
-        <text class="export-desc export-desc-lock" wx:if="{{!isPro || !isOwner}}">仅超级管理员可用</text>
-      </view>
-      <text class="export-arrow" wx:if="{{isPro && isOwner}}">›</text>
-      <text class="export-lock" wx:if="{{!isPro || !isOwner}}">🔒</text>
-    </view>
-  </view>
-
-  <!-- ★ v4.0.0 员工管理（Pro+超级管理员/管理员员工查看；游客模式下也可展示供演示） -->
-  <view class="card staff-card" wx:if="{{isPro && (isOwner || isGuest || !isStaff)}}">
-    <view class="collapse-header" bindtap="toggleStaff">
-      <view class="collapse-title">
-        <text class="icon">👥</text>
-        员工管理
-      </view>
-      <text class="collapse-arrow {{staffExpanded ? 'expanded' : ''}}">›</text>
-    </view>
-    <view wx:if="{{staffExpanded}}">
-      <!-- 添加员工 -->
-      <view class="staff-add-section">
-        <view class="staff-add-row">
-          <input class="staff-phone-input" type="number" placeholder="员工手机号" maxlength="11" value="{{staffPhoneInput}}" bindinput="onStaffPhoneInput" />
-        </view>
-        <view class="staff-add-row">
-          <input class="staff-name-input" type="text" placeholder="显示名称(选填)" maxlength="10" value="{{staffDisplayNameInput}}" bindinput="onStaffDisplayNameInput" />
-          <picker mode="selector" range="{{staffRoleOptions}}" range-key="label" value="{{staffRoleIndex}}" bindchange="onStaffRoleChange">
-            <view class="staff-role-picker">{{staffRoleOptions[staffRoleIndex].label}}</view>
-          </picker>
-          <button class="staff-add-btn" size="mini" bindtap="onAddStaff" disabled="{{staffAdding || !staffPhoneInput}}">添加</button>
-        </view>
-      </view>
-      <!-- 员工列表 -->
-      <view wx:if="{{staffList.length > 0}}" class="staff-list">
-        <view class="staff-item" wx:for="{{staffList}}" wx:key="_id">
-          <view class="staff-info">
-            <text class="staff-phone">{{item.phone}}</text>
-            <text class="staff-role-tag {{item.role === 'admin' ? 'tag-admin' : 'tag-staff'}}">{{item.role === 'admin' ? '管理员' : '店员'}}</text>
-            <text class="staff-display-name" wx:if="{{item.displayName}}">{{item.displayName}}</text>
-          </view>
-          <view class="staff-actions">
-            <text class="staff-action-btn" wx:if="{{item.role !== 'admin'}}" bindtap="onToggleStaffRole" data-id="{{item._id}}" data-role="{{item.role}}">升为管理员</text>
-            <text class="staff-action-btn staff-action-del" bindtap="onRemoveStaff" data-id="{{item._id}}">移除</text>
-          </view>
-        </view>
-      </view>
-      <view wx:else class="staff-empty">
-        <text class="staff-empty-text">暂无员工</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- ★ 系统设置（合并 AI诊断设置 + 导航栏设置，即时生效） -->
-  <view class="card system-settings-card" wx:if="{{isOwner || isAdminRole || isGuest}}">
-    <view class="collapse-header" bindtap="toggleSystemSettings">
-      <view class="collapse-title">
-        <text class="icon">⚙️</text>
-        <text>系统设置</text>
-      </view>
-      <text class="collapse-arrow {{systemSettingsExpanded ? 'expanded' : ''}}">›</text>
-    </view>
-    <view wx:if="{{systemSettingsExpanded}}">
-      <!-- 经营诊断配置（仅超级管理员） -->
-      <block wx:if="{{isOwner}}">
-        <view class="settings-section-title">
-          <text>📊 经营诊断配置</text>
-        </view>
-        <view class="profile-row">
-          <view class="profile-form-item profile-form-half">
-            <text class="profile-label">施工工位数</text>
-            <picker mode="selector" range="{{bayCountOptions}}"
-                    value="{{shopBayCountIndex}}" bindchange="onBayCountChange">
-              <view class="profile-picker">
-                <text>{{shopBayCount || '选择数量'}}</text>
-                <text class="picker-arrow">▼</text>
-              </view>
-            </picker>
-          </view>
-          <view class="profile-form-item profile-form-half">
-            <text class="profile-label">开业年份</text>
-            <picker mode="date" fields="year" start="1990" end="{{currentYear}}"
-                    value="{{shopOpenYear}}" bindchange="onOpenYearChange">
-              <view class="profile-picker">
-                <text>{{shopOpenYear || '选择年份'}}</text>
-                <text class="picker-arrow">▼</text>
-              </view>
-            </picker>
-          </view>
-        </view>
-        <view class="profile-btn-row">
-          <button class="profile-save-btn" size="mini"
-                  bindtap="onSaveShopProfile"
-                  disabled="{{shopProfileSaving}}">
-            {{shopProfileSaving ? '保存中...' : '保存设置'}}
-          </button>
-        </view>
-        <view class="profile-tip">
-          <text>用于每月经营报告的基准值对标和诊断分析</text>
-        </view>
-        <view class="settings-divider"></view>
-      </block>
-      <!-- 导航栏设置 -->
-      <block>
-        <view class="settings-section-title">
-          <text>🧭 导航栏设置</text>
-        </view>
-        <view class="nav-hint">选择要在底部导航栏显示的功能入口</view>
-        <view class="nav-checkboxes">
-          <view class="nav-checkbox-item" bindtap="onToggleNavTab" data-key="member">
-            <view class="nav-checkbox {{navTabs.member ? 'checked' : ''}}">
-              <text wx:if="{{navTabs.member}}">✓</text>
-            </view>
-            <text class="nav-checkbox-label">{{navTabs.member ? '会员已显示' : '会员已隐藏'}}</text>
-          </view>
-          <view class="nav-checkbox-item" bindtap="onToggleNavTab" data-key="car">
-            <view class="nav-checkbox {{navTabs.car ? 'checked' : ''}}">
-              <text wx:if="{{navTabs.car}}">✓</text>
-            </view>
-            <text class="nav-checkbox-label">{{navTabs.car ? '车辆已显示' : '车辆已隐藏'}}</text>
-          </view>
-        </view>
-        <view class="nav-count-tip">
-          <text class="nav-count-tip-text">选中则显示，取消则隐藏。固定显示：首页、报表、我的</text>
-        </view>
-      </block>
     </view>
   </view>
 
@@ -417,7 +418,40 @@
     </view>
   </view>
 
-  <!-- ★ 使用帮助（可折叠展开，含视频号+公众号） -->
+  <!-- 免费版权益（已隐藏） -->
+  <view class="card benefit-card" wx:if="{{false}}">
+    <view class="card-title">
+      <text class="icon">🎁</text>
+      免费版权益
+    </view>
+    <view class="benefit-list">
+      <view class="benefit-row">
+        <view class="benefit-item">
+          <text class="benefit-label">工单数量</text>
+          <text class="benefit-value">{{freeMaxOrders}} 单</text>
+        </view>
+        <view class="benefit-item">
+          <text class="benefit-label">会员管理</text>
+          <text class="benefit-value">{{freeMaxMembers}} 人</text>
+        </view>
+      </view>
+      <view class="benefit-row">
+        <view class="benefit-item">
+          <text class="benefit-label">数据导出</text>
+          <text class="benefit-value text-disabled">❌</text>
+        </view>
+        <view class="benefit-item">
+          <text class="benefit-label">高级报表</text>
+          <text class="benefit-value text-disabled">❌</text>
+        </view>
+      </view>
+    </view>
+    <view class="benefit-tip">
+      已使用 {{usedCount}} / {{freeMaxOrders}} 单
+    </view>
+  </view>
+
+  <!-- ★ 使用帮助 -->
   <view class="card collapsible-card">
     <view class="collapse-header" bindtap="toggleUseHelp">
       <view class="collapse-title">
@@ -438,7 +472,7 @@
     </view>
   </view>
 
-  <!-- ★ v6.0.5 员工管理员退出登录（仅管理员员工可见，超级管理员/游客不可见） -->
+  <!-- ★ v6.0.5 员工管理员退出登录（仅管理员员工可见，店主账号/游客不可见） -->
   <view class="card staff-logout-card" wx:if="{{isAdminRole}}">
     <view class="staff-logout" bindtap="onStaffLogout">
       <text class="staff-logout-text">退出登录</text>
@@ -450,5 +484,28 @@
     <text class="privacy-link" bindtap="onGoPrivacy">隐私政策</text>
     <text class="privacy-divider">|</text>
     <text class="privacy-link" bindtap="onGoAgreement">用户服务协议</text>
+  </view>
+
+  <!-- 经营诊断配置编辑弹窗 -->
+  <view class="modal-overlay" wx:if="{{showEditProfileModal}}" bindtap="onCancelEditProfile">
+    <view class="modal-content" catchtap="_noop" catchtouchmove="_noop">
+      <view class="modal-title">经营诊断配置</view>
+      <view class="modal-body">
+        <view class="modal-field">
+          <text class="modal-field-label">施工工位数</text>
+          <input class="modal-field-input" type="digit" value="{{editBayCount}}" bindinput="onEditProfileBayInput" placeholder="1~30" maxlength="2" />
+        </view>
+        <view class="modal-field">
+          <text class="modal-field-label">开业年份</text>
+          <input class="modal-field-input" type="digit" value="{{editOpenYear}}" bindinput="onEditProfileYearInput" placeholder="如 2020" maxlength="4" />
+        </view>
+      </view>
+      <view class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" bindtap="onCancelEditProfile">取消</button>
+        <button class="modal-btn modal-btn-confirm" bindtap="onConfirmEditProfile" disabled="{{shopProfileSaving}}">
+          {{shopProfileSaving ? '保存中...' : '确定'}}
+        </button>
+      </view>
+    </view>
   </view>
 </view>

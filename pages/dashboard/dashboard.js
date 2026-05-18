@@ -43,7 +43,9 @@ Page({
     searchEmpty: false,
     searchWaiting: false,
     searchTimer: null,
-    showSearchResults: false
+    showSearchResults: false,
+    // 进销存功能开关（控制快捷操作第二行按钮显隐）
+    inventoryEnabled: true
   },
 
   onLoad() {
@@ -63,6 +65,7 @@ Page({
       isStaff: isStaff,
       isAdminRole: isAdminRole,
       showReportCard: !isStaff || isAdminRole,
+      inventoryEnabled: wx.getStorageSync(constants.INVENTORY_ENABLED_KEY) !== false,
       loading: true
     })
     this.updateDate()
@@ -101,7 +104,8 @@ Page({
       isSuperAdmin: superAdmin,
       isStaff: isStaff,
       isAdminRole: isAdminRole,
-      showReportCard: !isStaff || isAdminRole
+      showReportCard: !isStaff || isAdminRole,
+      inventoryEnabled: wx.getStorageSync(constants.INVENTORY_ENABLED_KEY) !== false
     })
     // 检测开单页返回时的刷新标志
     if (getApp().globalData.shouldRefreshOrderList) {
@@ -150,6 +154,7 @@ Page({
       isStaff: isStaff,
       isAdminRole: isAdminRole,
       showReportCard: !isStaff || isAdminRole,
+      inventoryEnabled: wx.getStorageSync(constants.INVENTORY_ENABLED_KEY) !== false,
       loading: false
     })
     app.whenCloudReady().then(function () {
@@ -628,7 +633,24 @@ Page({
     }
   },
 
-  // 📷 车牌OCR识别 → cameraScan 蒙层相机页
+  // ====== 进销存快捷操作（v6.3.1） ======
+
+  /** 跳转新建商品（模板导入页） */
+  onGoProductAdd() {
+    wx.navigateTo({ url: '/pages/product/productTemplateImport/productTemplateImport' })
+  },
+
+  /** 跳转商品入库 */
+  onGoProductStockIn() {
+    wx.navigateTo({ url: '/pages/product/productStockIn/productStockIn' })
+  },
+
+  /** 跳转库存明细 */
+  onGoProductStockList() {
+    wx.navigateTo({ url: '/pages/product/productStockList/productStockList' })
+  },
+
+  // 📷 车牌OCR识别（v6.1.0）
   onScanPlate() {
     var page = this
     wx.navigateTo({

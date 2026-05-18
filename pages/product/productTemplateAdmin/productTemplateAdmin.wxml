@@ -1,0 +1,70 @@
+<view class="container">
+  <view class="form-card">
+    <view class="form-group">
+      <text class="form-label">商品名称 <text class="required">*</text></text>
+      <input class="form-input" type="text" placeholder="如：嘉实多磁护" value="{{name}}" bindinput="onInput" data-field="name" maxlength="30" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">商品分类 <text class="required">*</text></text>
+      <picker mode="selector" range="{{categoryOptions}}" value="{{categoryIndex}}" bindchange="onCategoryChange">
+        <view class="form-picker {{categoryIndex === 0 ? 'placeholder' : ''}}">{{categoryOptions[categoryIndex]}}</view>
+      </picker>
+    </view>
+    <view class="form-group">
+      <text class="form-label">单位</text>
+      <picker mode="selector" range="{{unitOptions}}" value="{{unitIndex}}" bindchange="onUnitChange">
+        <view class="form-picker">{{unitOptions[unitIndex]}}</view>
+      </picker>
+    </view>
+    <view class="form-group">
+      <text class="form-label">建议售价 <text class="required">*</text></text>
+      <input class="form-input" type="digit" placeholder="模板参考售价" value="{{price}}" bindinput="onInput" data-field="price" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">参考进价（选填）</text>
+      <input class="form-input" type="digit" placeholder="进货参考价" value="{{cost}}" bindinput="onInput" data-field="cost" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">排序序号</text>
+      <input class="form-input" type="digit" placeholder="数字越小越靠前（默认0）" value="{{sortOrder}}" bindinput="onInput" data-field="sortOrder" />
+      <text class="form-tip">控制模板列表中的显示顺序，数字越小越靠前</text>
+    </view>
+
+    <!-- 多规格（折叠） -->
+    <view class="form-group spec-collapse">
+      <view class="spec-collapse-header" bindtap="onToggleSpecSection">
+        <text class="form-label" style="margin-bottom:0;">填写多规格商品</text>
+        <text class="spec-arrow {{showSpecSection ? 'spec-arrow-up' : ''}}">▸</text>
+      </view>
+      <view class="spec-collapse-body {{showSpecSection ? 'spec-collapse-open' : ''}}">
+        <view class="spec-table">
+          <view class="spec-table-header">
+            <text class="spec-col-name">规格</text>
+            <text class="spec-col-cost">进货价</text>
+            <text class="spec-col-price">零售价</text>
+            <text class="spec-col-del"></text>
+          </view>
+          <view class="spec-table-row" wx:for="{{specRows}}" wx:key="index">
+            <input class="spec-col-name" type="text" placeholder="如：4L、2kg" value="{{item.name}}" data-index="{{index}}" data-field="name" bindinput="onSpecRowInput" />
+            <input class="spec-col-cost" type="digit" placeholder="进价" value="{{item.cost}}" data-index="{{index}}" data-field="cost" bindinput="onSpecRowInput" />
+            <input class="spec-col-price" type="digit" placeholder="售价" value="{{item.price}}" data-index="{{index}}" data-field="price" bindinput="onSpecRowInput" />
+            <text class="spec-col-del" wx:if="{{specRows.length > 1}}" data-index="{{index}}" bindtap="onDelSpec">✕</text>
+          </view>
+        </view>
+        <view class="spec-collapse-actions">
+          <text class="form-add-spec" bindtap="onAddSpec">+ 添加规格</text>
+        </view>
+        <text class="form-tip">多规格商品可添加多个，如机油有 1L、4L</text>
+      </view>
+    </view>
+
+    <view class="form-group">
+      <text class="form-label">备注</text>
+      <textarea class="form-textarea" placeholder="选填" value="{{remark}}" bindinput="onInput" data-field="remark" maxlength="200" />
+    </view>
+  </view>
+
+  <view class="footer">
+    <button class="save-btn" bindtap="onSave" disabled="{{saving}}">{{saving ? '保存中...' : (isEdit ? '保存修改' : '创建模板')}}</button>
+  </view>
+</view>

@@ -30,11 +30,61 @@
     <view class="card-arrow">›</view>
   </view>
 
+  <view class="export-card" bindtap="onExport" data-type="stock_logs">
+    <view class="card-icon">📦</view>
+    <view class="card-content">
+      <text class="card-title">库存明细清单</text>
+      <text class="card-desc">导出所有出入库流水，含商品名称、规格、流水类型、数量、时间、操作人</text>
+    </view>
+    <view class="card-arrow">›</view>
+  </view>
+
   <!-- 导出中遮罩 -->
   <view class="loading-mask" wx:if="{{exporting}}">
     <view class="loading-box">
       <view class="loading-spinner"></view>
       <text class="loading-text">{{loadingText}}</text>
+    </view>
+  </view>
+
+  <!-- 库存流水筛选弹窗 -->
+  <view class="stock-filter-mask" wx:if="{{showStockFilter}}">
+    <view class="stock-filter-panel">
+      <view class="stock-filter-title">库存流水筛选</view>
+
+      <!-- 流水类型 -->
+      <view class="filter-section">
+        <view class="filter-label">流水类型</view>
+        <view class="filter-type-group">
+          <view class="filter-type-btn {{filterLogType === 'in' ? 'active' : ''}}" data-value="in" bindtap="onSelectLogType">入库</view>
+          <view class="filter-type-btn {{filterLogType === 'out' ? 'active' : ''}}" data-value="out" bindtap="onSelectLogType">出库</view>
+          <view class="filter-type-btn {{filterLogType === 'adjust' ? 'active' : ''}}" data-value="adjust" bindtap="onSelectLogType">调整</view>
+        </view>
+      </view>
+
+      <!-- 时间范围 -->
+      <view class="filter-section">
+        <view class="filter-label">时间范围</view>
+        <view class="filter-date-row">
+          <picker mode="date" value="{{filterStartDate}}" start="2020-01-01" end="{{today}}" bindchange="onFilterStartDate">
+            <view class="filter-date-input {{filterStartDate ? 'has-value' : ''}}">
+              {{filterStartDate || '开始日期'}}
+            </view>
+          </picker>
+          <text class="filter-date-sep">至</text>
+          <picker mode="date" value="{{filterEndDate}}" start="2020-01-01" end="{{today}}" bindchange="onFilterEndDate">
+            <view class="filter-date-input {{filterEndDate ? 'has-value' : ''}}">
+              {{filterEndDate || '结束日期'}}
+            </view>
+          </picker>
+        </view>
+      </view>
+
+      <!-- 按钮 -->
+      <view class="filter-actions">
+        <view class="filter-btn cancel" bindtap="onCancelFilter">取消</view>
+        <view class="filter-btn confirm" bindtap="onConfirmFilter">确认导出</view>
+      </view>
     </view>
   </view>
 </view>

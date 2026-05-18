@@ -82,11 +82,14 @@
   <view class="form-section">
     <view class="section-title-row">
       <text class="section-title">服务项目</text>
-      <text class="phrase-manage-btn" bindtap="onManagePhrases">管理短语</text>
+      <view class="section-actions">
+        <text class="phrase-manage-btn" bindtap="onManagePhrases">管理短语</text>
+        <text class="product-pick-btn" wx:if="{{inventoryEnabled || !freeOrderMode}}" bindtap="onSelectProduct">选择商品</text>
+      </view>
     </view>
 
     <!-- 快捷短语 -->
-    <view class="phrase-section" wx:if="{{phrases.length > 0}}">
+    <view class="phrase-section" wx:if="{{freeOrderMode && phrases.length > 0}}">
       <view class="phrase-wrap {{phraseExpanded ? '' : 'collapsed'}}">
         <view class="phrase-tag {{item.selected ? 'selected' : ''}}" wx:for="{{phrases}}" wx:key="index" data-index="{{index}}" data-text="{{item.text}}" bindtap="onPhraseTap">
           <text>{{item.displayText}}</text>
@@ -102,21 +105,33 @@
     <view class="svc-table-card">
       <view class="svc-table">
         <view class="svc-header">
-          <text class="svc-col col-num">序</text>
+          <text class="svc-col col-num"></text>
           <text class="svc-col col-name">项目</text>
           <text class="svc-col col-spec">规格</text>
           <text class="svc-col col-amount">金额</text>
+          <view class="svc-col-del-spacer"></view>
         </view>
         <view class="svc-row" wx:for="{{serviceRows}}" wx:key="index">
           <text class="svc-col col-num">{{index + 1}}</text>
-          <input class="svc-input col-name" placeholder="项目名" placeholder-class="svc-placeholder" value="{{item.name}}" data-index="{{index}}" data-field="name" bindinput="onRowInput" bindfocus="onRowFocus" bindblur="onRowBlur" focus="{{nameInputFocusIndex === index}}" />
-          <input class="svc-input col-spec" placeholder="规格（选填）" placeholder-class="svc-placeholder" value="{{item.spec}}" data-index="{{index}}" data-field="spec" bindinput="onRowInput" />
+          <input class="svc-input col-name" placeholder="项目名" placeholder-class="svc-placeholder" value="{{item.name}}" data-index="{{index}}" data-field="name" bindinput="onRowInput" bindfocus="onRowFocus" bindblur="onRowBlur" focus="{{nameInputFocusIndex === index}}" disabled="{{!freeOrderMode}}" />
+          <block wx:if="{{!item._fromProduct}}">
+            <input class="svc-input col-spec" placeholder="规格（选填）" placeholder-class="svc-placeholder" value="{{item.spec}}" data-index="{{index}}" data-field="spec" bindinput="onRowInput" disabled="{{!freeOrderMode}}" />
+          </block>
+          <view wx:else class="svc-col col-spec svc-spec-display">
+            <text class="svc-spec-text">{{item.spec || '--'}}</text>
+            <view class="qty-badge" wx:if="{{item._productQuantity > 1}}">
+              <text class="qty-badge-text">x{{item._productQuantity}}</text>
+            </view>
+          </view>
           <view class="svc-amount-trigger col-amount" data-index="{{index}}" bindtap="onAmountTap">
             <text class="svc-amount-text {{item.amount ? '' : 'placeholder'}}">{{item.amount || '0'}}</text>
           </view>
+          <view class="svc-del-btn" data-index="{{index}}" bindtap="onDelRow">
+            <text>✕</text>
+          </view>
         </view>
       </view>
-      <view class="svc-add-row" bindtap="onAddRow">
+      <view class="svc-add-row {{!freeOrderMode ? 'disabled' : ''}}" wx:if="{{freeOrderMode}}" bindtap="onAddRow">
         <text class="svc-add-text">点击这里➡️  </text>
         <text class="svc-add-icon">+</text>
         <text class="svc-add-text">加一行</text>

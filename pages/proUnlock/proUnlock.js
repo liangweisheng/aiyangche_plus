@@ -32,7 +32,7 @@ Page({
     roleTagClass: '', // 账号类型样式类
     contactExpanded: false,    // 联系客服折叠状态
     shopCodeExpanded: false,   // 门店码折叠状态
-    isOwner: false,            // 是否超级管理员（注册者本人）
+    isOwner: false,            // 是否店主账号（注册者本人）
     isStaff: false,            // 是否员工身份
     // 员工管理
     staffExpanded: false,
@@ -43,18 +43,25 @@ Page({
     staffRoleOptions: [{ label: '店员', value: 'staff' }, { label: '管理员', value: 'admin' }],
     staffAdding: false,
     shopBayCount: 2,
-    shopBayCountIndex: 1,  // 默认索引（对应值2）
-    bayCountOptions: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'],
     shopOpenYear: String(new Date().getFullYear()),
     shopProfileSaving: false,
     currentYear: String(new Date().getFullYear()),
+    showEditProfileModal: false,
+    editBayCount: '',
+    editOpenYear: '',
     navTabs: { member: true, car: false },
     // 激活 Pro 版折叠状态（默认收起）
     activationExpanded: false,
     // 系统设置（合并 AI诊断设置 + 导航栏设置）
     systemSettingsExpanded: false,
     // 使用帮助折叠状态
-    useHelpExpanded: false
+    useHelpExpanded: false,
+    // 库存管理折叠状态
+    inventoryExpanded: false,
+    // 进销存功能开关（默认开启）
+    inventoryEnabled: true,
+    // 自由开单模式（默认开启）
+    freeOrderMode: true
   },
 
   // 切换激活 Pro 版卡片展开/收起
@@ -81,7 +88,7 @@ Page({
     })
     // 设置账号类型标签
     page._updateRoleLabel()
-    // 设置 isOwner（是否超级管理员/注册者本人）
+    // 设置 isOwner（是否店主账号/注册者本人）
     page._updateOwnerFlag()
     // v5.4.0 读取导航栏设置
     page._loadNavConfig()
@@ -91,6 +98,11 @@ Page({
       freeMaxMembers: constants.FREE_MAX_MEMBERS,
       servicePhone: constants.SERVICE_PHONE
     })
+    // 加载开单设置
+    var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
+    page.setData({ inventoryEnabled: invEnabled !== false })
+    var freeMode = wx.getStorageSync(constants.FREE_ORDER_MODE_KEY)
+    page.setData({ freeOrderMode: freeMode !== false })
   },
 
   onShow: function () {
@@ -125,26 +137,20 @@ Page({
     if (addr) patch.shopAddr = addr
     if (localDisplayName) patch.displayName = localDisplayName
     if (Object.keys(patch).length > 0) this.setData(patch)
+    // 刷新开单设置
+    var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
+    page.setData({ inventoryEnabled: invEnabled !== false })
+    var freeMode = wx.getStorageSync(constants.FREE_ORDER_MODE_KEY)
+    page.setData({ freeOrderMode: freeMode !== false })
   },
 
   onUnload: function () {
     // 重置重入守卫，确保下次进入页面时刷新
     this._firstLoad = true
-    // ★ 恢复自定义 TabBar（展开系统设置后直接返回页面时）
-    if (this.data.systemSettingsExpanded) {
-      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-        this.getTabBar().show()
-      }
-    }
   },
 
   onHide: function () {
-    // ★ 恢复自定义 TabBar（切换 tab 时系统设置可能处于展开状态）
-    if (this.data.systemSettingsExpanded) {
-      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-        this.getTabBar().show()
-      }
-    }
+    // 无需恢复 tabbar，展开系统设置时不再隐藏 tabbar
   },
 
   /**
@@ -210,7 +216,7 @@ Page({
     if (localPhone && !page.data.isGuest) {
       page.setData({ shopPhone: util.maskPhone(localPhone) })
     }
-    // 非超级管理员账号：设置登录手机号（员工用自身手机号，店主无openid时也需显示）
+    // 非店主账号：设置登录手机号（员工用自身手机号，店主无openid时也需显示）
     if (shopInfo.addedBy && (shopInfo.phone || shopInfo.shopPhone)) {
       // 员工账号：显示员工自己的手机号
       page.setData({ myPhone: util.maskPhone(shopInfo.phone || shopInfo.shopPhone) })
@@ -597,7 +603,7 @@ Page({
   // 修改门店名称
   onEditShopName: function () {
     if (!this.data.isOwner) {
-      wx.showToast({ title: '仅超级管理员可修改', icon: 'none' })
+      wx.showToast({ title: '仅店主账号可修改', icon: 'none' })
       return
     }
     var page = this
@@ -666,7 +672,7 @@ Page({
   // 编辑门店联系电话
   onEditShopTel: function () {
     if (!this.data.isOwner) {
-      wx.showToast({ title: '仅超级管理员可修改', icon: 'none' })
+      wx.showToast({ title: '仅店主账号可修改', icon: 'none' })
       return
     }
     var page = this
@@ -689,7 +695,7 @@ Page({
   // 编辑门店地址
   onEditShopAddr: function () {
     if (!this.data.isOwner) {
-      wx.showToast({ title: '仅超级管理员可修改', icon: 'none' })
+      wx.showToast({ title: '仅店主账号可修改', icon: 'none' })
       return
     }
     var page = this
@@ -722,10 +728,10 @@ Page({
     })
   },
 
-  // 跳转数据导出页（仅 Pro+超级管理员可用）
+  // 跳转数据导出页（仅 Pro+店主账号可用）
   onGoDataExport: function () {
     if (!this.data.isPro || !this.data.isOwner) {
-      wx.showToast({ title: '仅超级管理员可使用此功能', icon: 'none' })
+      wx.showToast({ title: '仅店主账号可使用此功能', icon: 'none' })
       return
     }
     wx.navigateTo({ url: '/pages/dataExport/dataExport' })
@@ -849,7 +855,7 @@ Page({
     var roleLabel = ''
     var roleTagClass = ''
     if (isOwner) {
-      roleLabel = '超级管理员'
+      roleLabel = '店主账号'
       roleTagClass = 'tag-super-admin'
     } else if (role === 'admin') {
       roleLabel = '管理员'
@@ -858,13 +864,13 @@ Page({
       roleLabel = '店员'
       roleTagClass = 'tag-staff-role'
     }
-    // ★ 管理员员工标识（非超级管理员、有 addedBy、role=admin）
+    // ★ 管理员员工标识（非店主账号、有 addedBy、role=admin）
     var isAdminRole = !isOwner && role === 'admin' && isStaff
     this.setData({ isOwner: isOwner, isStaff: isStaff, addedBy: isStaff, roleLabel: roleLabel, roleTagClass: roleTagClass, isAdminRole: isAdminRole })
   },
 
   /**
-   * 更新 isOwner 标志（是否超级管理员/注册者本人）
+   * 更新 isOwner 标志（是否店主账号/注册者本人）
    */
   _updateOwnerFlag: function () {
     var shopInfo = wx.getStorageSync('shopInfo') || {}
@@ -999,14 +1005,6 @@ Page({
         this._loadShopProfile()
       }
       this._loadNavConfig()
-      // 隐藏自定义 TabBar，防止 picker 确定/取消按钮被遮挡
-      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-        this.getTabBar().hide()
-      }
-    } else {
-      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-        this.getTabBar().show()
-      }
     }
   },
 
@@ -1017,10 +1015,8 @@ Page({
       .then(function (res) {
         if (res.code === 0 && res.data) {
           var bayCount = res.data.bayCount || 2
-          var idx = Math.max(0, Math.min(bayCount - 1, page.data.bayCountOptions.length - 1))
           page.setData({
             shopBayCount: bayCount,
-            shopBayCountIndex: idx,
             shopOpenYear: String(res.data.openYear || new Date().getFullYear())
           })
         }
@@ -1028,18 +1024,87 @@ Page({
       .catch(function () { /* 静默 */ })
   },
 
-  onBayCountChange: function (e) {
-    var idx = parseInt(e.detail.value)
-    var val = parseInt(this.data.bayCountOptions[idx])
-    this.setData({ shopBayCount: val, shopBayCountIndex: idx })
+  onEditShopProfile: function () {
+    this.setData({
+      editBayCount: String(this.data.shopBayCount),
+      editOpenYear: this.data.shopOpenYear,
+      showEditProfileModal: true
+    })
   },
 
-  onOpenYearChange: function (e) {
-    var val = e.detail.value
-    if (val) {
-      this.setData({ shopOpenYear: val.substring(0, 4) })
-    }
+  onEditProfileBayInput: function (e) {
+    this.setData({ editBayCount: e.detail.value })
   },
+
+  onEditProfileYearInput: function (e) {
+    this.setData({ editOpenYear: e.detail.value })
+  },
+
+  onConfirmEditProfile: function () {
+    var page = this
+    var bayVal = parseInt(page.data.editBayCount)
+    var yearVal = page.data.editOpenYear.trim()
+    var currentYear = new Date().getFullYear()
+
+    // 验证工位数
+    if (isNaN(bayVal) || bayVal < 1 || bayVal > 30) {
+      wx.showToast({ title: '施工工位数请输入1~30之间的数字', icon: 'none' })
+      return
+    }
+    // 验证开业年份
+    if (!/^\d{4}$/.test(yearVal) || parseInt(yearVal) < 1900 || parseInt(yearVal) > currentYear) {
+      wx.showToast({ title: '开业年份请输入1900~' + currentYear + '之间的4位年份', icon: 'none' })
+      return
+    }
+
+    // 先关闭弹窗，再保存到云端
+    page.setData({ showEditProfileModal: false, shopProfileSaving: true })
+
+    // 保存成功后才更新本地显示数据，防止游客等无权限场景下页面显示虚假值
+    util.callRepair('updateShopProfile', {
+      bayCount: bayVal,
+      openYear: parseInt(yearVal)
+    }).then(function (res) {
+      page.setData({ shopProfileSaving: false })
+      if (res.code === 0) {
+        // 保存成功，更新本地数据
+        page.setData({ shopBayCount: bayVal, shopOpenYear: yearVal })
+        app.toastSuccess('已保存')
+        // 清除月报页面缓存，引导用户刷新获取新基准值
+        try {
+          wx.removeStorageSync('monthlyReportCache')
+          var keys = ['reportCache_week', 'reportCache_month', 'reportCache_year']
+          keys.forEach(function (k) { try { wx.removeStorageSync(k) } catch (e) {} })
+        } catch (e) {}
+        // 延迟弹出引导提示
+        setTimeout(function () {
+          wx.showModal({
+            title: '设置已更新',
+            content: '经营诊断基准已按新工位数调整，请前往「AI月报」页面下拉刷新查看最新报告',
+            confirmText: '前往月报',
+            success: function (modalRes) {
+              if (modalRes.confirm) {
+                wx.navigateTo({ url: '/pages/monthlyReport/monthlyReport' })
+              }
+            }
+          })
+        }, 600)
+        try { wx.removeStorageSync('monthlyReportGuideShown') } catch (e) {}
+      } else {
+        app.toastFail(res.msg || '保存失败')
+      }
+    }).catch(function () {
+      page.setData({ shopProfileSaving: false })
+      app.toastFail('网络异常')
+    })
+  },
+
+  onCancelEditProfile: function () {
+    this.setData({ showEditProfileModal: false })
+  },
+
+  /** 空函数，用于阻止弹窗内容的事件冒泡到遮罩层 */
+  _noop: function () {},
 
   onSaveShopProfile: function () {
     var page = this
@@ -1150,8 +1215,8 @@ Page({
   // ====== v5.4.0 导航栏设置（即时生效） ======
 
   _loadNavConfig: function () {
-    var config = wx.getStorageSync('navTabConfig') || { member: true, car: false }
-    this.setData({ navTabs: { member: config.member !== false, car: config.car === true } })
+    var config = wx.getStorageSync('navTabConfig') || { member: true, car: true }
+    this.setData({ navTabs: { member: config.member !== false, car: config.car !== false } })
   },
 
   onToggleNavTab: function (e) {
@@ -1164,5 +1229,62 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
+  },
+
+  // ===========================
+  // 进销存管理
+  // ===========================
+
+  /** 切换库存管理展开/收起 */
+  toggleInventory: function () {
+    this.setData({ inventoryExpanded: !this.data.inventoryExpanded })
+  },
+
+  /** 进销存功能开关切换 */
+  onToggleInventorySwitch: function (e) {
+    var enabled = !!e.detail.value
+    // 互斥保护：不能两个同时关闭
+    if (!enabled && !this.data.freeOrderMode) {
+      wx.showToast({ title: '至少保留一个开单模式', icon: 'none' })
+      return
+    }
+    this.setData({ inventoryEnabled: enabled })
+    wx.setStorageSync(constants.INVENTORY_ENABLED_KEY, enabled)
+    // 关闭时折叠库存管理卡片
+    if (!enabled) {
+      this.setData({ inventoryExpanded: false })
+    }
+  },
+
+  /** 自由开单模式开关切换 */
+  onToggleFreeOrderSwitch: function (e) {
+    var enabled = !!e.detail.value
+    // 互斥保护：不能两个同时关闭
+    if (!enabled && !this.data.inventoryEnabled) {
+      wx.showToast({ title: '至少保留一个开单模式', icon: 'none' })
+      return
+    }
+    this.setData({ freeOrderMode: enabled })
+    wx.setStorageSync(constants.FREE_ORDER_MODE_KEY, enabled)
+  },
+
+  /** 跳转模板商品导入 */
+  onGoProductTemplateImport: function () {
+    wx.navigateTo({ url: '/pages/product/productTemplateImport/productTemplateImport' })
+  },
+
+  /** 跳转新建商品 */
+  onGoProductAdd: function () {
+    wx.navigateTo({ url: '/pages/product/productAdd/productAdd' })
+  },
+
+  /** 跳转商品入库 */
+  onGoProductStockIn: function () {
+    wx.navigateTo({ url: '/pages/product/productStockIn/productStockIn' })
+  },
+
+  /** 跳转库存明细 */
+  onGoProductStockList: function () {
+    wx.navigateTo({ url: '/pages/product/productStockList/productStockList' })
   }
 })

@@ -107,7 +107,46 @@ Page({
   onEdit() {
     var order = this.data.order
     if (!order || !order._id) return
+    if (order.status !== '施工中') {
+      wx.showToast({ title: '仅暂存工单可编辑', icon: 'none' })
+      return
+    }
     wx.navigateTo({ url: '/pages/orderAdd/orderAdd?id=' + order._id })
+  },
+
+  // 收银：待结算 → 已完成（挂账→现付）
+  onSettleOrder() {
+    var page = this
+    var order = page.data.order
+    if (!order || order.status !== '待结算') return
+
+    wx.showModal({
+      title: '收银确认',
+      content: '确认将该挂账工单标记为已收款？',
+      confirmText: '确认收款',
+      success: function (res) {
+        if (!res.confirm) return
+        wx.showLoading({ title: '处理中...' })
+        util.callRepair('editOrder', {
+          orderId: order._id,
+          updateData: {
+            payMethod: '1',
+            status: '已完成'
+          }
+        }).then(function (result) {
+          wx.hideLoading()
+          if (result && result.code === 0) {
+            page.fetchOrderDetail(order._id)
+            wx.showToast({ title: '已收款', icon: 'success' })
+          } else {
+            wx.showToast({ title: result.msg || '操作失败', icon: 'none' })
+          }
+        }).catch(function () {
+          wx.hideLoading()
+          wx.showToast({ title: '操作失败', icon: 'none' })
+        })
+      }
+    })
   },
 
   onCallPhone() {

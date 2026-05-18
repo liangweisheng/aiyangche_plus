@@ -1,0 +1,209 @@
+<view class="container">
+  <!-- 商品基本信息 -->
+  <view class="info-card" wx:if="{{product}}">
+    <view class="product-header">
+      <text class="product-name">{{product.name}}</text>
+      <text class="product-cat-tag">{{product.category}}</text>
+    </view>
+    <!-- 低库存预警 -->
+    <view class="low-stock-banner" wx:if="{{product.stock <= constants.LOW_STOCK_THRESHOLD && product.stock >= 0}}">
+      <text class="low-stock-icon">⚠️</text>
+      <text class="low-stock-text">库存不足（仅剩 {{product.stock || 0}}{{product.unit}}），请及时补货</text>
+    </view>
+    <view class="info-rows">
+      <view class="info-row">
+        <text class="info-label">售价</text>
+        <text class="info-value price">¥{{product.price}}/{{product.unit}}</text>
+      </view>
+      <view class="info-row" wx:if="{{product.cost > 0}}">
+        <text class="info-label">进价</text>
+        <text class="info-value">¥{{product.cost}}/{{product.unit}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">当前库存</text>
+        <text class="info-value stock">{{product.stock || 0}} {{product.unit}}</text>
+      </view>
+      <!-- 按规格的库存/价格明细（表格） -->
+      <view class="spec-detail-section" wx:if="{{product._specDetails && product._specDetails.length > 0}}">
+        <view class="spec-detail-header">
+          <text class="spec-detail-title">规格明细</text>
+        </view>
+        <view class="spec-table-detail">
+          <view class="spec-table-detail-header">
+            <text class="spec-td-spec">规格</text>
+            <text class="spec-td-cost">进价</text>
+            <text class="spec-td-price">售价</text>
+            <text class="spec-td-stock">库存</text>
+          </view>
+          <view class="spec-table-detail-row" wx:for="{{product._specDetails}}" wx:key="label">
+            <text class="spec-td-spec">{{item.label}}</text>
+            <text class="spec-td-cost">{{item.cost > 0 ? '¥' + item.cost : '-'}}</text>
+            <text class="spec-td-price">¥{{item.price}}</text>
+            <text class="spec-td-stock">{{item.stock}}{{product.unit}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="info-row" wx:if="{{product.remark}}">
+        <text class="info-label">备注</text>
+        <text class="info-value">{{product.remark}}</text>
+      </view>
+    </view>
+    <!-- 操作按钮 -->
+    <view class="action-btn-wrap">
+      <button class="action-btn edit-btn" bindtap="onEditProduct">编辑商品</button>
+      <button class="action-btn adjust-btn" bindtap="onOpenAdjust">调整库存</button>
+      <button class="action-btn {{product.productStatus === 'on_shelf' ? 'off-shelf-btn' : 'on-shelf-btn'}}" bindtap="onToggleShelf">
+        {{product.productStatus === 'on_shelf' ? '下架' : '上架'}}
+      </button>
+    </view>
+  </view>
+
+  <!-- 出入库流水标题（含筛选按钮） -->
+  <view class="section-title-row">
+    <view class="section-title">出入库流水</view>
+    <view class="filter-trigger" bindtap="onToggleStockFilter">
+      <text class="filter-icon">▼</text>
+      <text class="filter-label" wx:if="{{hasFilter}}">已筛选</text>
+      <text class="filter-label" wx:else>筛选</text>
+    </view>
+  </view>
+  <view class="log-list">
+    <view class="log-item" wx:for="{{stockLogs}}" wx:key="_id">
+      <!-- 第一行：类型 + 数量 | 规格 + 价格 -->
+      <view class="log-row-top">
+        <view class="log-left">
+          <text class="log-type {{item.type === 'in' ? 'type-in' : item.type === 'out' ? 'type-out' : 'type-adjust'}}">
+            {{item.type === 'in' ? '入库' : item.type === 'out' ? '出库' : '调整'}}
+          </text>
+          <text class="log-qty">
+            {{item.type === 'in' ? '+' : item.type === 'out' ? '-' : (item.quantity > 0 ? '+' : '')}}{{item.quantity}}{{product.unit}}
+          </text>
+        </view>
+        <view class="log-right">
+          <text class="log-spec" wx:if="{{item.spec}}">{{item.spec}}</text>
+          <text class="log-cost" wx:if="{{item.type === 'out' && item.salePrice > 0}}">售价 ¥{{item.salePrice}}</text>
+          <text class="log-cost" wx:elif="{{item.cost > 0}}">进价 ¥{{item.cost}}</text>
+        </view>
+      </view>
+      <!-- 第二行：供货商 | 日期 -->
+      <view class="log-row-bottom" wx:if="{{item.supplier || item._displayTime}}">
+        <text class="log-supplier" wx:if="{{item.supplier}}">供货商: {{item.supplier}}</text>
+        <text class="log-time" wx:if="{{item._displayTime}}">{{item._displayTime}}</text>
+      </view>
+    </view>
+    <!-- 触底加载更多 -->
+    <view class="log-more" wx:if="{{hasMoreLogs && !loadingLogs}}" bindtap="onReachBottom">
+      <view class="log-more-loading" wx:if="{{loadingMoreLogs}}">
+        <text>加载中...</text>
+      </view>
+      <view class="log-more-btn" wx:else>
+        <text>点击加载更多</text>
+      </view>
+    </view>
+    <!-- 无更多数据 -->
+    <view class="log-no-more" wx:elif="{{stockLogs.length > 0 && !hasMoreLogs}}">
+      <text>已显示全部 {{totalLogs}} 条记录</text>
+    </view>
+    <!-- 空状态 -->
+    <view class="log-empty" wx:if="{{stockLogs.length === 0 && !loadingLogs}}">
+      <text wx:if="{{hasFilter}}">无匹配的流水记录</text>
+      <text wx:else>暂无流水记录</text>
+    </view>
+    <view class="log-loading" wx:if="{{loadingLogs}}">
+      <text>加载中...</text>
+    </view>
+  </view>
+
+  <!-- ========== 调整库存弹窗 ========== -->
+  <view class="modal-mask" wx:if="{{showAdjustModal}}" catchtap="onCloseAdjust" catchtouchmove="preventTouchMove">
+    <view class="modal-content" catchtap="onAdjustModalTap">
+      <view class="modal-title">调整库存</view>
+      <view class="modal-body">
+        <!-- 规格选择（仅多规格商品显示） -->
+        <view class="form-row" wx:if="{{adjustSpecOptions.length > 0}}">
+          <text class="form-label">规格</text>
+          <picker mode="selector" range="{{adjustSpecOptions}}" value="{{adjustSpecIndex}}" bindchange="onAdjustSpecChange">
+            <view class="picker-value">{{adjustSpec}}</view>
+          </picker>
+        </view>
+        <!-- 当前库存 -->
+        <view class="form-row">
+          <text class="form-label">当前库存</text>
+          <text class="form-static">{{adjustCurrentStock}} {{product.unit}}</text>
+        </view>
+        <!-- 调整原因 -->
+        <view class="form-row">
+          <text class="form-label">调整原因</text>
+          <picker mode="selector" range="{{adjustReasons}}" value="{{adjustReasonIndex}}" bindchange="onAdjustReasonChange">
+            <view class="picker-value">{{adjustReason}}</view>
+          </picker>
+        </view>
+        <!-- 库存调整为 -->
+        <view class="form-row">
+          <text class="form-label">库存调整为</text>
+          <input class="form-input" type="digit" placeholder="输入实际库存数量" value="{{adjustQty}}" bindinput="onAdjustQtyInput" />
+        </view>
+        <!-- 变动预览 -->
+        <view class="form-row" wx:if="{{adjustQty !== ''}}">
+          <text class="form-label">变动</text>
+          <text class="form-preview">{{previewStock}}</text>
+        </view>
+        <!-- 备注 -->
+        <view class="form-row">
+          <text class="form-label">备注</text>
+          <input class="form-input" type="text" placeholder="可选备注" value="{{adjustRemark}}" bindinput="onAdjustRemarkInput" />
+        </view>
+        <!-- 提示 -->
+        <view class="adjust-tip">
+          <text>系统将自动计算并写入库存差异</text>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn cancel" bindtap="onCloseAdjust">取消</button>
+        <button class="modal-btn confirm" bindtap="onAdjustConfirm">确认调整</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ========== 库存流水筛选弹窗 ========== -->
+  <view class="stock-filter-mask" wx:if="{{showStockFilter}}" bindtap="onCloseStockFilter">
+    <view class="stock-filter-panel" catchtap="onStopPropagation">
+      <view class="stock-filter-title">流水筛选</view>
+
+      <!-- 流水类型 -->
+      <view class="filter-section">
+        <view class="filter-label">流水类型</view>
+        <view class="filter-type-group">
+          <view class="filter-type-btn {{filterLogType === 'in' ? 'active' : ''}}" data-value="in" bindtap="onSelectLogType">入库</view>
+          <view class="filter-type-btn {{filterLogType === 'out' ? 'active' : ''}}" data-value="out" bindtap="onSelectLogType">出库</view>
+          <view class="filter-type-btn {{filterLogType === 'adjust' ? 'active' : ''}}" data-value="adjust" bindtap="onSelectLogType">调整</view>
+        </view>
+      </view>
+
+      <!-- 时间范围 -->
+      <view class="filter-section">
+        <view class="filter-label">时间范围</view>
+        <view class="filter-date-row">
+          <picker mode="date" value="{{filterStartDate}}" start="2020-01-01" end="{{today}}" bindchange="onFilterStartDate">
+            <view class="filter-date-input {{filterStartDate ? 'has-value' : ''}}">
+              {{filterStartDate || '开始日期'}}
+            </view>
+          </picker>
+          <text class="filter-date-sep">至</text>
+          <picker mode="date" value="{{filterEndDate}}" start="2020-01-01" end="{{today}}" bindchange="onFilterEndDate">
+            <view class="filter-date-input {{filterEndDate ? 'has-value' : ''}}">
+              {{filterEndDate || '结束日期'}}
+            </view>
+          </picker>
+        </view>
+      </view>
+
+      <!-- 按钮 -->
+      <view class="filter-actions">
+        <view class="filter-btn cancel" bindtap="onResetStockFilter">重置</view>
+        <view class="filter-btn confirm" bindtap="onConfirmStockFilter">确认筛选</view>
+      </view>
+    </view>
+  </view>
+
+</view>

@@ -14,7 +14,7 @@ var STAFF_LIST = [
 function buildAdminList(config) {
   config = config || {}
   var showMember = config.member !== false  // 默认 true
-  var showCar = config.car === true         // 默认 false
+  var showCar = config.car !== false         // 默认 true
 
   var list = [
     { pagePath: '/pages/dashboard/dashboard', text: '首页', iconPath: '/images/home.png', selectedIconPath: '/images/home-active.png' }

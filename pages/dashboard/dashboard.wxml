@@ -145,6 +145,21 @@
         <text class="action-title">工单列表</text>
       </view>
     </view>
+    <!-- 第二行：进销存快捷操作（受开单设置-进销存模式开关控制） -->
+    <view class="actions-grid" wx:if="{{inventoryEnabled && !isStaff}}" style="margin-top:16rpx;">
+      <view class="action-card" bindtap="onGoProductAdd">
+        <view class="action-icon">🏷️</view>
+        <text class="action-title">新建商品</text>
+      </view>
+      <view class="action-card" bindtap="onGoProductStockIn">
+        <view class="action-icon">📥</view>
+        <text class="action-title">商品入库</text>
+      </view>
+      <view class="action-card" bindtap="onGoProductStockList">
+        <view class="action-icon">📋</view>
+        <text class="action-title">库存明细</text>
+      </view>
+    </view>
   </view>
 
   <!-- 月报摘要卡片（v5.0.0）——仅游客/超管可见 -->

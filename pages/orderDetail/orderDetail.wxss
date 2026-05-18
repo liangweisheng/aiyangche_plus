@@ -417,6 +417,19 @@
   color: #bbb;
 }
 
+/* 收银按钮（复用 void-btn 结构，仅颜色不同） */
+.void-btn.settle-btn {
+  border-color: #52c41a;
+}
+
+.void-btn.settle-btn:active {
+  background: rgba(82, 196, 26, 0.06);
+}
+
+.settle-text {
+  color: #52c41a;
+}
+
 /* 查车入口 */
 .check-sheet-row {
   display: flex;

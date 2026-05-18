@@ -70,7 +70,11 @@ Page({
     partCostEditValue: '',
     partCostEditInputFocus: false,
     partCostEditPreview: 0,           // 弹窗中实时预览利润
-    partCostEditGrossRate: ''          // 弹窗中实时毛利率
+    partCostEditGrossRate: '',          // 弹窗中实时毛利率
+    // 进销存
+    inventoryEnabled: false,
+    // 自由开单模式
+    freeOrderMode: true
   },
 
   onUnload() {
@@ -98,6 +102,12 @@ Page({
     } else if (plate) {
       page.setPlate(plate)
     }
+    // 加载进销存开关状态
+    var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
+    page.setData({ inventoryEnabled: invEnabled !== false })
+    // 加载自由开单模式
+    var freeMode = wx.getStorageSync(constants.FREE_ORDER_MODE_KEY)
+    page.setData({ freeOrderMode: freeMode !== false })
   },
 
   // 编辑模式：加载已有工单数据
@@ -124,6 +134,21 @@ Page({
           var parts = item.trim().split(/\s+/)
           return { name: parts[0] || '', spec: parts.slice(1).join(' ') || '', amount: amounts[idx] || '' }
         })
+        // 保存原工单状态（区分草稿 vs 已完成，决定库存是否实际扣减）
+        page._originalOrderStatus = order.status || ''
+        // 从 _deductedItems 还原库存商品标记（用于编辑时库存校验/扣减）
+        if (order._deductedItems && order._deductedItems.length > 0) {
+          order._deductedItems.forEach(function (di) {
+            if (di.rowIndex !== undefined && di.rowIndex < rows.length) {
+              var r = rows[di.rowIndex]
+              r._fromProduct = true
+              r._productId = di.productId
+              r._productItemSpec = di.spec || ''
+              r._productQuantity = di.quantity
+              r._productCost = di.cost || 0
+            }
+          })
+        }
         if (rows.length === 0) {
           rows = [{ name: '', spec: '', amount: '' }, { name: '', spec: '', amount: '' }, { name: '', spec: '', amount: '' }]
         }
@@ -154,6 +179,12 @@ Page({
 
   onShow() {
     var page = this
+    // 刷新进销存开关状态（用户可能在 proUnlock 设置中切换）
+    var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
+    page.setData({ inventoryEnabled: invEnabled !== false })
+    // 刷新自由开单模式
+    var freeMode = wx.getStorageSync(constants.FREE_ORDER_MODE_KEY)
+    page.setData({ freeOrderMode: freeMode !== false })
     // 从车辆搜索页返回时检查是否有回调车牌
     var selectedPlate = wx.getStorageSync('orderAdd_selectedPlate') || ''
     if (selectedPlate && selectedPlate !== page.data.plate) {
@@ -167,6 +198,69 @@ Page({
       page._showOcrConfirm(ocrResult.plate, function (plate) {
         page.setPlate(plate)
       })
+    }
+
+    // 从商品选择页返回时处理回调商品
+    var selectedProducts = wx.getStorageSync('orderAdd_selectedProducts') || []
+    var existingProducts = wx.getStorageSync('orderAdd_existingProducts') || []
+    wx.removeStorageSync('orderAdd_selectedProducts')
+    wx.removeStorageSync('orderAdd_existingProducts')
+
+    var isFromProductSelect = existingProducts.length > 0 || selectedProducts.length > 0
+    if (isFromProductSelect) {
+      var rows = page.data.serviceRows
+      // 移除旧的 _fromProduct 行（replace 模式）
+      if (existingProducts.length > 0) {
+        rows = rows.filter(function (r) { return !r._fromProduct })
+      }
+      // 追加新选商品
+      selectedProducts.forEach(function (item) {
+        var filledRow = false
+        for (var i = 0; i < rows.length; i++) {
+          if (!rows[i].name.trim()) {
+            rows[i] = {
+              name: item.name,
+              spec: item.spec || '',
+              amount: item.amount || '',
+              _productId: item._productId || '',
+              _productItemSpec: item._productItemSpec || '',
+              _productQuantity: item._productQuantity || 0,
+              _fromProduct: true
+            }
+            filledRow = true
+            break
+          }
+        }
+        if (!filledRow) {
+          rows.push({
+            name: item.name,
+            spec: item.spec || '',
+            amount: item.amount || '',
+            _productId: item._productId || '',
+            _productItemSpec: item._productItemSpec || '',
+            _productQuantity: item._productQuantity || 0,
+            _fromProduct: true
+          })
+        }
+      })
+      // 确保至少有3个空行（供继续录入）
+      if (rows.length < 3) {
+        while (rows.length < 3) {
+          rows.push({ name: '', spec: '', amount: '' })
+        }
+      }
+      // 自动汇总所选商品的总配件成本
+      var totalCost = 0
+      selectedProducts.forEach(function (item) {
+        if (item._fromProduct && item._productCost) {
+          totalCost += Number(item._productCost) * (Number(item._productQuantity) || 1)
+        }
+      })
+      if (totalCost > 0) {
+        page.setData({ 'form.partCost': String(totalCost) })
+      }
+      page.setData({ serviceRows: rows })
+      page.calcTotalAmount()
     }
   },
 
@@ -524,8 +618,11 @@ Page({
 
   loadPhrases() {
     var page = this
-    var custom = wx.getStorageSync('servicePhrases') || []
-    var list = custom.length > 0 ? custom : page.data.defaultPhrases
+    var shopPhone = app.getShopPhone()
+
+    // 先读 storage 缓存（快速展示，离线可用）
+    var cached = wx.getStorageSync('servicePhrases') || []
+    var list = cached.length > 0 ? cached : page.data.defaultPhrases
     var phrases = list.map(function (t) {
       return {
         text: t,
@@ -536,6 +633,33 @@ Page({
     // 检查是否需要折叠（超过3行，约9个标签）
     var needExpand = phrases.length > 9
     page.setData({ phrases: phrases, phraseNeedExpand: needExpand })
+
+    // 静默从云端拉取最新短语，覆盖本地缓存和展示
+    if (shopPhone) {
+      app.callFunction('repair_inventory', {
+        action: 'getPhrases',
+        shopPhone: shopPhone
+      }).then(function (res) {
+        if (res && res.code === 0 && res.data && res.data.phrases && res.data.phrases.length > 0) {
+          var cloudPhrases = res.data.phrases
+          // 更新 storage 缓存
+          wx.setStorageSync('servicePhrases', cloudPhrases)
+          // 覆盖当前展示
+          var newPhrases = cloudPhrases.map(function (t) {
+            return {
+              text: t,
+              displayText: t.length > 8 ? t.substring(0, 8) + '…' : t,
+              selected: false
+            }
+          })
+          var needExpand = newPhrases.length > 9
+          page.setData({ phrases: newPhrases, phraseNeedExpand: needExpand })
+        }
+        // 云端无自定义短语（空数组），保持当前（缓存或默认值）不变
+      }).catch(function () {
+        // 静默失败，已展示的缓存/默认值不受影响
+      })
+    }
   },
 
   onPhraseTap(e) {
@@ -673,6 +797,53 @@ Page({
     this.setData({ serviceRows: rows })
   },
 
+  /** 删除指定行 */
+  onDelRow(e) {
+    var page = this
+    var idx = e.currentTarget.dataset.index
+    var rows = page.data.serviceRows
+    var targetRow = rows[idx]
+
+    // 有内容的行弹窗确认删除
+    if (targetRow && targetRow.name.trim()) {
+      wx.showModal({
+        title: '确认删除',
+        content: '确定删除"' + targetRow.name.trim() + '"吗？',
+        success: function (res) {
+          if (res.confirm) {
+            page._doDeleteRow(idx)
+          }
+        }
+      })
+    } else {
+      // 空行直接删除（无输入内容）
+      page._doDeleteRow(idx)
+    }
+  },
+
+  /** 实际执行删除行 */
+  _doDeleteRow(idx) {
+    var rows = this.data.serviceRows
+    var targetRow = rows[idx]
+
+    // 如果删除的行关联了库存商品，扣除其配件成本
+    if (targetRow && targetRow._fromProduct && targetRow._productCost) {
+      var deductCost = Number(targetRow._productCost) * (Number(targetRow._productQuantity) || 1)
+      var currentCost = Number(this.data.form.partCost) || 0
+      var newCost = Math.max(0, currentCost - deductCost)
+      this.setData({ 'form.partCost': newCost > 0 ? String(newCost) : '' })
+    }
+
+    rows.splice(idx, 1)
+    // 如果删完后所有行都为空，恢复3个空行
+    var allEmpty = rows.every(function (r) { return !r.name.trim() })
+    if (rows.length === 0 || allEmpty) {
+      rows = [{ name: '', spec: '', amount: '' }, { name: '', spec: '', amount: '' }, { name: '', spec: '', amount: '' }]
+    }
+    this.setData({ serviceRows: rows })
+    this.calcTotalAmount()
+  },
+
   // 计算服务项目总额
   // - 新增模式：实收金额始终与总金额保持一致
   // - 编辑模式：实收金额保持原有值，不自动覆盖
@@ -794,18 +965,99 @@ Page({
     }
     var newList = text.split(/[,，\n]/).map(function (s) { return s.trim() }).filter(function (s) { return s })
     if (newList.length > 0) {
+      // 先写本地缓存（立即生效）
       wx.setStorageSync('servicePhrases', newList)
       page.setData({ showPhraseEdit: false, phraseEditText: '' })
       page.loadPhrases()
       wx.showToast({ title: '已保存 ' + newList.length + ' 个短语', icon: 'success' })
+      // 异步持久化到云端
+      var shopPhone = app.getShopPhone()
+      if (shopPhone) {
+        app.callFunction('repair_inventory', {
+          action: 'savePhrases',
+          shopPhone: shopPhone,
+          phrases: newList
+        }).catch(function () {
+          console.warn('云端保存短语失败')
+        })
+      }
     }
   },
 
   onPhraseResetDefault() {
+    var page = this
     wx.removeStorageSync('servicePhrases')
-    this.setData({ showPhraseEdit: false, phraseEditText: '' })
-    this.loadPhrases()
+    page.setData({ showPhraseEdit: false, phraseEditText: '' })
+    page.loadPhrases()
     wx.showToast({ title: '已恢复默认', icon: 'success' })
+    // 同步清除云端自定义短语（传空数组，loadPhrases 会回退到默认列表）
+    var shopPhone = app.getShopPhone()
+    if (shopPhone) {
+      app.callFunction('repair_inventory', {
+        action: 'savePhrases',
+        shopPhone: shopPhone,
+        phrases: []
+      }).catch(function () {
+        console.warn('云端清除短语失败')
+      })
+    }
+  },
+
+  // ========== 进销存 - 选择商品 ==========
+
+  /** 跳转商品选择页（携带已选商品用于回显） */
+  onSelectProduct() {
+    // 保存已有的 _fromProduct 行，传给商品选择页用于恢复选中状态
+    var existingProducts = []
+    this.data.serviceRows.forEach(function (r) {
+      if (r._fromProduct && r._productId) {
+        existingProducts.push({
+          _productId: r._productId,
+          spec: r._productItemSpec || r.spec || '',
+          quantity: r._productQuantity || 1
+        })
+      }
+    })
+    wx.setStorageSync('orderAdd_existingProducts', existingProducts)
+    wx.navigateTo({ url: '/pages/product/productSelect/productSelect' })
+  },
+
+  /** 检查 serviceRows 中是否有来自商品选择的行，有则执行库存扣减 */
+  _deductStockIfNeeded(form, rows, page) {
+    var productItems = []
+    rows.forEach(function (r) {
+      if (r._fromProduct && r._productId && r._productQuantity > 0) {
+        productItems.push({
+          productId: r._productId,
+          spec: r._productItemSpec || '',
+          quantity: r._productQuantity,
+          amount: Number(r.amount) || 0
+        })
+      }
+    })
+    if (productItems.length === 0) return Promise.resolve() // 无商品行，直接继续
+
+    // 生成临时订单引用（用于工单创建后关联流水）
+    var tempOrderRef = 'OR_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8).toUpperCase()
+    page._tempOrderRef = tempOrderRef
+
+    var shopPhone = app.getShopPhone()
+    return app.callFunction('repair_inventory', {
+      action: 'deductStock',
+      shopPhone: shopPhone,
+      items: productItems,
+      orderRef: page.data.editId || tempOrderRef, // 编辑用已有ID，新建用临时引用
+      operator: app.getOperatorName() || '管理员'
+    }).then(function (res) {
+      if (res && res.code === 0) {
+        return Promise.resolve()
+      } else {
+        // 库存不足时阻止保存
+        return Promise.reject({ msg: (res && res.msg) || '库存扣减失败' })
+      }
+    }).catch(function (err) {
+      return Promise.reject({ msg: (err && err.msg) || '库存扣减网络异常' })
+    })
   },
 
   // ========== 表单操作 ==========
@@ -928,11 +1180,11 @@ Page({
     form.serviceItems = itemsText.join('，')
     form.serviceAmounts = amounts.join(',')
 
-    page.saveOrder(plate, form, '施工中')
+    page.saveOrder(plate, form, '施工中', true)
   },
 
-  // 普通支付保存工单（新建或编辑）
-  saveOrder(plate, form, status) {
+  // 普通支付保存工单（新建或编辑），skipDeduct=true 为暂存模式（不扣减库存）
+  saveOrder(plate, form, status, skipDeduct) {
     var page = this
     var shopPhone = app.getShopPhone()
     var editId = page.data.editId
@@ -957,22 +1209,61 @@ Page({
             })
             return
           }
-          page._doSaveOrder(plate, form, status, shopPhone, editId, isEdit)
+          page._doSaveOrder(plate, form, status, shopPhone, editId, isEdit, skipDeduct)
         })
         .catch(function (err) {
           console.warn('工单数量校验失败，允许继续', err)
           wx.hideLoading()
-          page._doSaveOrder(plate, form, status, shopPhone, editId, isEdit)
+          page._doSaveOrder(plate, form, status, shopPhone, editId, isEdit, skipDeduct)
         })
       return
     }
 
-    page._doSaveOrder(plate, form, status, shopPhone, editId, isEdit)
+    page._doSaveOrder(plate, form, status, shopPhone, editId, isEdit, skipDeduct)
   },
 
-  _doSaveOrder(plate, form, status, shopPhone, editId, isEdit) {
+  _doSaveOrder(plate, form, status, shopPhone, editId, isEdit, skipDeduct) {
     var page = this
     wx.showLoading({ title: '保存中...' })
+
+    // 先收集需扣减的库存项（在扣减之前记录）
+    var deductedItems = []
+    var rowsForDeduction = page.data.serviceRows
+    rowsForDeduction.forEach(function (r, i) {
+      if (r._fromProduct && r._productId && r._productQuantity > 0) {
+        deductedItems.push({
+          productId: r._productId,
+          spec: r._productItemSpec || '',
+          quantity: r._productQuantity,
+          cost: r._productCost || 0,
+          itemName: r.name || '',
+          rowIndex: i
+        })
+      }
+    })
+
+    if (skipDeduct) {
+      // 暂存模式：不检查库存也不扣减，直接保存
+      page._commitOrder(plate, form, status, shopPhone, editId, isEdit, deductedItems)
+    } else {
+      // 编辑模式：草稿转完成需要实际扣减库存，已完成/待结算工单不可编辑（不走此路径）
+      page._deductStockIfNeeded(form, rowsForDeduction, page).then(function () {
+        page._commitOrder(plate, form, status, shopPhone, editId, isEdit, deductedItems)
+      }).catch(function (err) {
+        wx.hideLoading()
+        wx.showModal({
+          title: '库存不足',
+          content: (err && err.msg) || '部分商品库存不足，无法保存工单',
+          showCancel: false,
+          confirmText: '我知道了'
+        })
+      })
+    }
+  },
+
+  // ========== 提交工单到数据库（不含库存扣减） ==========
+  _commitOrder(plate, form, status, shopPhone, editId, isEdit, deductedItems) {
+    var page = this
 
     var amount = Number(form.totalAmount) || 0
     var paidAmount = Number(form.paidAmount) || 0
@@ -998,6 +1289,12 @@ Page({
       profit: profit
     }
 
+    // 存储扣减项到订单记录（用于作废时回滚库存）
+    if (deductedItems.length > 0) {
+      orderData._deductedItems = deductedItems
+      orderData._orderStockRef = page.data.editId || page._tempOrderRef || ''
+    }
+
     var carDocId = (page.data.carInfo && page.data.carInfo._id) || ''
 
     var promise
@@ -1016,9 +1313,24 @@ Page({
       wx.hideLoading()
       if (res && res.code === 0) {
         wx.showToast({ title: isEdit ? '修改成功' : '开单成功', icon: 'success' })
-        
+
         // 设置全局刷新标志
         getApp().globalData.shouldRefreshOrderList = true
+
+        // 新工单创建后，回填 orderRef 为真实 _id（用于作废时关联流水）
+        if (!isEdit && deductedItems.length > 0 && page._tempOrderRef) {
+          var newOrderId = (res.data && res.data.orderId) || ''
+          if (newOrderId) {
+            app.callFunction('repair_inventory', {
+              action: 'updateStockLogOrderId',
+              shopPhone: shopPhone,
+              orderRef: page._tempOrderRef,
+              orderId: newOrderId
+            }).catch(function () {
+              console.warn('回填工单ID到库存流水失败')
+            })
+          }
+        }
         
         // 保存后跳转到工单详情页
         var orderId = isEdit ? editId : (res.data && res.data.orderId)
