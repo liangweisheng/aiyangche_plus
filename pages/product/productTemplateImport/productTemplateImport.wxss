@@ -1,0 +1,200 @@
+.container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 100rpx;
+}
+
+/* ====== 搜索框 ====== */
+.search-bar {
+  padding: 20rpx 24rpx;
+  background: #fff;
+}
+.search-input {
+  height: 72rpx;
+  background: #f5f5f5;
+  border-radius: 36rpx;
+  padding: 0 32rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+/* ====== 分类标签 ====== */
+.category-scroll {
+  white-space: nowrap;
+  background: #fff;
+  padding: 0 24rpx 16rpx;
+}
+.category-list {
+  display: inline-flex;
+  gap: 16rpx;
+}
+.category-tag {
+  display: inline-block;
+  padding: 8rpx 24rpx;
+  border-radius: 28rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #f5f5f5;
+  transition: all 0.2s;
+}
+.category-tag.active {
+  color: #1677ff;
+  background: #e6f0ff;
+  font-weight: 500;
+}
+
+/* ====== 加载中 ====== */
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80rpx 0;
+}
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* ====== 模板列表 ====== */
+.template-list {
+  padding: 16rpx 24rpx;
+}
+.template-item {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+.template-info {
+  flex: 1;
+  min-width: 0;
+}
+.template-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+.template-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #333;
+}
+.template-category-tag {
+  font-size: 22rpx;
+  color: #1677ff;
+  background: #e6f0ff;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+}
+.template-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 4rpx;
+}
+.template-price {
+  color: #ff4d4f;
+  font-weight: 500;
+}
+.template-specs {
+  color: #666;
+}
+.template-stock {
+  font-size: 22rpx;
+  color: #52c41a;
+  margin-top: 4rpx;
+}
+.template-price-self {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 2rpx;
+}
+
+/* ====== 操作按钮 ====== */
+.template-action {
+  flex-shrink: 0;
+  margin-left: 20rpx;
+}
+.status-toggle {
+  min-width: 110rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  text-align: center;
+  border-radius: 26rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+.status-toggle.on {
+  background: #e6f0ff;
+  color: #1677ff;
+  border: 1px solid #1677ff;
+}
+.status-toggle.off {
+  background: #f5f5f5;
+  color: #999;
+  border: 1px solid #ddd;
+}
+
+/* ====== 空状态 ====== */
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 40rpx;
+}
+.empty-text {
+  font-size: 30rpx;
+  color: #999;
+  margin-bottom: 16rpx;
+}
+.empty-hint {
+  font-size: 26rpx;
+  color: #bbb;
+  text-align: center;
+}
+
+/* ====== 底部操作栏 ====== */
+.batch-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx 24rpx 40rpx;
+  background: #fff;
+  box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.06);
+}
+.batch-row {
+  display: flex;
+  gap: 20rpx;
+}
+.batch-btn {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  padding: 0;
+  border: none;
+}
+.batch-btn-primary {
+  background: #1677ff;
+  color: #fff;
+}
+.batch-btn-primary[disabled] {
+  opacity: 0.6;
+}
+.batch-btn-secondary {
+  background: #fff;
+  color: #1677ff;
+  border: 2rpx solid #1677ff;
+}
+.batch-btn-secondary:active {
+  background: #f0f5ff;
+}

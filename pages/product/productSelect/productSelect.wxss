@@ -99,6 +99,24 @@
   color: #666;
 }
 
+.spec-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  flex-wrap: wrap;
+}
+
+.spec-price {
+  font-size: 22rpx;
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+.spec-stock-hint {
+  font-size: 20rpx;
+  color: #bbb;
+}
+
 .spec-qty-control {
   display: flex;
   align-items: center;

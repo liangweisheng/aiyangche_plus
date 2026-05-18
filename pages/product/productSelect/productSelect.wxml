@@ -20,7 +20,11 @@
           <text class="product-card-name">{{item.name}}</text>
           <!-- 规格行 -->
           <view class="spec-row" wx:for="{{item.displaySpecs}}" wx:for-item="spec" wx:key="index">
-            <text class="spec-label">{{spec.label}}</text>
+            <view class="spec-label-wrap">
+              <text class="spec-label">{{spec.label}}</text>
+              <text class="spec-price" wx:if="{{spec.price}}">¥{{spec.price}}</text>
+              <text class="spec-stock-hint" wx:if="{{spec.stock >= 0}}">(剩{{spec.stock}})</text>
+            </view>
             <view class="spec-qty-control">
               <text class="qty-btn qty-minus" data-pid="{{item._id}}" data-spec="{{spec.label}}" data-delta="{{-1}}" bindtap="onQtyChange">−</text>
               <text class="qty-num">{{spec.quantity > 0 ? spec.quantity : '0'}}</text>
@@ -29,7 +33,7 @@
           </view>
           <!-- 无规格展示 -->
           <view class="spec-row" wx:if="{{!item.specs || item.specs.length === 0}}">
-            <text class="spec-label">¥{{item.price}}/{{item.unit}}</text>
+            <text class="spec-label">¥{{item.price}}/{{item.unit}} <text class="spec-stock-hint" wx:if="{{item.stock >= 0}}">(剩{{item.stock}})</text></text>
             <view class="spec-qty-control">
               <text class="qty-btn qty-minus" data-pid="{{item._id}}" data-spec="" data-delta="{{-1}}" bindtap="onQtyChange">−</text>
               <text class="qty-num">{{item._qty > 0 ? item._qty : '0'}}</text>

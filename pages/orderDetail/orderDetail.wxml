@@ -128,18 +128,29 @@
 <!-- 底部操作按钮 -->
 <view class="footer" wx:if="{{!loading && order}}">
   <view class="footer-row">
-    <view class="edit-btn" bindtap="onEdit" wx:if="{{!order.isVoided}}">
+    <!-- 施工中 → 编辑 -->
+    <view class="edit-btn" bindtap="onEdit"
+      wx:if="{{!order.isVoided && order.status === '施工中'}}">
       <text class="edit-icon">✏️</text>
       <text class="edit-text">编辑工单</text>
     </view>
-    <view class="reorder-btn" bindtap="onReorder">
+    <!-- 已完成 → 作废 -->
+    <view class="void-btn" bindtap="onVoidOrder"
+      wx:if="{{!order.isVoided && order.status === '已完成'}}">
+      <text class="void-text">🗑️ 作废</text>
+    </view>
+    <!-- 待结算 → 收银 -->
+    <view class="void-btn settle-btn" bindtap="onSettleOrder"
+      wx:if="{{!order.isVoided && order.status === '待结算'}}">
+      <text class="void-text settle-text">💰 收银</text>
+    </view>
+    <!-- 再开一单 (所有非作废状态都有) -->
+    <view class="reorder-btn" bindtap="onReorder" wx:if="{{!order.isVoided}}">
       <text class="reorder-icon">📝</text>
       <text class="reorder-text">再开一单</text>
     </view>
-    <view class="void-btn {{order.isVoided ? 'voided' : ''}}" bindtap="onVoidOrder" wx:if="{{!order.isVoided}}">
-      <text class="void-text">作废</text>
-    </view>
-    <view class="void-btn voided disabled" wx:else>
+    <!-- 已作废占位 -->
+    <view class="void-btn voided disabled" wx:elif="{{order.isVoided}}">
       <text class="void-text">已作废</text>
     </view>
   </view>

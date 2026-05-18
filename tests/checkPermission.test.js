@@ -21,7 +21,7 @@ var STAFF_OPENID = 'oStaffMember987654321'
 var OTHER_OPENID = 'oOtherPerson0000000'
 
 /**
- * 创建店主记录（超级管理员 + Pro版）
+ * 创建店主记录（店主账号 + Pro版）
  */
 function createShopOwner(overrides) {
   return Object.assign({
@@ -134,7 +134,7 @@ var PERMISSION_MATRIX = {
   addStaff: { level: 'admin', pro: true },
   generateMonthlyReport: { level: 'admin', pro: true },
 
-  // 超级管理员 + Pro
+  // 店主账号 + Pro
   exportData: { level: 'superAdmin', pro: true }
 }
 
@@ -331,7 +331,7 @@ describe('checkPermission 权限矩阵测试', function() {
   })
 
   // ============================
-  // 5. superAdmin+pro 动作：仅超级管理员（店主）+ Pro版
+  // 5. superAdmin+pro 动作：仅店主账号 + Pro版
   // ============================
   describe('superAdmin+pro 动作', function() {
     test('Pro 店主应能通过 superAdmin+pro 权限', async function() {
@@ -343,7 +343,7 @@ describe('checkPermission 权限矩阵测试', function() {
     test('员工管理员（非 superAdmin）应被拒绝', async function() {
       var result = await callAction('exportData', { shopPhone: SHOP_PHONE }, 'oStaffAdmin11111111')
       expect(result.code).toBe(-403)
-      expect(result.msg).toContain('超级管理员')
+      expect(result.msg).toContain('店主账号')
     })
 
     test('staff 角色应被拒绝', async function() {

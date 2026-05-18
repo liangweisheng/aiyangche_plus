@@ -2,6 +2,153 @@
 
 ---
 
+## v6.3.1（2026-05-18）
+
+### 功能新增：商品入库批量选择（交互升级）
+
+1. **productStockIn 全面改造为入库表格模式**
+   - 顶部"批量选择商品"按钮，跳转商品选择页（`productSelect`）
+   - 勾选商品+规格+数量后确 → 结果回填至入库表格
+   - 表格展示：商品名 | 规格 | 数量 | 进价（可编辑） | 操作（删除✕）
+   - 支持逐行删除某条记录，实时同步
+   - 底部供货商/备注可选填
+
+2. **productSelect 支持动态 key（兼容双场景）**
+   - `onLoad(options)` 接受 `storageKey`、`existingKey`、`showAll` 参数
+   - 入库模式传 `showAll=true` 可看到全部商品（含已下架）
+   - 开单模式参数缺省时使用原默认值，完全向后兼容
+
+3. **云函数 `repair_inventory` 新增 `batchAddStock` action**
+   - `ACTION_PERMISSIONS` 权限等级：`admin`
+   - 批量循环处理每项入库，部分失败返回详细 error 数组
+   - 每项独立校验：数量合法性、进价不能为负数
+
+### 校验规则
+
+4. **确认入库前逐行校验**
+   - 表格不能为空 → 提示"请先选择商品"
+   - 每行进价必须填写 → 提示"第 N 行进价未填写"
+   - 进价允许为 0（供货商赠送） → 通过
+   - 进价不能为负数 → 提示"第 N 行进价不能为负数"
+
+### 部署注意
+
+⚠️ **云函数有变更，需要上传并部署 `repair_inventory` 到正式环境**
+
+**变更统计：** 5 文件
+- 📝 `pages/product/productStockIn/`（3文件完整重写）
+- 📝 `pages/product/productSelect/productSelect.js`（动态 key 改造）
+- 📝 `cloudfunctions/repair_inventory/index.js`（新增 `batchAddStock` action + 路由）
+
+**向后兼容性：** ✅ `productSelect` 参数缺省时行为与原逻辑完全一致，`batchAddStock` 为新增 action 不破坏旧调用
+
+---
+
+## v6.3.0（2026-05-17）
+
+### 功能新增
+
+1. **商品模板仓库导入系统（全新模块）**
+   - 新增 `pages/product/productTemplateImport/` 页面（4文件），入口位于"我的"→库存管理→「📦 从模板导入」
+   - 从 `repair_product_templates` 集合读取预置商品模板（机油/轮胎/刹车系统等10分类）
+   - 支持按分类筛选 + 关键词搜索（400ms 防抖）
+   - 点击单个模板导入本店并上架，已导入的可切换上下架
+   - 底部"批量导入全部模板"按钮：一键导入所有未导入商品
+   - 本店已导入商品通过 `_templateId` 字段关联模板，支持恢复上架
+   - ⚠️ **使用的云函数：`repair_inventory`**，涉及 action：`listTemplateProducts`（公开）、`importTemplateProduct`（admin+pro）、`batchImportTemplates`（admin+pro）、`toggleProductStatus`（admin+pro）、`syncTemplatesFromGuest`（superAdmin，仅管理员用于将游客账号商品同步为模板）
+
+2. **商品编辑功能**
+   - `productAdd.js` 重构为「新增+编辑」双模式：`onLoad(options.id)` 判断进入编辑模式
+   - 编辑模式自动加载商品数据并预填表单（调用 `getProductDetail`）
+   - 保存时判断 `isEdit` 调用 `updateProduct` 而非 `addProduct`
+   - 商品详情页底部新增「编辑商品」按钮
+
+3. **自由开单模式开关**
+   - "我的"→开单设置新增「自由开单模式」开关，与「进销存模式」互斥（不能同时关闭）
+   - 关闭后只能通过"选择商品"添加项目，快捷短语和手动编辑不可用
+   - `constants.js` 新增 `FREE_ORDER_MODE_KEY` 缓存 key
+   - orderAdd 页面相关入口根据开关状态显示/隐藏
+
+4. **库存流水筛选与调整**
+   - 商品详情页新增库存流水筛选弹窗（按类型 in/out 筛选 + 起止日期范围）
+   - 商品详情页新增库存调整弹窗（盘盈/盘亏/退货入库/损耗报损/手动调整）
+   - 云函数 `repair_inventory` 新增 `adjustStock`、`updateStockLogOrderId` action
+
+5. **库存流水导出**
+   - 数据导出新增「库存明细」导出类型，带筛选弹窗（类型 + 日期范围）
+   - 导出 Excel 新增列：单价、供货商、关联工单
+   - 云函数 `repair_main` 的 `exportData` action 修复 `new Date(...)` 日期解析问题
+
+6. **入库新增供货商字段**
+   - 入库表单新增「供货商名称」输入框（选填，用于质保追溯）
+   - 库存流水中显示供货商信息（蓝色 `供货商: xxx` 标签）
+   - 云函数 `addStock` 参数新增 `supplier` 字段
+
+### UI 变更
+
+7. **低库存预警系统**
+   - 商品详情页：库存 ≤5 时顶部黄色警告条显示"库存不足"
+   - 库存列表页：库存 ≤5 的商品卡片显示红色「低库存」标签
+   - 下架商品优先级高于低库存标签（`wx:elif` 逻辑正确）
+   - `constants.js` 新增 `LOW_STOCK_THRESHOLD = 5`
+
+8. **商品上下架状态展示**
+   - 已下架商品在列表页名称加删除线 + 灰色字体 + 60% 不透明度 + "已下架"标签
+   - 商品新增时默认 `productStatus: 'on_shelf'`
+
+9. **自定义 TabBar 车辆 Tab 默认开启**
+   - `custom-tab-bar/index.js` `buildAdminList` 中车辆 Tab 默认值从 `config.car === true` 改为 `config.car !== false`
+   - `proUnlock.js` 导航栏设置中车辆 Tab 默认也改为 true
+
+10. **工单录入表头优化**
+    - 服务项目表头调整列宽比例：规格列扩大（flex 2→2.5），金额列收缩（flex 2→1.5）
+    - 数量列宽度从 56rpx 压缩至 40rpx
+    - 新增删除按钮列和蓝色数量角标样式
+
+### 云函数变更
+
+11. **`repair_inventory` 新增 9 个 action**
+    - 模板管理：`listTemplateProducts` / `importTemplateProduct` / `toggleProductStatus` / `batchImportTemplates` / `syncTemplatesFromGuest`
+    - 库存调整：`adjustStock` / `updateStockLogOrderId`
+    - 短语管理：`getPhrases` / `savePhrases`
+    - `addProduct` 默认 `productStatus: 'on_shelf'`
+    - `addStock` 新增 `supplier` 字段
+    - `deductStock` / `getStockLogs` 新增 `orderRef` 关联工单号
+    - `checkPermission` 增加 `event.clientOpenid` 优先逻辑
+
+12. **`repair_main` 修复**
+    - `exportData` action 修复日期解析逻辑，解决 `new Date(...)` 参数错误问题
+
+### 数据库变更
+
+13. **新增数据库集合**
+    - `repair_product_templates` — 模板商品库（平台级，按 `sortOrder` 排序）
+
+### 部署注意
+
+⚠️ **云函数有变更，需要上传并部署 `repair_inventory` 和 `repair_main` 到正式环境**
+⚠️ **需要新建 `repair_product_templates` 数据库集合**（可在微信云开发控制台手动创建）
+⚠️ **模板数据填充**：使用 `repair_inventory.syncTemplatesFromGuest` action（仅 superAdmin）将游客账号的现有商品同步为模板，或在控制台手动导入
+
+**变更统计：** 36 文件
+- 🆕 `pages/product/productTemplateImport/`（4文件，未跟踪）
+- 📝 `cloudfunctions/repair_inventory/index.js`（+9 actions + supplier/orderRef 字段增强）
+- 📝 `cloudfunctions/repair_main/index.js`（exportData 日期修复）
+- 📝 `pages/product/productAdd/`（新增/编辑双模式重构）
+- 📝 `pages/product/productDetail/`（低库存预警 + 筛选弹窗 + 调整弹窗）
+- 📝 `pages/product/productStockIn/`（供货商字段）
+- 📝 `pages/product/productStockList/`（上下架标签 + 低库存标签）
+- 📝 `pages/proUnlock/`（自由开单模式开关 + 模板导入入口）
+- 📝 `pages/orderAdd/`（自由开单模式 + 表头列宽调整 + 商品行删除按钮）
+- 📝 `pages/dataExport/`（库存流水导出 + 筛选弹窗）
+- 📝 `custom-tab-bar/index.js`（车辆 Tab 默认开启）
+- 📝 `app.json`（注册模板导入路由）
+- 📝 `utils/constants.js`（版本更新 + 新增常量）
+
+**向后兼容性：** ✅ 集合独立、action 新增不破坏旧调用、功能开关默认开启不影响现有流程
+
+---
+
 ## v6.2.0（2026-05-16）
 
 ### 功能新增：进销存管理系统（全新模块）
@@ -88,10 +235,10 @@
 **向后兼容性：** ✅ 新增集合独立于原有数据，旧页面零感知；orderAdd 手动输入项目名逻辑不变；功能开关默认开启
 **部署注意：** ⚠️ 云函数有变更，**需要上传并部署** `repair_inventory` 云函数到正式环境，并新建 `repair_products` 和 `repair_stock_logs` 两个数据库集合
 
----
 
-## v6.1.0（2026-05-15）
 
+
+##v6.1.0(2026-05-15)
 ### 功能新增
 
 1. **车牌OCR识别系统（全新核心能力）**

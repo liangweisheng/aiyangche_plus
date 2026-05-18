@@ -1619,7 +1619,7 @@ App({
   },
 
   /**
-   * 是否超级管理员（注册者本人，非通过员工管理添加的）
+   * 是否店主账号（注册者本人，非通过员工管理添加的）
    * 判断依据：shopInfo 中有 openid 且无 addedBy 字段
    * @returns {boolean}
    */
@@ -1644,10 +1644,10 @@ App({
    * @param {string} requiredRole 所需权限等级：
    *   'registered' - 已注册用户（排除游客）
    *   'admin'      - 管理员（排除员工）
-   *   'superAdmin' - 超级管理员（仅注册者本人）
+   *   'superAdmin' - 店主账号（仅注册者本人）
    *   'pro'        - Pro版用户
    *   'admin+pro'  - 管理员 + Pro版
-   *   'superAdmin+pro' - 超级管理员 + Pro版
+   *   'superAdmin+pro' - 店主账号 + Pro版
    * @returns {boolean} true=有权限，false=无权限（已自动弹窗拦截）
    */
   checkPageAccess(requiredRole) {
@@ -1670,7 +1670,7 @@ App({
     if (this.isGuest()) {
       if (roleRequired === 'superAdmin') {
         wx.showModal({
-          title: '需要超级管理员',
+          title: '需要店主账号',
           content: '此功能需要注册者本人登录，游客无法使用',
           showCancel: false,
           confirmText: '我知道了',
@@ -1714,7 +1714,7 @@ App({
     if (roleRequired === 'superAdmin' && !this.isSuperAdmin()) {
       wx.showModal({
         title: '无权限',
-        content: '仅超级管理员可访问此页面',
+        content: '仅店主账号可访问此页面',
         showCancel: false,
         confirmText: '我知道了',
         success: function () { _goBack() }

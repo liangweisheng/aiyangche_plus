@@ -32,7 +32,7 @@ Page({
     roleTagClass: '', // 账号类型样式类
     contactExpanded: false,    // 联系客服折叠状态
     shopCodeExpanded: false,   // 门店码折叠状态
-    isOwner: false,            // 是否超级管理员（注册者本人）
+    isOwner: false,            // 是否店主账号（注册者本人）
     isStaff: false,            // 是否员工身份
     // 员工管理
     staffExpanded: false,
@@ -58,7 +58,9 @@ Page({
     // 库存管理折叠状态
     inventoryExpanded: false,
     // 进销存功能开关（默认开启）
-    inventoryEnabled: true
+    inventoryEnabled: true,
+    // 自由开单模式（默认开启）
+    freeOrderMode: true
   },
 
   // 切换激活 Pro 版卡片展开/收起
@@ -85,7 +87,7 @@ Page({
     })
     // 设置账号类型标签
     page._updateRoleLabel()
-    // 设置 isOwner（是否超级管理员/注册者本人）
+    // 设置 isOwner（是否店主账号/注册者本人）
     page._updateOwnerFlag()
     // v5.4.0 读取导航栏设置
     page._loadNavConfig()
@@ -95,14 +97,11 @@ Page({
       freeMaxMembers: constants.FREE_MAX_MEMBERS,
       servicePhone: constants.SERVICE_PHONE
     })
-    // 加载进销存开关状态
+    // 加载开单设置
     var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
-    // 默认开启（未设置时 = 开启）
-    if (invEnabled !== false) {
-      page.setData({ inventoryEnabled: true })
-    } else {
-      page.setData({ inventoryEnabled: false })
-    }
+    page.setData({ inventoryEnabled: invEnabled !== false })
+    var freeMode = wx.getStorageSync(constants.FREE_ORDER_MODE_KEY)
+    page.setData({ freeOrderMode: freeMode !== false })
   },
 
   onShow: function () {
@@ -137,9 +136,11 @@ Page({
     if (addr) patch.shopAddr = addr
     if (localDisplayName) patch.displayName = localDisplayName
     if (Object.keys(patch).length > 0) this.setData(patch)
-    // 刷新进销存开关状态
+    // 刷新开单设置
     var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
     page.setData({ inventoryEnabled: invEnabled !== false })
+    var freeMode = wx.getStorageSync(constants.FREE_ORDER_MODE_KEY)
+    page.setData({ freeOrderMode: freeMode !== false })
   },
 
   onUnload: function () {
@@ -225,7 +226,7 @@ Page({
     if (localPhone && !page.data.isGuest) {
       page.setData({ shopPhone: util.maskPhone(localPhone) })
     }
-    // 非超级管理员账号：设置登录手机号（员工用自身手机号，店主无openid时也需显示）
+    // 非店主账号：设置登录手机号（员工用自身手机号，店主无openid时也需显示）
     if (shopInfo.addedBy && (shopInfo.phone || shopInfo.shopPhone)) {
       // 员工账号：显示员工自己的手机号
       page.setData({ myPhone: util.maskPhone(shopInfo.phone || shopInfo.shopPhone) })
@@ -612,7 +613,7 @@ Page({
   // 修改门店名称
   onEditShopName: function () {
     if (!this.data.isOwner) {
-      wx.showToast({ title: '仅超级管理员可修改', icon: 'none' })
+      wx.showToast({ title: '仅店主账号可修改', icon: 'none' })
       return
     }
     var page = this
@@ -681,7 +682,7 @@ Page({
   // 编辑门店联系电话
   onEditShopTel: function () {
     if (!this.data.isOwner) {
-      wx.showToast({ title: '仅超级管理员可修改', icon: 'none' })
+      wx.showToast({ title: '仅店主账号可修改', icon: 'none' })
       return
     }
     var page = this
@@ -704,7 +705,7 @@ Page({
   // 编辑门店地址
   onEditShopAddr: function () {
     if (!this.data.isOwner) {
-      wx.showToast({ title: '仅超级管理员可修改', icon: 'none' })
+      wx.showToast({ title: '仅店主账号可修改', icon: 'none' })
       return
     }
     var page = this
@@ -737,10 +738,10 @@ Page({
     })
   },
 
-  // 跳转数据导出页（仅 Pro+超级管理员可用）
+  // 跳转数据导出页（仅 Pro+店主账号可用）
   onGoDataExport: function () {
     if (!this.data.isPro || !this.data.isOwner) {
-      wx.showToast({ title: '仅超级管理员可使用此功能', icon: 'none' })
+      wx.showToast({ title: '仅店主账号可使用此功能', icon: 'none' })
       return
     }
     wx.navigateTo({ url: '/pages/dataExport/dataExport' })
@@ -864,7 +865,7 @@ Page({
     var roleLabel = ''
     var roleTagClass = ''
     if (isOwner) {
-      roleLabel = '超级管理员'
+      roleLabel = '店主账号'
       roleTagClass = 'tag-super-admin'
     } else if (role === 'admin') {
       roleLabel = '管理员'
@@ -873,13 +874,13 @@ Page({
       roleLabel = '店员'
       roleTagClass = 'tag-staff-role'
     }
-    // ★ 管理员员工标识（非超级管理员、有 addedBy、role=admin）
+    // ★ 管理员员工标识（非店主账号、有 addedBy、role=admin）
     var isAdminRole = !isOwner && role === 'admin' && isStaff
     this.setData({ isOwner: isOwner, isStaff: isStaff, addedBy: isStaff, roleLabel: roleLabel, roleTagClass: roleTagClass, isAdminRole: isAdminRole })
   },
 
   /**
-   * 更新 isOwner 标志（是否超级管理员/注册者本人）
+   * 更新 isOwner 标志（是否店主账号/注册者本人）
    */
   _updateOwnerFlag: function () {
     var shopInfo = wx.getStorageSync('shopInfo') || {}
@@ -1152,8 +1153,8 @@ Page({
   // ====== v5.4.0 导航栏设置（即时生效） ======
 
   _loadNavConfig: function () {
-    var config = wx.getStorageSync('navTabConfig') || { member: true, car: false }
-    this.setData({ navTabs: { member: config.member !== false, car: config.car === true } })
+    var config = wx.getStorageSync('navTabConfig') || { member: true, car: true }
+    this.setData({ navTabs: { member: config.member !== false, car: config.car !== false } })
   },
 
   onToggleNavTab: function (e) {
@@ -1180,12 +1181,34 @@ Page({
   /** 进销存功能开关切换 */
   onToggleInventorySwitch: function (e) {
     var enabled = !!e.detail.value
+    // 互斥保护：不能两个同时关闭
+    if (!enabled && !this.data.freeOrderMode) {
+      wx.showToast({ title: '至少保留一个开单模式', icon: 'none' })
+      return
+    }
     this.setData({ inventoryEnabled: enabled })
     wx.setStorageSync(constants.INVENTORY_ENABLED_KEY, enabled)
     // 关闭时折叠库存管理卡片
     if (!enabled) {
       this.setData({ inventoryExpanded: false })
     }
+  },
+
+  /** 自由开单模式开关切换 */
+  onToggleFreeOrderSwitch: function (e) {
+    var enabled = !!e.detail.value
+    // 互斥保护：不能两个同时关闭
+    if (!enabled && !this.data.inventoryEnabled) {
+      wx.showToast({ title: '至少保留一个开单模式', icon: 'none' })
+      return
+    }
+    this.setData({ freeOrderMode: enabled })
+    wx.setStorageSync(constants.FREE_ORDER_MODE_KEY, enabled)
+  },
+
+  /** 跳转模板商品导入 */
+  onGoProductTemplateImport: function () {
+    wx.navigateTo({ url: '/pages/product/productTemplateImport/productTemplateImport' })
   },
 
   /** 跳转新建商品 */

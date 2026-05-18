@@ -1,0 +1,68 @@
+<view class="container">
+  <!-- 搜索框 -->
+  <view class="search-bar">
+    <input class="search-input" type="text" placeholder="搜索模板商品" value="{{keyword}}" bindinput="onSearchInput" confirm-type="search" />
+  </view>
+
+  <!-- 分类标签 -->
+  <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="category-list">
+      <view
+        class="category-tag {{currentCategory === cat ? 'active' : ''}}"
+        wx:for="{{categoryOptions}}" wx:key="*this"
+        data-cat="{{item}}"
+        bindtap="onCategoryTap"
+      >{{item}}</view>
+    </view>
+  </scroll-view>
+
+  <!-- 加载中 -->
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 模板列表 -->
+  <view class="template-list" wx:if="{{!loading && templateList.length > 0}}">
+    <view class="template-item" wx:for="{{templateList}}" wx:key="_id" data-id="{{item._id}}">
+      <view class="template-info">
+        <view class="template-name-row">
+          <text class="template-name">{{item.name}}</text>
+          <text class="template-category-tag">{{item.category}}</text>
+        </view>
+        <view class="template-meta">
+          <text class="template-price">建议售价 ¥{{item.price}}/{{item.unit}}</text>
+          <text class="template-specs" wx:if="{{item.specs && item.specs.length > 0}}">规格：{{item.specs.join('、')}}</text>
+        </view>
+        <view class="template-stock" wx:if="{{item.isImported && item.stock > 0}}">
+          <text>库存 {{item.stock}}{{item.unit}}</text>
+        </view>
+        <view class="template-price-self" wx:if="{{item.isImported && item.importedPrice && item.importedPrice !== item.price}}">
+          <text>本店售价 ¥{{item.importedPrice}}</text>
+        </view>
+      </view>
+      <view class="template-action">
+        <view class="status-toggle {{item.isImported ? 'imported' : ''}}" data-id="{{item._id}}" bindtap="{{item.isImported ? '' : 'onImportTemplate'}}">
+          <text wx:if="{{item.importing}}">...</text>
+          <text wx:elif="{{item.isImported}}">已导入</text>
+          <text wx:else>导入</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-wrap" wx:if="{{!loading && templateList.length === 0}}">
+    <text class="empty-text">暂无模板商品</text>
+    <text class="empty-hint">可先在"新建商品"中添加常用商品，联系客服同步到模板库</text>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="batch-bar" wx:if="{{!loading}}">
+    <view class="batch-row">
+      <button class="batch-btn batch-btn-secondary" bindtap="onGoProductAdd">新建商品</button>
+      <button class="batch-btn batch-btn-primary" bindtap="onBatchImport" disabled="{{batchLoading}}">
+        {{batchLoading ? '导入中...' : '批量导入全部模板'}}
+      </button>
+    </view>
+  </view>
+</view>

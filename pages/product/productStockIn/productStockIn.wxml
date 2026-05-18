@@ -1,28 +1,46 @@
 <view class="container">
-  <view class="form-card">
+  <view class="section-header">
+    <button class="select-btn" bindtap="onSelectProducts">+ 批量选择商品</button>
+  </view>
+
+  <!-- 空态 -->
+  <view class="empty-state" wx:if="{{selectedItems.length === 0}}">
+    <image class="empty-icon" src="/images/empty-box.png" mode="aspectFit" />
+    <text class="empty-text">请点击上方按钮选择商品</text>
+  </view>
+
+  <!-- 商品表格 -->
+  <view class="table-card" wx:if="{{selectedItems.length > 0}}">
+    <view class="table-header">
+      <text class="th th-name">商品名称</text>
+      <text class="th th-spec">规格</text>
+      <text class="th th-qty">数量</text>
+      <text class="th th-cost">进价</text>
+      <text class="th th-action">操作</text>
+    </view>
+    <view class="table-body">
+      <view class="table-row" wx:for="{{selectedItems}}" wx:for-index="idx" wx:key="_productId">
+        <text class="td td-name">{{item.name}}</text>
+        <text class="td td-spec">{{item.spec || '无规格'}}</text>
+        <text class="td td-qty">{{item.quantity}} {{item.unit}}</text>
+        <view class="td td-cost">
+          <input class="cost-input" type="digit" placeholder="进价"
+            value="{{item.cost}}"
+            data-index="{{idx}}"
+            bindinput="onCostInput" />
+        </view>
+        <view class="td td-action">
+          <text class="del-btn" data-index="{{idx}}" bindtap="onRemoveItem">✕</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部信息 -->
+  <view class="form-card" wx:if="{{selectedItems.length > 0}}">
     <view class="form-group">
-      <text class="form-label">选择商品 <text class="required">*</text></text>
-      <picker mode="selector" range="{{productNames}}" value="{{productIndex}}" bindchange="onProductChange">
-        <view class="form-picker {{productIndex === -1 ? 'placeholder' : ''}}">{{productIndex >= 0 ? productNames[productIndex] : '请选择商品'}}</view>
-      </picker>
-    </view>
-    <view class="form-group" wx:if="{{selectedProduct && selectedProduct.specs && selectedProduct.specs.length > 0}}">
-      <text class="form-label">选择规格</text>
-      <picker mode="selector" range="{{selectedProduct.specs}}" value="{{specIndex}}" bindchange="onSpecChange">
-        <view class="form-picker {{specIndex === -1 ? 'placeholder' : ''}}">{{specIndex >= 0 ? selectedProduct.specs[specIndex] : '请选择规格'}}</view>
-      </picker>
-    </view>
-    <view class="form-group" wx:if="{{selectedProduct.specs && selectedProduct.specs.length === 0}}">
-      <text class="form-tip-static">该商品无规格选项</text>
-    </view>
-    <view class="form-group">
-      <text class="form-label">入库数量 <text class="required">*</text></text>
-      <input class="form-input" type="number" placeholder="请输入数量" value="{{quantity}}" bindinput="onInput" data-field="quantity" />
-    </view>
-    <view class="form-group">
-      <text class="form-label">入库单价</text>
-      <input class="form-input" type="digit" placeholder="选填" value="{{cost}}" bindinput="onInput" data-field="cost" />
-      <text class="form-tip" wx:if="{{selectedProduct && selectedProduct.cost > 0}}">参考进价：¥{{selectedProduct.cost}}</text>
+      <text class="form-label">供货商</text>
+      <input class="form-input" type="text" placeholder="选填" value="{{supplier}}" bindinput="onInput" data-field="supplier" />
     </view>
     <view class="form-group">
       <text class="form-label">备注</text>
@@ -31,6 +49,8 @@
   </view>
 
   <view class="footer">
-    <button class="save-btn" bindtap="onSave" disabled="{{saving}}">{{saving ? '保存中...' : '确认入库'}}</button>
+    <button class="save-btn" bindtap="onSave" disabled="{{saving || selectedItems.length === 0}}">
+      {{saving ? '入库中...' : '确认入库'}}
+    </button>
   </view>
 </view>

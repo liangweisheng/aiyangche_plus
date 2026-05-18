@@ -11,13 +11,27 @@ const _ = db.command
 // 权限配置
 // ===========================
 var ACTION_PERMISSIONS = {
-  addStock: 'admin+pro',
-  deductStock: 'admin+pro',
+  addStock: 'admin',
+  deductStock: 'admin',
   listProducts: 'registered',
   getProductDetail: 'registered',
-  addProduct: 'admin+pro',
-  updateProduct: 'admin+pro',
-  getStockLogs: 'admin+pro'
+  addProduct: 'admin',
+  updateProduct: 'admin',
+  getStockLogs: 'admin',
+  getPhrases: 'registered',
+  savePhrases: 'admin',
+  // 模板商品管理
+  listTemplateProducts: 'public',
+  importTemplateProduct: 'admin',
+  toggleProductStatus: 'admin',
+  batchImportTemplates: 'admin',
+  syncTemplatesFromGuest: 'superAdmin',
+  adjustStock: 'admin',
+  batchAddStock: 'admin',
+  /**
+   * 根据 orderRef 更新库存流水的 orderId（工单创建后回填）
+   */
+  updateStockLogOrderId: 'admin'
 }
 
 // ===========================
@@ -35,7 +49,7 @@ async function checkPermission(event, context, actionName) {
   var requirePublic = levels.indexOf('public') !== -1
 
   var wxContext = cloud.getWXContext()
-  var callerOpenId = wxContext.OPENID || ''
+  var callerOpenId = event.clientOpenid || wxContext.OPENID || ''
 
   if (requirePublic) return null // 不需要鉴权
 
@@ -97,6 +111,78 @@ async function checkPermission(event, context, actionName) {
 }
 
 // ===========================
+// 工具函数 - 按规格更新库存
+// ===========================
+/**
+ * 按规格更新库存（读-改-写模式）
+ * @param {string} productId
+ * @param {string} shopPhone
+ * @param {string} spec - 规格标签（空串=无规格）
+ * @param {number} delta - 变化量（正=入，负=出）
+ * @returns {Promise<{newStock: number, newSpecStock: Array, productName: string, productSpecPrice: number}>}
+ */
+async function _updateSpecStock(productId, shopPhone, spec, delta) {
+  var res = await db.collection('repair_products')
+    .where({ _id: productId, shopPhone: shopPhone })
+    .get()
+  if (!res.data || res.data.length === 0) throw new Error('商品不存在')
+
+  var product = res.data[0]
+  var specStock = (product.specStock || []).map(function (s) {
+    return { label: s.label, stock: s.stock }
+  })
+
+  if (spec) {
+    // 有规格：更新对应规格的库存
+    var found = false
+    specStock = specStock.map(function (s) {
+      if (s.label === spec) {
+        found = true
+        var newStock = (s.stock || 0) + delta
+        if (newStock < 0) throw new Error('规格 "' + spec + '" 库存不足（当前 ' + (s.stock || 0) + '，需要 ' + (-delta) + '）')
+        return { label: s.label, stock: newStock }
+      }
+      return s
+    })
+    if (!found) {
+      if (delta < 0) throw new Error('规格 "' + spec + '" 不存在')
+      specStock.push({ label: spec, stock: delta })
+    }
+  } else {
+    // 无规格商品：校验总库存
+    var noSpecTotal = (product.stock || 0) + delta
+    if (noSpecTotal < 0) throw new Error('库存不足（当前 ' + (product.stock || 0) + '，需要 ' + (-delta) + '）')
+  }
+
+  // 重算总库存
+  var newTotal = 0
+  if (spec) {
+    specStock.forEach(function (s) { newTotal += s.stock || 0 })
+  } else {
+    newTotal = (product.stock || 0) + delta
+  }
+
+  var updateData = {
+    specStock: specStock,
+    stock: newTotal,
+    updateTime: new Date()
+  }
+  await db.collection('repair_products')
+    .where({ _id: productId, shopPhone: shopPhone })
+    .update({ data: updateData })
+
+  // 获取该规格对应的售价（用于流水）
+  var specPrice = product.price
+  if (spec && product.specPrice) {
+    product.specPrice.forEach(function (sp) {
+      if (sp.label === spec) specPrice = sp.price
+    })
+  }
+
+  return { newStock: newTotal, newSpecStock: specStock, productName: product.name, specPrice: specPrice, cost: product.cost || 0 }
+}
+
+// ===========================
 // Action 处理函数
 // ===========================
 
@@ -104,20 +190,25 @@ async function checkPermission(event, context, actionName) {
  * 新增商品
  */
 async function addProduct(event) {
-  var { shopPhone, name, category, specs, price, cost, unit, remark } = event
+  var { shopPhone, name, category, specs, specPrice, specCost, price, cost, unit, remark } = event
   if (!shopPhone || !name) return { code: -1, msg: '门店和商品名必填' }
 
   var now = new Date()
+  var cleanSpecs = specs || []
   var data = {
     shopPhone: shopPhone,
     name: name.trim(),
     category: category || '其他',
-    specs: specs || [],
+    specs: cleanSpecs,
+    specStock: cleanSpecs.map(function (s) { return { label: s, stock: 0 } }),
+    specPrice: specPrice || [],
+    specCost: specCost || [],
     price: Number(price) || 0,
     cost: Number(cost) || 0,
     stock: 0,
     unit: unit || '个',
     remark: remark || '',
+    productStatus: 'on_shelf',
     createTime: now,
     updateTime: now
   }
@@ -133,17 +224,59 @@ async function addProduct(event) {
  * 更新商品
  */
 async function updateProduct(event) {
-  var { productId, shopPhone, name, category, specs, price, cost, unit, remark } = event
+  var { productId, shopPhone, name, category, specs, specPrice, specCost, price, cost, unit, remark } = event
   if (!productId || !shopPhone) return { code: -1, msg: '参数不足' }
 
   var updateData = { updateTime: new Date() }
   if (name !== undefined) updateData.name = name.trim()
   if (category !== undefined) updateData.category = category
-  if (specs !== undefined) updateData.specs = specs
   if (price !== undefined) updateData.price = Number(price)
   if (cost !== undefined) updateData.cost = Number(cost)
   if (unit !== undefined) updateData.unit = unit
   if (remark !== undefined) updateData.remark = remark
+
+  // specs 变更时同步 specStock / specPrice
+  if (specs !== undefined) {
+    updateData.specs = specs
+    try {
+      var existRes = await db.collection('repair_products')
+        .where({ _id: productId, shopPhone: shopPhone })
+        .field({ specStock: true, specPrice: true, specCost: true })
+        .get()
+      if (existRes.data && existRes.data.length > 0) {
+        var existing = existRes.data[0]
+        var oldStockMap = {}
+        ;(existing.specStock || []).forEach(function (s) { oldStockMap[s.label] = s.stock })
+        var oldPriceMap = {}
+        ;(existing.specPrice || []).forEach(function (s) { oldPriceMap[s.label] = s.price })
+        var oldCostMap = {}
+        ;(existing.specCost || []).forEach(function (s) { oldCostMap[s.label] = s.cost })
+
+        var newSpecStock = specs.map(function (s) {
+          return { label: s, stock: oldStockMap[s] !== undefined ? oldStockMap[s] : 0 }
+        })
+        var newSpecPrice = specs.map(function (s) {
+          return { label: s, price: oldPriceMap[s] !== undefined ? oldPriceMap[s] : (Number(price) || 0) }
+        })
+        var newSpecCost = specs.map(function (s) {
+          return { label: s, cost: oldCostMap[s] !== undefined ? oldCostMap[s] : (Number(cost) || 0) }
+        })
+
+        updateData.specStock = newSpecStock
+        updateData.specPrice = newSpecPrice
+        updateData.specCost = newSpecCost
+      }
+    } catch (e) {
+      return { code: -1, msg: '规格变更失败: ' + e.message }
+    }
+  }
+
+  if (specPrice !== undefined) {
+    updateData.specPrice = specPrice
+  }
+  if (specCost !== undefined) {
+    updateData.specCost = specCost
+  }
 
   try {
     await db.collection('repair_products')
@@ -159,7 +292,7 @@ async function updateProduct(event) {
  * 商品入库
  */
 async function addStock(event) {
-  var { shopPhone, productId, spec, quantity, cost, operator, remark } = event
+  var { shopPhone, productId, spec, quantity, cost, operator, remark, supplier } = event
   if (!shopPhone || !productId || !quantity || quantity <= 0) {
     return { code: -1, msg: '参数不足或数量不合法' }
   }
@@ -168,32 +301,32 @@ async function addStock(event) {
   var costPrice = Number(cost) || 0
 
   try {
-    // 更新商品库存
-    var productRes = await db.collection('repair_products')
-      .where({ _id: productId, shopPhone: shopPhone })
-      .get()
-    if (!productRes.data || productRes.data.length === 0) {
-      return { code: -1, msg: '商品不存在' }
+    // 通过 _updateSpecStock 更新库存
+    var result
+    try {
+      result = await _updateSpecStock(productId, shopPhone, spec || '', qty)
+    } catch (e) {
+      return { code: -1, msg: e.message }
     }
-    var product = productRes.data[0]
 
     // 写入库存流水
     await db.collection('repair_stock_logs').add({
       data: {
         shopPhone: shopPhone,
         productId: productId,
-        productName: product.name,
+        productName: result.productName,
         spec: spec || '',
         type: 'in',
         quantity: qty,
         cost: costPrice,
         operator: operator || '',
+        supplier: supplier || '',
         remark: remark || '',
         createTime: new Date()
       }
     })
 
-    return { code: 0, msg: '入库成功', data: { newStock: (product.stock || 0) + qty } }
+    return { code: 0, msg: '入库成功', data: { newStock: result.newStock } }
   } catch (e) {
     return { code: -1, msg: '入库失败: ' + e.message }
   }
@@ -204,7 +337,7 @@ async function addStock(event) {
  */
 async function deductStock(event) {
   var { shopPhone, items } = event
-  // items: [{ productId, spec, quantity }]
+  // items: [{ productId, spec, quantity, amount }]
   if (!shopPhone || !items || !Array.isArray(items) || items.length === 0) {
     return { code: -1, msg: '参数不足' }
   }
@@ -217,35 +350,30 @@ async function deductStock(event) {
       continue
     }
     try {
-      var productRes = await db.collection('repair_products')
-        .where({ _id: item.productId, shopPhone: shopPhone })
-        .get()
-      if (!productRes.data || productRes.data.length === 0) {
-        errors.push({ index: i, productId: item.productId, msg: '商品不存在' })
-        continue
-      }
-      var product = productRes.data[0]
-      var currentStock = product.stock || 0
-      if (currentStock < item.quantity) {
-        errors.push({ index: i, productId: item.productId, productName: product.name, msg: product.name + ' 库存不足（当前 ' + currentStock + '，需要 ' + item.quantity + '）' })
-        continue
-      }
+      var result = await _updateSpecStock(item.productId, shopPhone, item.spec || '', -Number(item.quantity))
 
-      // 写流水
-      await db.collection('repair_stock_logs').add({
-        data: {
-          shopPhone: shopPhone,
-          productId: item.productId,
-          productName: product.name,
-          spec: item.spec || '',
-          type: 'out',
-          quantity: Number(item.quantity),
-          cost: 0,
-          operator: event.operator || '',
-          remark: '工单出库',
-          createTime: new Date()
-        }
-      })
+        // 计算单价（amount 是总价，÷ quantity 得单价）
+        var totalAmount = Number(item.amount) || 0
+        var unitPrice = totalAmount > 0 ? Number((totalAmount / Number(item.quantity)).toFixed(2)) : (result.specPrice || 0)
+
+        // 写流水
+        await db.collection('repair_stock_logs').add({
+          data: {
+            shopPhone: shopPhone,
+            productId: item.productId,
+            productName: result.productName,
+            spec: item.spec || '',
+            type: 'out',
+            quantity: Number(item.quantity),
+            cost: result.cost || 0,
+            salePrice: unitPrice,  // 修正：存单价而非总价
+            operator: event.operator || '',
+            remark: '工单出库',
+            orderRef: event.orderRef || '',
+            createTime: new Date()
+          }
+        })
+      }
     } catch (e) {
       errors.push({ index: i, productId: item.productId, msg: e.message })
     }
@@ -261,7 +389,7 @@ async function deductStock(event) {
  * 商品列表
  */
 async function listProducts(event) {
-  var { shopPhone, category, keyword, page, pageSize } = event
+  var { shopPhone, category, keyword, page, pageSize, status } = event
   if (!shopPhone) return { code: -1, msg: 'shopPhone 必填' }
 
   var query = { shopPhone: shopPhone }
@@ -271,6 +399,15 @@ async function listProducts(event) {
   if (keyword && keyword.trim()) {
     var kw = keyword.trim()
     query.name = db.RegExp({ regexp: kw, options: 'i' })
+  }
+  // 支持按上下架状态筛选（orderAdd 开单时只显示已上架商品）
+  if (status) {
+    if (status === 'on_shelf') {
+      // 兼容旧数据（无 productStatus 字段视为已上架）
+      query.productStatus = _.or([_.eq('on_shelf'), _.exists(false)])
+    } else {
+      query.productStatus = status
+    }
   }
 
   var limit = pageSize || 50
@@ -312,22 +449,38 @@ async function getProductDetail(event) {
 }
 
 /**
- * 出入库流水
+ * 出入库流水（支持筛选）
+ * @param {string} event.logType - 流水类型筛选：in / out / adjust（可选）
+ * @param {string} event.startDate - 开始日期 YYYY-MM-DD（可选）
+ * @param {string} event.endDate - 结束日期 YYYY-MM-DD（可选）
  */
 async function getStockLogs(event) {
-  var { productId, shopPhone, page, pageSize } = event
+  var { productId, shopPhone, page, pageSize, logType, startDate, endDate } = event
   if (!productId || !shopPhone) return { code: -1, msg: '参数不足' }
 
   var limit = pageSize || 20
   var skip = ((page || 1) - 1) * limit
+  var query = { productId: productId, shopPhone: shopPhone }
+
+  // 流水类型筛选
+  if (logType && ['in', 'out', 'adjust'].indexOf(logType) !== -1) {
+    query.type = logType
+  }
+
+  // 时间范围筛选
+  if (startDate || endDate) {
+    var timeFilter = {}
+    if (startDate) timeFilter.$gte = new Date(startDate + ' 00:00:00')
+    if (endDate) timeFilter.$lte = new Date(endDate + ' 23:59:59')
+    query.createTime = timeFilter
+  }
 
   try {
     var countRes = await db.collection('repair_stock_logs')
-      .where({ productId: productId, shopPhone: shopPhone })
-      .count()
+      .where(query).count()
     var total = countRes.total || 0
     var listRes = await db.collection('repair_stock_logs')
-      .where({ productId: productId, shopPhone: shopPhone })
+      .where(query)
       .orderBy('createTime', 'desc')
       .skip(skip)
       .limit(limit)
@@ -335,6 +488,414 @@ async function getStockLogs(event) {
     return { code: 0, data: { list: listRes.data || [], total: total } }
   } catch (e) {
     return { code: -1, msg: '查询失败: ' + e.message }
+  }
+}
+
+/**
+ * 获取门店快捷短语
+ */
+async function getPhrases(event) {
+  var { shopPhone } = event
+  if (!shopPhone) return { code: -1, msg: 'shopPhone 必填' }
+  try {
+    var res = await db.collection('repair_phrases')
+      .where({ shopPhone: shopPhone })
+      .limit(1)
+      .get()
+    if (res.data && res.data.length > 0) {
+      return { code: 0, data: { phrases: res.data[0].phrases || [] } }
+    }
+    return { code: 0, data: { phrases: [] } }
+  } catch (e) {
+    return { code: -1, msg: '查询失败: ' + e.message }
+  }
+}
+
+/**
+ * 保存门店快捷短语
+ */
+async function savePhrases(event) {
+  var { shopPhone, phrases } = event
+  if (!shopPhone) return { code: -1, msg: 'shopPhone 必填' }
+  if (!Array.isArray(phrases)) return { code: -1, msg: 'phrases 必须为数组' }
+
+  try {
+    var existRes = await db.collection('repair_phrases')
+      .where({ shopPhone: shopPhone })
+      .limit(1)
+      .get()
+
+    if (existRes.data && existRes.data.length > 0) {
+      // 已存在 → 更新
+      await db.collection('repair_phrases')
+        .doc(existRes.data[0]._id)
+        .update({ data: { phrases: phrases, updatedAt: new Date() } })
+    } else {
+      // 不存在 → 创建
+      await db.collection('repair_phrases').add({
+        data: {
+          shopPhone: shopPhone,
+          phrases: phrases,
+          updatedAt: new Date()
+        }
+      })
+    }
+    return { code: 0, msg: '保存成功' }
+  } catch (e) {
+    return { code: -1, msg: '保存失败: ' + e.message }
+  }
+}
+
+/**
+ * 库存调整（手动盘盈/盘亏/退货入库/报损）
+ * quantity: 正数=增加(盘盈/退货), 负数=减少(盘亏/报损)
+ */
+async function adjustStock(event) {
+  var { shopPhone, productId, spec, quantity, operator, reason, remark } = event
+  if (!shopPhone || !productId || quantity === undefined || quantity === null || Number(quantity) === 0) {
+    return { code: -1, msg: '参数不足或调整数量为0' }
+  }
+
+  var qty = Number(quantity)
+  var validReasons = ['盘盈', '盘亏', '退货入库', '损耗报损', '手动调整']
+  var adjustReason = reason || '手动调整'
+  if (validReasons.indexOf(adjustReason) === -1) {
+    adjustReason = '手动调整'
+  }
+
+  try {
+    var result
+    try {
+      result = await _updateSpecStock(productId, shopPhone, spec || '', qty)
+    } catch (e) {
+      return { code: -1, msg: e.message }
+    }
+    var newStock = result.newStock
+    var oldStock = newStock - qty
+
+    // 拼接备注：原因 + 用户备注
+    var fullRemark = adjustReason
+    if (remark && remark.trim()) {
+      fullRemark += ' - ' + remark.trim()
+    }
+
+    // 写流水
+    await db.collection('repair_stock_logs').add({
+      data: {
+        shopPhone: shopPhone,
+        productId: productId,
+        productName: result.productName,
+        spec: spec || '',
+        type: 'adjust',
+        quantity: qty,
+        cost: 0,
+        operator: operator || '',
+        remark: fullRemark,
+        createTime: new Date()
+      }
+    })
+
+    var actionLabel = qty > 0 ? '盘盈' : '盘亏'
+    return { code: 0, msg: actionLabel + '成功', data: { newStock: newStock, oldStock: oldStock } }
+  } catch (e) {
+    return { code: -1, msg: '调整失败: ' + e.message }
+  }
+}
+
+/**
+ * 批量入库
+ * items: [{ productId, spec, quantity, cost }]
+ */
+async function batchAddStock(event) {
+  var { shopPhone, items, operator, supplier, remark } = event
+  if (!shopPhone || !items || !Array.isArray(items) || items.length === 0) {
+    return { code: -1, msg: '参数不足' }
+  }
+
+  var errors = []
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i]
+    if (!item.productId || !item.quantity || item.quantity <= 0) {
+      errors.push({ index: i, msg: '商品ID或数量不合法' })
+      continue
+    }
+    var qty = Number(item.quantity)
+    var costPrice = Number(item.cost)
+    if (costPrice < 0) {
+      errors.push({ index: i, productId: item.productId, msg: '进价不能为负数' })
+      continue
+    }
+    try {
+      var result = await _updateSpecStock(item.productId, shopPhone, item.spec || '', qty)
+      await db.collection('repair_stock_logs').add({
+        data: {
+          shopPhone: shopPhone,
+          productId: item.productId,
+          productName: result.productName,
+          spec: item.spec || '',
+          type: 'in',
+          quantity: qty,
+          cost: costPrice,
+          operator: operator || '',
+          supplier: supplier || '',
+          remark: remark || '',
+          createTime: new Date()
+        }
+      })
+    } catch (e) {
+      errors.push({ index: i, productId: item.productId, msg: e.message })
+    }
+  }
+
+  if (errors.length > 0) {
+    return { code: -1, msg: '部分入库失败', data: { errors: errors, succeeded: items.length - errors.length } }
+  }
+  return { code: 0, msg: '批量入库成功，共 ' + items.length + ' 项' }
+}
+
+/**
+ * 工单保存后将 orderRef 更新为订单 _id（新工单回填 orderId）
+ */
+async function updateStockLogOrderId(event) {
+  var { shopPhone, orderRef, orderId } = event
+  if (!shopPhone || !orderRef || !orderId) {
+    return { code: -1, msg: '参数不足' }
+  }
+  try {
+    await db.collection('repair_stock_logs')
+      .where({ shopPhone: shopPhone, orderRef: orderRef, type: 'out' })
+      .update({ data: { orderRef: orderId } })
+    return { code: 0, msg: '更新成功' }
+  } catch (e) {
+    console.error('updateStockLogOrderId 失败:', e)
+    return { code: -1, msg: '更新失败: ' + e.message }
+  }
+}
+
+// ===========================
+// ===========================
+
+/**
+ * 获取模板商品列表（无需登录）
+ */
+async function listTemplateProducts(event) {
+  var { category, keyword } = event
+  var query = {}
+  if (category && category !== '全部') {
+    query.category = category
+  }
+  if (keyword && keyword.trim()) {
+    var kw = keyword.trim()
+    query.name = db.RegExp({ regexp: kw, options: 'i' })
+  }
+
+  try {
+    var res = await db.collection('repair_product_templates')
+      .where(query)
+      .orderBy('sortOrder', 'asc')
+      .get()
+    return { code: 0, data: { list: res.data || [] } }
+  } catch (e) {
+    return { code: -1, msg: '查询失败: ' + e.message }
+  }
+}
+
+/**
+ * 导入单个模板商品到本店 repair_products
+ * 重复导入自动恢复为已上架
+ */
+async function importTemplateProduct(event) {
+  var { shopPhone, templateId } = event
+  if (!shopPhone || !templateId) return { code: -1, msg: '参数不足' }
+
+  try {
+    // 查找模板
+    var tmplRes = await db.collection('repair_product_templates')
+      .where({ _id: templateId })
+      .limit(1)
+      .get()
+    if (!tmplRes.data || tmplRes.data.length === 0) {
+      return { code: -1, msg: '模板商品不存在' }
+    }
+    var template = tmplRes.data[0]
+
+    // 检查本店是否已导入该模板
+    var existRes = await db.collection('repair_products')
+      .where({ shopPhone: shopPhone, _templateId: templateId })
+      .limit(1)
+      .get()
+
+    if (existRes.data && existRes.data.length > 0) {
+      // 已存在 → 恢复为已上架
+      var existing = existRes.data[0]
+      await db.collection('repair_products')
+        .doc(existing._id)
+        .update({ data: { productStatus: 'on_shelf', updateTime: new Date() } })
+      return { code: 0, msg: '已恢复上架', data: { _id: existing._id, existed: true } }
+    }
+
+    // 不存在 → 复制模板到本店
+    var now = new Date()
+    var templateSpecs = template.specs || []
+    var productData = {
+      shopPhone: shopPhone,
+      name: template.name,
+      category: template.category || '其他',
+      specs: templateSpecs,
+      specStock: templateSpecs.map(function (s) { return { label: s, stock: 0 } }),
+      specPrice: [],
+      price: template.price || 0,
+      cost: template.cost || 0,
+      stock: 0,
+      unit: template.unit || '个',
+      remark: template.remark || '',
+      productStatus: 'on_shelf',
+      _templateId: templateId,
+      createTime: now,
+      updateTime: now
+    }
+    var addRes = await db.collection('repair_products').add({ data: productData })
+    return { code: 0, msg: '上架成功', data: { _id: addRes._id, existed: false } }
+  } catch (e) {
+    return { code: -1, msg: '操作失败: ' + e.message }
+  }
+}
+
+/**
+ * 切换商品上下架状态（仅对 repair_products 操作）
+ */
+async function toggleProductStatus(event) {
+  var { shopPhone, productId, status } = event
+  if (!shopPhone || !productId) return { code: -1, msg: '参数不足' }
+  var newStatus = status === 'on_shelf' ? 'on_shelf' : 'off_shelf'
+
+  try {
+    var res = await db.collection('repair_products')
+      .where({ _id: productId, shopPhone: shopPhone })
+      .limit(1)
+      .get()
+    if (!res.data || res.data.length === 0) {
+      return { code: -1, msg: '商品不存在' }
+    }
+    await db.collection('repair_products')
+      .doc(productId)
+      .update({ data: { productStatus: newStatus, updateTime: new Date() } })
+    var label = newStatus === 'on_shelf' ? '已上架' : '已下架'
+    return { code: 0, msg: label }
+  } catch (e) {
+    return { code: -1, msg: '操作失败: ' + e.message }
+  }
+}
+
+/**
+ * 批量导入所有未导入的模板商品到本店
+ */
+async function batchImportTemplates(event) {
+  var { shopPhone } = event
+  if (!shopPhone) return { code: -1, msg: 'shopPhone 必填' }
+
+  try {
+    // 获取所有模板
+    var tmplRes = await db.collection('repair_product_templates')
+      .get()
+    var templates = tmplRes.data || []
+    if (templates.length === 0) {
+      return { code: 0, msg: '暂无模板商品', data: { count: 0 } }
+    }
+
+    // 查询本店已有的模板导入记录
+    var existRes = await db.collection('repair_products')
+      .where({ shopPhone: shopPhone, _templateId: _.exists(true) })
+      .field({ _templateId: true })
+      .get()
+    var existingIds = {}
+    ;(existRes.data || []).forEach(function (p) {
+      if (p._templateId) existingIds[p._templateId] = true
+    })
+
+    // 只导入未导入的模板
+    var now = new Date()
+    var importedCount = 0
+    var tasks = []
+    templates.forEach(function (tmpl) {
+      if (existingIds[tmpl._id]) return // 跳过已导入
+      tasks.push({
+        shopPhone: shopPhone,
+        name: tmpl.name,
+        category: tmpl.category || '其他',
+        specs: tmpl.specs || [],
+        specStock: (tmpl.specs || []).map(function (s) { return { label: s, stock: 0 } }),
+        specPrice: [],
+        price: tmpl.price || 0,
+        cost: tmpl.cost || 0,
+        stock: 0,
+        unit: tmpl.unit || '个',
+        remark: tmpl.remark || '',
+        productStatus: 'on_shelf',
+        _templateId: tmpl._id,
+        createTime: now,
+        updateTime: now
+      })
+      importedCount++
+    })
+
+    // 批量写入（分批，每次最多 50 条）
+    var BATCH_SIZE = 50
+    for (var i = 0; i < tasks.length; i += BATCH_SIZE) {
+      var batch = tasks.slice(i, i + BATCH_SIZE)
+      await db.collection('repair_products').add(batch)
+    }
+
+    return { code: 0, msg: '批量导入完成，新增 ' + importedCount + ' 个商品', data: { count: importedCount } }
+  } catch (e) {
+    return { code: -1, msg: '批量导入失败: ' + e.message }
+  }
+}
+
+/**
+ * 将游客账号的商品同步到模板集合（仅 superAdmin 可调用）
+ */
+async function syncTemplatesFromGuest(event) {
+  var guestPhone = event.guestPhone || '13507720000'
+  try {
+    // 读取游客账号的所有商品
+    var productsRes = await db.collection('repair_products')
+      .where({ shopPhone: guestPhone })
+      .get()
+    var products = productsRes.data || []
+    if (products.length === 0) {
+      return { code: 0, msg: '游客账号暂无商品，无变化', data: { count: 0 } }
+    }
+
+    // 清空现有模板
+    await db.collection('repair_product_templates').where({}).remove()
+
+    // 转换为模板格式并写入
+    var now = new Date()
+    var templates = products.map(function (p, idx) {
+      return {
+        name: p.name,
+        category: p.category || '其他',
+        specs: p.specs || [],
+        price: p.price || 0,
+        cost: p.cost || 0,
+        unit: p.unit || '个',
+        remark: p.remark || '',
+        sortOrder: idx + 1,
+        createTime: now
+      }
+    })
+
+    // 分批写入
+    var BATCH_SIZE = 50
+    for (var i = 0; i < templates.length; i += BATCH_SIZE) {
+      var batch = templates.slice(i, i + BATCH_SIZE)
+      await db.collection('repair_product_templates').add(batch)
+    }
+
+    return { code: 0, msg: '同步成功，共 ' + templates.length + ' 个模板商品', data: { count: templates.length } }
+  } catch (e) {
+    return { code: -1, msg: '同步失败: ' + e.message }
   }
 }
 
@@ -368,6 +929,26 @@ exports.main = async (event, context) => {
       return await getProductDetail(event)
     case 'getStockLogs':
       return await getStockLogs(event)
+    case 'getPhrases':
+      return await getPhrases(event)
+    case 'savePhrases':
+      return await savePhrases(event)
+    case 'listTemplateProducts':
+      return await listTemplateProducts(event)
+    case 'importTemplateProduct':
+      return await importTemplateProduct(event)
+    case 'toggleProductStatus':
+      return await toggleProductStatus(event)
+    case 'batchImportTemplates':
+      return await batchImportTemplates(event)
+    case 'syncTemplatesFromGuest':
+      return await syncTemplatesFromGuest(event)
+    case 'adjustStock':
+      return await adjustStock(event)
+    case 'batchAddStock':
+      return await batchAddStock(event)
+    case 'updateStockLogOrderId':
+      return await updateStockLogOrderId(event)
     default:
       return { code: -1, msg: '未知 action: ' + action }
   }

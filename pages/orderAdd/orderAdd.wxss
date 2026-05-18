@@ -267,11 +267,15 @@
 }
 
 .phrase-manage-btn {
-  font-size: 22rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60rpx;
+  font-size: 26rpx;
   color: #1677ff;
-  padding: 6rpx 16rpx;
+  padding: 10rpx 28rpx;
   background: rgba(22, 119, 255, 0.06);
-  border-radius: 8rpx;
+  border-radius: 12rpx;
 }
 
 .section-actions {
@@ -281,11 +285,15 @@
 }
 
 .product-pick-btn {
-  font-size: 22rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60rpx;
+  font-size: 26rpx;
   color: #52c41a;
-  padding: 6rpx 16rpx;
+  padding: 10rpx 28rpx;
   background: rgba(82, 196, 26, 0.06);
-  border-radius: 8rpx;
+  border-radius: 12rpx;
   border: 2rpx solid rgba(82, 196, 26, 0.2);
 }
 
@@ -374,13 +382,21 @@
   align-items: center;
   padding: 16rpx 0;
   border-bottom: 2rpx solid #f0f0f0;
+  gap: 16rpx;
 }
 
 .svc-header .svc-col {
-  font-size: 24rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: #999;
+  text-align: left;
+  padding: 0 16rpx;
+  box-sizing: border-box;
+}
+.svc-header .svc-col.col-num,
+.svc-header .svc-col.col-amount {
   text-align: center;
+  padding: 0;
 }
 
 .svc-row {
@@ -395,8 +411,25 @@
   border-bottom: none;
 }
 
+/* 删除按钮 */
+.svc-del-btn {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #ccc;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.svc-del-btn:active {
+  background: #fff0f0;
+  color: #ff4d4f;
+}
+
 .svc-col.col-num {
-  width: 56rpx;
+  width: 40rpx;
   flex-shrink: 0;
   text-align: center;
   font-size: 28rpx;
@@ -409,12 +442,12 @@
 }
 
 .svc-col.col-spec {
-  flex: 2;
+  flex: 2.5;
   min-width: 0;
 }
 
 .svc-col.col-amount {
-  flex: 2;
+  flex: 1.5;
   min-width: 0;
 }
 
@@ -429,7 +462,7 @@
 }
 
 .svc-input.col-num {
-  width: 56rpx;
+  width: 40rpx;
   text-align: center;
 }
 
@@ -438,11 +471,11 @@
 }
 
 .svc-input.col-spec {
-  flex: 2;
+  flex: 2.5;
 }
 
 .svc-input.col-amount {
-  flex: 2;
+  flex: 1.5;
   text-align: right;
 }
 
@@ -459,8 +492,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 2;        /* ← 新增：在 flex row 中获取弹性宽度 */
-  min-width: 0;   /* ← 新增：防止内容溢出 */
+  flex: 1.5;
+  min-width: 0;
+}
+
+/* 表头删除按钮占位，保持与数据行元素数量一致 */
+.svc-col-del-spacer {
+  width: 48rpx;
+  flex-shrink: 0;
 }
 
 .svc-amount-trigger:active {
@@ -1299,4 +1338,41 @@
 }
 .paid-edit-value.negative-rate {
   color: #ff4d4f;
+}
+
+/* 商品行规格展示区 */
+.svc-spec-display {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  height: 72rpx;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 16rpx;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.svc-spec-text {
+  font-size: 26rpx;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 蓝色数量角标 */
+.qty-badge {
+  background: rgba(22, 119, 255, 0.12);
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+  flex-shrink: 0;
+}
+
+.qty-badge-text {
+  font-size: 22rpx;
+  color: #1677ff;
+  font-weight: 700;
 }

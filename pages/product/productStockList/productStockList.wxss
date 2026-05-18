@@ -126,11 +126,53 @@
   color: #bbb;
 }
 
+.spec-stock-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6rpx;
+  margin-top: 8rpx;
+}
+
+.spec-stock-bar-item {
+  font-size: 20rpx;
+  color: #999;
+  background: #f5f5f5;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+}
+
 .product-arrow {
   font-size: 32rpx;
   color: #ccc;
   margin-left: 12rpx;
   flex-shrink: 0;
+}
+
+/* 上下架与低库存标签 */
+.status-tag {
+  font-size: 18rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 6rpx;
+  flex-shrink: 0;
+}
+
+.off-shelf-tag {
+  background: #f5f5f5;
+  color: #bbb;
+}
+
+.low-stock-tag {
+  background: #fff2f0;
+  color: #ff4d4f;
+}
+
+.off-shelf .product-item {
+  opacity: 0.6;
+}
+
+.off-shelf-name {
+  color: #bbb !important;
+  text-decoration: line-through;
 }
 
 .empty-state, .loading-state {

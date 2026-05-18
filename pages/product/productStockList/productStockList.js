@@ -12,6 +12,8 @@ Page({
   },
 
   onLoad() {
+    // 拦截店员访问
+    if (!app.checkPageAccess('admin')) return
     this.loadProducts()
   },
 

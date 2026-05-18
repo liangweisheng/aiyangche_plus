@@ -25,19 +25,32 @@
       <input class="form-input" type="digit" placeholder="用于入库参考" value="{{cost}}" bindinput="onInput" data-field="cost" />
     </view>
 
-    <!-- 规格管理 -->
-    <view class="form-group">
-      <view class="form-label-row">
-        <text class="form-label">规格选项（选填）</text>
-        <text class="form-add-spec" bindtap="onAddSpec">+ 添加规格</text>
+    <!-- 多规格（折叠） -->
+    <view class="form-group spec-collapse">
+      <view class="spec-collapse-header" bindtap="onToggleSpecSection">
+        <text class="form-label" style="margin-bottom:0;">填写多规格商品</text>
+        <text class="spec-arrow {{showSpecSection ? 'spec-arrow-up' : ''}}">▸</text>
       </view>
-      <view class="spec-list">
-        <view class="spec-row" wx:for="{{specs}}" wx:key="index">
-          <input class="spec-input" type="text" placeholder="如：5W-30" value="{{item}}" data-index="{{index}}" bindinput="onSpecInput" />
-          <text class="spec-del" wx:if="{{specs.length > 1}}" data-index="{{index}}" bindtap="onDelSpec">✕</text>
+      <view class="spec-collapse-body {{showSpecSection ? 'spec-collapse-open' : ''}}">
+        <view class="spec-table">
+          <view class="spec-table-header">
+            <text class="spec-col-name">规格</text>
+            <text class="spec-col-cost">进货价</text>
+            <text class="spec-col-price">零售价</text>
+            <text class="spec-col-del"></text>
+          </view>
+          <view class="spec-table-row" wx:for="{{specRows}}" wx:key="index">
+            <input class="spec-col-name" type="text" placeholder="如：4L、2kg" value="{{item.name}}" data-index="{{index}}" data-field="name" bindinput="onSpecRowInput" />
+            <input class="spec-col-cost" type="digit" placeholder="进价" value="{{item.cost}}" data-index="{{index}}" data-field="cost" bindinput="onSpecRowInput" />
+            <input class="spec-col-price" type="digit" placeholder="售价" value="{{item.price}}" data-index="{{index}}" data-field="price" bindinput="onSpecRowInput" />
+            <text class="spec-col-del" wx:if="{{specRows.length > 1}}" data-index="{{index}}" bindtap="onDelSpec">✕</text>
+          </view>
         </view>
+        <view class="spec-collapse-actions">
+          <text class="form-add-spec" bindtap="onAddSpec">+ 添加规格</text>
+        </view>
+        <text class="form-tip">多规格商品可添加多个，如机油有 1L、4L</text>
       </view>
-      <text class="form-tip">多规格商品可添加多个，如机油有 5W-30、5W-40</text>
     </view>
 
     <view class="form-group">

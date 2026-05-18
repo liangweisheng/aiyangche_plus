@@ -11,12 +11,18 @@ const XLSX = require('../../lib/xlsx.full.min.js')
 Page({
   data: {
     exporting: false,
-    loadingText: '正在导出...'
+    loadingText: '正在导出...',
+    // 库存流水筛选弹窗
+    showStockFilter: false,
+    filterLogType: '',
+    filterStartDate: '',
+    filterEndDate: '',
+    today: util.formatDate(new Date())
   },
 
   onLoad() {
     // 重置导出状态（防止上次中断残留）
-    this.setData({ exporting: false })
+    this.setData({ exporting: false, today: util.formatDate(new Date()) })
     if (!app.checkPageAccess('superAdmin+pro')) return
   },
 
@@ -25,7 +31,7 @@ Page({
     if (!app.isPro() || !app.isSuperAdmin()) {
       wx.showModal({
         title: '无权限',
-        content: '仅超级管理员可使用数据导出功能',
+        content: '仅店主账号可使用数据导出功能',
         showCancel: false,
         confirmText: '我知道了'
       })
@@ -33,14 +39,33 @@ Page({
     }
 
     var type = e.currentTarget.dataset.type
-    var labels = { cars: '车辆信息', members: '会员权益', orders: '订单明细' }
+
+    // 库存流水：先弹筛选窗，选完后统一导出
+    if (type === 'stock_logs') {
+      this.setData({
+        showStockFilter: true,
+        filterLogType: '',
+        filterStartDate: '',
+        filterEndDate: ''
+      })
+      return
+    }
+
+    // 其他类型直接导出
+    this._startExport(type)
+  },
+
+  // 真正开始导出的入口
+  _startExport(type, filterParams) {
+    filterParams = filterParams || {}
+    var labels = { cars: '车辆信息', members: '会员权益', orders: '订单明细', stock_logs: '库存明细' }
     this.setData({
       exporting: true,
       loadingText: '正在生成' + (labels[type] || '') + 'Excel...'
     })
 
     var page = this
-    page._fetchAndExport(type).then(function () {
+    page._fetchAndExport(type, filterParams).then(function () {
       page.setData({ exporting: false })
     }).catch(function (err) {
       console.error('导出失败:', err)
@@ -49,23 +74,62 @@ Page({
     })
   },
 
+  // ========== 库存流水筛选弹窗 ==========
+  // 选择流水类型
+  onSelectLogType(e) {
+    var val = e.currentTarget.dataset.value
+    this.setData({ filterLogType: this.data.filterLogType === val ? '' : val })
+  },
+
+  // 选择开始日期
+  onFilterStartDate(e) {
+    this.setData({ filterStartDate: e.detail.value })
+  },
+
+  // 选择结束日期
+  onFilterEndDate(e) {
+    this.setData({ filterEndDate: e.detail.value })
+  },
+
+  // 取消筛选
+  onCancelFilter() {
+    this.setData({ showStockFilter: false })
+  },
+
+  // 确认筛选并导出
+  onConfirmFilter() {
+    var filterParams = {}
+    if (this.data.filterLogType) filterParams.logType = this.data.filterLogType
+    if (this.data.filterStartDate) filterParams.startDate = this.data.filterStartDate
+    if (this.data.filterEndDate) filterParams.endDate = this.data.filterEndDate
+    this.setData({ showStockFilter: false })
+    this._startExport('stock_logs', filterParams)
+  },
+
   // ========== 统一云函数获取数据 ==========
-  _fetchExportData(type) {
-    return util.callRepair('exportData', {
+  _fetchExportData(type, filterParams) {
+    filterParams = filterParams || {}
+    var params = {
       shopPhone: app.getShopPhone(),
       type: type
-    }).then(function (res) {
+    }
+    // 合并筛选参数
+    if (filterParams.logType) params.logType = filterParams.logType
+    if (filterParams.startDate) params.startDate = filterParams.startDate
+    if (filterParams.endDate) params.endDate = filterParams.endDate
+    return util.callRepair('exportData', params).then(function (res) {
       if (res.code !== 0 || !res.data) return []
       return res.data.list || []
     })
   },
 
   // ========== 车辆信息清单 ==========
-  _fetchAndExport(type) {
+  _fetchAndExport(type, filterParams) {
+    filterParams = filterParams || {}
     var page = this
-    return page._fetchExportData(type).then(function (dataList) {
+    return page._fetchExportData(type, filterParams).then(function (dataList) {
       if (dataList.length === 0) {
-        var labels = { cars: '车辆', members: '会员', orders: '订单' }
+        var labels = { cars: '车辆', members: '会员', orders: '订单', stock_logs: '库存' }
         wx.showToast({ title: '暂无' + (labels[type] || '') + '数据', icon: 'none' })
         return
       }
@@ -77,13 +141,36 @@ Page({
         rows = page._buildMemberRows(dataList)
       } else if (type === 'orders') {
         rows = page._buildOrderRows(dataList)
+      } else if (type === 'stock_logs') {
+        rows = page._buildStockLogRows(dataList)
       }
 
       if (rows) {
-        var fileNames = { cars: '车辆信息清单', members: '会员权益清单', orders: '订单明细清单' }
-        return page._generateAndShare(rows, fileNames[type])
+        var fileName = page._buildFileName(type, filterParams)
+        return page._generateAndShare(rows, fileName)
       }
     })
+  },
+
+  // 根据类型和筛选条件动态生成文件名
+  _buildFileName(type, filterParams) {
+    filterParams = filterParams || {}
+    var names = { cars: '车辆信息清单', members: '会员权益清单', orders: '订单明细清单', stock_logs: '库存明细清单' }
+    var base = names[type] || '数据清单'
+    if (type === 'stock_logs') {
+      var suffix = ''
+      var typeLabels = { in: '入库', out: '出库', adjust: '调整' }
+      if (filterParams.logType) suffix += '_' + (typeLabels[filterParams.logType] || filterParams.logType)
+      if (filterParams.startDate && filterParams.endDate) {
+        suffix += '_' + filterParams.startDate + '~' + filterParams.endDate
+      } else if (filterParams.startDate) {
+        suffix += '_' + filterParams.startDate + '起'
+      } else if (filterParams.endDate) {
+        suffix += '_' + filterParams.endDate + '止'
+      }
+      return base + suffix
+    }
+    return base
   },
 
   _buildCarRows(cars) {
@@ -180,6 +267,30 @@ Page({
         util.formatDateTime(o.createTime),
         util.formatOperatorName(o.operatorName, o.operatorPhone) || '',
         o.remark || ''
+      ])
+    })
+    return rows
+  },
+
+  _buildStockLogRows(logs) {
+    var typeLabels = { in: '入库', out: '出库', adjust: '调整' }
+    var headers = ['序号', '商品名称', '规格', '流水类型', '数量', '单价', '供货商', '关联工单', '时间', '操作人', '备注']
+    var rows = [headers]
+    logs.forEach(function (l, i) {
+      var qty = Number(l.quantity) || 0
+      if (l.type === 'out') qty = -qty  // 出库显示负数
+      rows.push([
+        i + 1,
+        l.productName || '',
+        l.spec || '',
+        typeLabels[l.type] || l.type || '',
+        qty,
+        l.cost || 0,
+        l.supplier || '',
+        l.orderRef ? l.orderRef.substring(0, 8).toUpperCase() : '',
+        l.createTime ? util.formatDateTime(l.createTime) : '',
+        l.operator || '',
+        l.remark || ''
       ])
     })
     return rows
