@@ -12,7 +12,8 @@ Page({
     cameraError: false,
     flashMode: 'off',
     scanTitle: '拍照识别车牌',
-    scanTip: '请将车牌对准扫描框'
+    scanTip: '请将车牌对准扫描框',
+    heroTitle: '拍照识别车牌号'
   },
 
   onLoad(options) {
@@ -21,7 +22,8 @@ Page({
     var scanTip = mode === 'plate'
       ? '请将车牌置于框内，点击拍照识别'
       : '请将车架号置于框内，点击拍照识别'
-    this.setData({ mode: mode, scanTitle: scanTitle, scanTip: scanTip })
+    var heroTitle = mode === 'plate' ? '拍照识别车牌号' : '拍照识别车架号'
+    this.setData({ mode: mode, scanTitle: scanTitle, scanTip: scanTip, heroTitle: heroTitle })
 
     this._cameraReady = false
     this._processing = false
@@ -73,8 +75,9 @@ Page({
 
     var page = this
     page._cameraContext.takePhoto({
-      quality: 'compressed',
+      quality: 'normal',
       success: function (res) {
+        console.log('[cameraScan] takePhoto成功, tempPath:', typeof res.tempImagePath, res.tempImagePath ? res.tempImagePath.substring(0, 50) : 'EMPTY')
         page._doOcr(res.tempImagePath)
       },
       fail: function (err) {
@@ -102,6 +105,9 @@ Page({
 
       var action = page.data.mode === 'plate' ? 'ocrPlate' : 'ocrVIN'
       var resultKey = page.data.mode === 'plate' ? 'plate' : 'vin'
+      console.log('[cameraScan] base64长度:', base64.length, '字节')
+      console.log('[cameraScan] 开始调用云函数:', action, 'base64前50位:', base64.substring(0, 50))
+      console.log('[cameraScan] isCloudReady:', app.isCloudReady ? app.isCloudReady() : 'N/A')
 
       app.callFunction('repair_main', {
         action: action,
@@ -109,6 +115,7 @@ Page({
       }).then(function (res) {
         wx.hideLoading()
         page._processing = false
+        console.log('[cameraScan] 云函数返回:', JSON.stringify(res).substring(0, 200))
         if (res && res.code === 0 && res.data && res.data[resultKey]) {
           page._onResult(res.data[resultKey])
         } else {
@@ -117,7 +124,9 @@ Page({
       }).catch(function (err) {
         wx.hideLoading()
         page._processing = false
-        console.error('[cameraScan] 识别失败:', err)
+        console.error('[cameraScan] 云函数调用失败, 错误详情:', err)
+        console.error('[cameraScan] err.message:', err.message)
+        console.error('[cameraScan] err.errCode:', err.errCode)
         wx.showToast({ title: '识别失败，请重试', icon: 'none' })
       })
     } catch (e) {
@@ -143,6 +152,12 @@ Page({
     // 方式2: 全局存储 fallback
     if (app.globalData) {
       app.globalData._ocrResult = { value: value, mode: this.data.mode }
+      // 兼容旧版调用方（读取 .plate 或 .vin）
+      if (this.data.mode === 'plate') {
+        app.globalData._ocrResult.plate = value
+      } else if (this.data.mode === 'vin') {
+        app.globalData._ocrResult.vin = value
+      }
     }
 
     wx.showToast({ title: '识别成功', icon: 'success' })

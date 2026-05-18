@@ -44,20 +44,21 @@
         <text class="nav-title">{{scanTitle}}</text>
         <view class="nav-placeholder"></view>
       </view>
-      <text class="tip-text">{{scanTip}}</text>
+      <view class="hero-title">{{heroTitle}}</view>
     </view>
 
-    <!-- === 中间区域：左右遮罩 + 扫描框 === -->
+    <!-- === 中间区域：左右遮罩 + 扫描框 + 提示文字（居中） === -->
     <view class="mask-middle">
       <view class="mask-side left"></view>
-      <view class="scan-box">
-        <!-- 四角装饰 -->
-        <view class="corner corner-tl"></view>
-        <view class="corner corner-tr"></view>
-        <view class="corner corner-bl"></view>
-        <view class="corner corner-br"></view>
-        <!-- 扫描线动画 -->
-        <view class="scan-line"></view>
+      <view class="scan-center">
+        <view class="scan-box">
+          <!-- 四角装饰 -->
+          <view class="corner corner-tl"></view>
+          <view class="corner corner-tr"></view>
+          <view class="corner corner-bl"></view>
+          <view class="corner corner-br"></view>
+        </view>
+        <text class="tip-text">{{scanTip}}</text>
       </view>
       <view class="mask-side right"></view>
     </view>
