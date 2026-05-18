@@ -15,7 +15,13 @@ Page({
     importing: false,
     batchLoading: false,
     keyword: '',
-    searchTimer: null
+    searchTimer: null,
+    importStatusFilter: '',  // ''=全部, imported=已导入, notImported=未导入
+    selectedIds: {},         // 勾选的模板ID { [templateId]: true }
+    selectedCount: 0,        // 当前列表中已勾选数量
+    filteredCount: 0,        // 当前过滤列表总数量
+    selectableCount: 0,      // 当前列表中可勾选（未导入）数量
+    allSelected: false       // 是否全选（当前列表中所有未导入项都已勾选）
   },
 
   onLoad() {
@@ -95,14 +101,21 @@ Page({
     })
   },
 
-  /** 按分类/搜索过滤 */
+  /** 按分类/导入状态/搜索过滤 */
   filterTemplates() {
     var list = this.data.rawTemplates
     var cat = this.data.currentCategory
     var kw = this.data.keyword.trim().toLowerCase()
+    var st = this.data.importStatusFilter
 
     if (cat && cat !== '全部') {
       list = list.filter(function (t) { return t.category === cat })
+    }
+    // 导入状态筛选（与分类可组合为多条件）
+    if (st === 'imported') {
+      list = list.filter(function (t) { return t.isImported })
+    } else if (st === 'notImported') {
+      list = list.filter(function (t) { return !t.isImported })
     }
     if (kw) {
       list = list.filter(function (t) {
@@ -111,11 +124,18 @@ Page({
     }
 
     this.setData({ templateList: list })
+    this._recalcSelected(list)
   },
 
   /** 切换分类 */
   onCategoryTap(e) {
     this.setData({ currentCategory: e.currentTarget.dataset.cat })
+    this.filterTemplates()
+  },
+
+  /** 切换导入状态筛选（全部/已导入/未导入） */
+  onImportStatusTap(e) {
+    this.setData({ importStatusFilter: e.currentTarget.dataset.status || '' })
     this.filterTemplates()
   },
 
@@ -173,25 +193,84 @@ Page({
     })
   },
 
-  /** 批量导入所有未导入模板 */
+  /** 勾选/取消勾选某个模板 */
+  onToggleSelect(e) {
+    var templateId = e.currentTarget.dataset.id
+    if (!templateId) return
+    var template = this._findTemplate(templateId)
+    if (!template) return
+
+    // 已导入的模板显示提示但不阻止勾选（导入时会过滤掉）
+    var selectedIds = Object.assign({}, this.data.selectedIds)
+    if (selectedIds[templateId]) {
+      delete selectedIds[templateId]
+    } else {
+      if (template.isImported) {
+        wx.showToast({ title: '该商品已导入无需再次导入', icon: 'none' })
+      }
+      selectedIds[templateId] = true
+    }
+    this.setData({ selectedIds: selectedIds })
+    this._recalcSelected()
+  },
+
+  /** 全选/取消全选切换 */
+  onSelectAllTap() {
+    var templateList = this.data.templateList
+    var allSelected = this.data.allSelected
+    var selectedIds = Object.assign({}, this.data.selectedIds)
+
+    if (allSelected) {
+      // 取消全选：清除当前列表所有项
+      templateList.forEach(function (t) {
+        delete selectedIds[t._id]
+      })
+    } else {
+      // 全选：选择当前列表中所有未导入项
+      templateList.forEach(function (t) {
+        if (!t.isImported) {
+          selectedIds[t._id] = true
+        }
+      })
+    }
+    this.setData({ selectedIds: selectedIds })
+    this._recalcSelected()
+  },
+
+  /** 批量导入勾选的模板商品 */
   onBatchImport() {
     var page = this
     var shopPhone = app.getShopPhone()
     if (!shopPhone) return
 
+    // 收集勾选且未导入的模板ID
+    var templateIds = []
+    var selectedIds = page.data.selectedIds
+    var raw = page.data.rawTemplates
+    raw.forEach(function (t) {
+      if (selectedIds[t._id] && !t.isImported) {
+        templateIds.push(t._id)
+      }
+    })
+
+    if (templateIds.length === 0) {
+      wx.showToast({ title: '请选择未导入的模板商品', icon: 'none' })
+      return
+    }
+
     wx.showModal({
       title: '批量导入',
-      content: '将导入所有未上架的商品，已上架的商品保持不变。确认批量导入？',
+      content: '确认将选中的 ' + templateIds.length + ' 个模板商品导入到本店商品库？',
       success: function (res) {
         if (!res.confirm) return
         page.setData({ batchLoading: true })
         app.callFunction('repair_inventory', {
           action: 'batchImportTemplates',
-          shopPhone: shopPhone
+          shopPhone: shopPhone,
+          templateIds: templateIds
         }).then(function (res) {
-          page.setData({ batchLoading: false })
+          page.setData({ batchLoading: false, selectedIds: {}, selectedCount: 0 })
           if (res && res.code === 0) {
-            var msg = res.msg || '导入完成'
             wx.showToast({ title: '导入完成', icon: 'success' })
             // 重新加载数据
             page.loadData()
@@ -211,6 +290,46 @@ Page({
     wx.navigateTo({ url: '/pages/product/productAdd/productAdd' })
   },
 
+  /** 跳转创建模板商品页面（密码验证） */
+  onGoCreateTemplate() {
+    var page = this
+    wx.showModal({
+      title: '创建模板商品',
+      content: '请输入管理密码',
+      editable: true,
+      placeholderText: '请输入管理密码',
+      success: function (res) {
+        if (!res.confirm) return
+        if (res.content === '17807725166') {
+          wx.navigateTo({ url: '/pages/product/productTemplateAdmin/productTemplateAdmin' })
+        } else {
+          wx.showToast({ title: '密码错误', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  /** 点击编辑按钮 → 编辑模板商品（需密码验证） */
+  onEditTemplate(e) {
+    var page = this
+    var templateId = e.currentTarget.dataset.id
+    if (!templateId) return
+    wx.showModal({
+      title: '编辑模板商品',
+      content: '请输入管理密码',
+      editable: true,
+      placeholderText: '请输入管理密码',
+      success: function (res) {
+        if (!res.confirm) return
+        if (res.content === '17807725166') {
+          wx.navigateTo({ url: '/pages/product/productTemplateAdmin/productTemplateAdmin?id=' + templateId })
+        } else {
+          wx.showToast({ title: '密码错误', icon: 'none' })
+        }
+      }
+    })
+  },
+
   // ========== 辅助方法 ==========
 
   _findTemplate(templateId) {
@@ -219,6 +338,31 @@ Page({
       if (raw[i]._id === templateId) return raw[i]
     }
     return null
+  },
+
+  /** 重算当前列表的勾选统计 */
+  _recalcSelected(list) {
+    var templateList = list || this.data.templateList
+    var selectedIds = this.data.selectedIds
+    var selectedCount = 0
+    var selectableCount = 0
+
+    templateList.forEach(function (t) {
+      if (!t.isImported) {
+        selectableCount++
+        if (selectedIds[t._id]) {
+          selectedCount++
+        }
+      }
+    })
+
+    var allSelected = selectableCount > 0 && selectedCount === selectableCount
+    this.setData({
+      selectedCount: selectedCount,
+      filteredCount: templateList.length,
+      selectableCount: selectableCount,
+      allSelected: allSelected
+    })
   },
 
   _setTemplateImporting(templateId, val) {

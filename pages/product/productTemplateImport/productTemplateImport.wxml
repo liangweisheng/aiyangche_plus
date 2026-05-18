@@ -8,7 +8,7 @@
   <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
     <view class="category-list">
       <view
-        class="category-tag {{currentCategory === cat ? 'active' : ''}}"
+        class="category-tag {{currentCategory === item ? 'active' : ''}}"
         wx:for="{{categoryOptions}}" wx:key="*this"
         data-cat="{{item}}"
         bindtap="onCategoryTap"
@@ -16,22 +16,47 @@
     </view>
   </scroll-view>
 
+  <!-- 导入状态筛选（第2行） -->
+  <view class="status-filter-row">
+    <view
+      class="status-filter-tag {{importStatusFilter === '' ? 'active' : ''}}"
+      data-status=""
+      bindtap="onImportStatusTap"
+    >全部</view>
+    <view
+      class="status-filter-tag {{importStatusFilter === 'imported' ? 'active' : ''}}"
+      data-status="imported"
+      bindtap="onImportStatusTap"
+    >已导入</view>
+    <view
+      class="status-filter-tag {{importStatusFilter === 'notImported' ? 'active' : ''}}"
+      data-status="notImported"
+      bindtap="onImportStatusTap"
+    >未导入</view>
+    <view class="create-template-btn" bindtap="onGoCreateTemplate">+ 创建模板商品</view>
+  </view>
+
   <!-- 加载中 -->
   <view class="loading-wrap" wx:if="{{loading}}">
-    <text class="loading-text">加载中...</text>
+    <view class="loading-spinner"></view>
+    <text class="loading-text">正在加载模板数据...</text>
   </view>
 
   <!-- 模板列表 -->
   <view class="template-list" wx:if="{{!loading && templateList.length > 0}}">
-    <view class="template-item" wx:for="{{templateList}}" wx:key="_id" data-id="{{item._id}}">
+    <view class="template-item {{selectedIds[item._id] ? 'selected' : ''}}" wx:for="{{templateList}}" wx:key="_id" data-id="{{item._id}}">
+      <!-- 复选框 -->
+      <view class="template-checkbox {{selectedIds[item._id] ? 'checked' : ''}}" bindtap="onToggleSelect" data-id="{{item._id}}">
+        <view class="checkbox-inner"></view>
+      </view>
       <view class="template-info">
         <view class="template-name-row">
           <text class="template-name">{{item.name}}</text>
           <text class="template-category-tag">{{item.category}}</text>
         </view>
-        <view class="template-meta">
-          <text class="template-price">建议售价 ¥{{item.price}}/{{item.unit}}</text>
-          <text class="template-specs" wx:if="{{item.specs && item.specs.length > 0}}">规格：{{item.specs.join('、')}}</text>
+        <!-- 规格标签 -->
+        <view class="spec-tags" wx:if="{{item.specs && item.specs.length > 0}}">
+          <text class="spec-tag" wx:for="{{item.specs}}" wx:for-index="sidx" wx:key="sidx">{{item}}</text>
         </view>
         <view class="template-stock" wx:if="{{item.isImported && item.stock > 0}}">
           <text>库存 {{item.stock}}{{item.unit}}</text>
@@ -46,6 +71,7 @@
           <text wx:elif="{{item.isImported}}">已导入</text>
           <text wx:else>导入</text>
         </view>
+        <view class="edit-btn" data-id="{{item._id}}" bindtap="onEditTemplate">编辑</view>
       </view>
     </view>
   </view>
@@ -59,9 +85,17 @@
   <!-- 底部操作栏 -->
   <view class="batch-bar" wx:if="{{!loading}}">
     <view class="batch-row">
+      <view class="batch-left">
+        <view class="select-all" bindtap="onSelectAllTap">
+          <view class="template-checkbox {{allSelected ? 'checked' : ''}}">
+            <view class="checkbox-inner"></view>
+          </view>
+          <text class="select-all-text">{{allSelected ? '取消全选' : '全选'}}</text>
+        </view>
+      </view>
       <button class="batch-btn batch-btn-secondary" bindtap="onGoProductAdd">新建商品</button>
-      <button class="batch-btn batch-btn-primary" bindtap="onBatchImport" disabled="{{batchLoading}}">
-        {{batchLoading ? '导入中...' : '批量导入全部模板'}}
+      <button class="batch-btn batch-btn-primary" bindtap="onBatchImport" disabled="{{batchLoading || selectedCount === 0}}">
+        {{batchLoading ? '导入中...' : '批量导入模板商品' + (selectedCount > 0 ? '（' + selectedCount + '）' : '')}}
       </button>
     </view>
   </view>

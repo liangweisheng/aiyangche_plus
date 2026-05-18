@@ -38,20 +38,72 @@
   transition: all 0.2s;
 }
 .category-tag.active {
+  color: #ff4d4f;
+  background: #fff0f0;
+  font-weight: 500;
+}
+
+/* ====== 导入状态筛选（第2行） ====== */
+.status-filter-row {
+  display: flex;
+  gap: 16rpx;
+  background: #fff;
+  padding: 4rpx 24rpx 16rpx;
+  flex-wrap: wrap;
+}
+.status-filter-tag {
+  padding: 8rpx 24rpx;
+  border-radius: 28rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #f5f5f5;
+  transition: all 0.2s;
+}
+.status-filter-tag.active {
   color: #1677ff;
   background: #e6f0ff;
   font-weight: 500;
 }
 
-/* ====== 加载中 ====== */
+/* 创建模板商品按钮 */
+.create-template-btn {
+  padding: 8rpx 24rpx;
+  border-radius: 28rpx;
+  font-size: 26rpx;
+  background: #52c41a;
+  color: #fff;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.create-template-btn:active {
+  opacity: 0.8;
+}
+
+/* ====== 加载中（旋转动画） ====== */
 .loading-wrap {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  padding: 80rpx 0;
+  justify-content: center;
+  padding: 120rpx 0;
+}
+.loading-spinner {
+  width: 56rpx;
+  height: 56rpx;
+  border: 6rpx solid #e6f0ff;
+  border-top-color: #1677ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 20rpx;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .loading-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #999;
 }
 
@@ -67,6 +119,10 @@
   padding: 24rpx;
   margin-bottom: 16rpx;
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  transition: all 0.2s;
+}
+.template-item.selected {
+  background: #f0f7ff;
 }
 .template-info {
   flex: 1;
@@ -129,6 +185,10 @@
   border-radius: 26rpx;
   font-size: 24rpx;
   font-weight: 500;
+  /* 蓝色轮廓 — 导入按钮 */
+  color: #1677ff;
+  border: 1px solid #1677ff;
+  background: #fff;
 }
 .status-toggle.on {
   background: #e6f0ff;
@@ -197,4 +257,94 @@
 }
 .batch-btn-secondary:active {
   background: #f0f5ff;
+}
+
+/* ====== 复选框样式 ====== */
+.template-checkbox {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.template-checkbox.checked {
+  border-color: #1677ff;
+  background: #1677ff;
+}
+.template-checkbox.checked .checkbox-inner {
+  width: 16rpx;
+  height: 24rpx;
+  border: 2rpx solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-2rpx, -4rpx);
+}
+
+/* ====== 全选区域 ====== */
+.select-all {
+  display: flex;
+  align-items: center;
+  padding: 0 8rpx;
+  height: 88rpx;
+}
+.select-all .template-checkbox {
+  margin-right: 8rpx;
+}
+.select-all-text {
+  font-size: 26rpx;
+  color: #666;
+  white-space: nowrap;
+}
+.batch-left {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ====== 规格标签布局 ====== */
+.spec-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 6rpx;
+  max-height: 64rpx;
+  overflow: hidden;
+}
+.spec-tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* ====== 编辑按钮 ====== */
+.edit-btn {
+  min-width: 80rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  border-radius: 24rpx;
+  font-size: 22rpx;
+  color: #1677ff;
+  background: #f0f5ff;
+  margin-top: 8rpx;
+  border: 1px solid #1677ff;
+}
+.edit-btn:active {
+  opacity: 0.7;
+}
+
+/* 已导入状态按钮样式 */
+.status-toggle.imported {
+  color: #999;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
 }

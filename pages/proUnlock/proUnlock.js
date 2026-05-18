@@ -43,11 +43,12 @@ Page({
     staffRoleOptions: [{ label: '店员', value: 'staff' }, { label: '管理员', value: 'admin' }],
     staffAdding: false,
     shopBayCount: 2,
-    shopBayCountIndex: 1,  // 默认索引（对应值2）
-    bayCountOptions: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'],
     shopOpenYear: String(new Date().getFullYear()),
     shopProfileSaving: false,
     currentYear: String(new Date().getFullYear()),
+    showEditProfileModal: false,
+    editBayCount: '',
+    editOpenYear: '',
     navTabs: { member: true, car: false },
     // 激活 Pro 版折叠状态（默认收起）
     activationExpanded: false,
@@ -146,21 +147,10 @@ Page({
   onUnload: function () {
     // 重置重入守卫，确保下次进入页面时刷新
     this._firstLoad = true
-    // ★ 恢复自定义 TabBar（展开系统设置后直接返回页面时）
-    if (this.data.systemSettingsExpanded) {
-      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-        this.getTabBar().show()
-      }
-    }
   },
 
   onHide: function () {
-    // ★ 恢复自定义 TabBar（切换 tab 时系统设置可能处于展开状态）
-    if (this.data.systemSettingsExpanded) {
-      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-        this.getTabBar().show()
-      }
-    }
+    // 无需恢复 tabbar，展开系统设置时不再隐藏 tabbar
   },
 
   /**
@@ -1015,14 +1005,6 @@ Page({
         this._loadShopProfile()
       }
       this._loadNavConfig()
-      // 隐藏自定义 TabBar，防止 picker 确定/取消按钮被遮挡
-      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-        this.getTabBar().hide()
-      }
-    } else {
-      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-        this.getTabBar().show()
-      }
     }
   },
 
@@ -1033,10 +1015,8 @@ Page({
       .then(function (res) {
         if (res.code === 0 && res.data) {
           var bayCount = res.data.bayCount || 2
-          var idx = Math.max(0, Math.min(bayCount - 1, page.data.bayCountOptions.length - 1))
           page.setData({
             shopBayCount: bayCount,
-            shopBayCountIndex: idx,
             shopOpenYear: String(res.data.openYear || new Date().getFullYear())
           })
         }
@@ -1044,18 +1024,87 @@ Page({
       .catch(function () { /* 静默 */ })
   },
 
-  onBayCountChange: function (e) {
-    var idx = parseInt(e.detail.value)
-    var val = parseInt(this.data.bayCountOptions[idx])
-    this.setData({ shopBayCount: val, shopBayCountIndex: idx })
+  onEditShopProfile: function () {
+    this.setData({
+      editBayCount: String(this.data.shopBayCount),
+      editOpenYear: this.data.shopOpenYear,
+      showEditProfileModal: true
+    })
   },
 
-  onOpenYearChange: function (e) {
-    var val = e.detail.value
-    if (val) {
-      this.setData({ shopOpenYear: val.substring(0, 4) })
-    }
+  onEditProfileBayInput: function (e) {
+    this.setData({ editBayCount: e.detail.value })
   },
+
+  onEditProfileYearInput: function (e) {
+    this.setData({ editOpenYear: e.detail.value })
+  },
+
+  onConfirmEditProfile: function () {
+    var page = this
+    var bayVal = parseInt(page.data.editBayCount)
+    var yearVal = page.data.editOpenYear.trim()
+    var currentYear = new Date().getFullYear()
+
+    // 验证工位数
+    if (isNaN(bayVal) || bayVal < 1 || bayVal > 30) {
+      wx.showToast({ title: '施工工位数请输入1~30之间的数字', icon: 'none' })
+      return
+    }
+    // 验证开业年份
+    if (!/^\d{4}$/.test(yearVal) || parseInt(yearVal) < 1900 || parseInt(yearVal) > currentYear) {
+      wx.showToast({ title: '开业年份请输入1900~' + currentYear + '之间的4位年份', icon: 'none' })
+      return
+    }
+
+    // 先关闭弹窗，再保存到云端
+    page.setData({ showEditProfileModal: false, shopProfileSaving: true })
+
+    // 保存成功后才更新本地显示数据，防止游客等无权限场景下页面显示虚假值
+    util.callRepair('updateShopProfile', {
+      bayCount: bayVal,
+      openYear: parseInt(yearVal)
+    }).then(function (res) {
+      page.setData({ shopProfileSaving: false })
+      if (res.code === 0) {
+        // 保存成功，更新本地数据
+        page.setData({ shopBayCount: bayVal, shopOpenYear: yearVal })
+        app.toastSuccess('已保存')
+        // 清除月报页面缓存，引导用户刷新获取新基准值
+        try {
+          wx.removeStorageSync('monthlyReportCache')
+          var keys = ['reportCache_week', 'reportCache_month', 'reportCache_year']
+          keys.forEach(function (k) { try { wx.removeStorageSync(k) } catch (e) {} })
+        } catch (e) {}
+        // 延迟弹出引导提示
+        setTimeout(function () {
+          wx.showModal({
+            title: '设置已更新',
+            content: '经营诊断基准已按新工位数调整，请前往「AI月报」页面下拉刷新查看最新报告',
+            confirmText: '前往月报',
+            success: function (modalRes) {
+              if (modalRes.confirm) {
+                wx.navigateTo({ url: '/pages/monthlyReport/monthlyReport' })
+              }
+            }
+          })
+        }, 600)
+        try { wx.removeStorageSync('monthlyReportGuideShown') } catch (e) {}
+      } else {
+        app.toastFail(res.msg || '保存失败')
+      }
+    }).catch(function () {
+      page.setData({ shopProfileSaving: false })
+      app.toastFail('网络异常')
+    })
+  },
+
+  onCancelEditProfile: function () {
+    this.setData({ showEditProfileModal: false })
+  },
+
+  /** 空函数，用于阻止弹窗内容的事件冒泡到遮罩层 */
+  _noop: function () {},
 
   onSaveShopProfile: function () {
     var page = this

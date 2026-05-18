@@ -19,12 +19,13 @@ Page({
     var items = wx.getStorageSync('stockIn_selectedProducts') || []
     if (items.length > 0) {
       // 重置 cost 为空，让用户自行填写
-      items = items.map(function (item) {
+      items = items.map(function (item, idx) {
         return {
+          _rowKey: item._productId + '_' + Date.now() + '_' + idx,
           _productId: item._productId,
           name: item.name,
           spec: item.spec || '',
-          quantity: item.quantity,
+          quantity: item._productQuantity || item.quantity,
           unit: item.unit || '个',
           cost: ''
         }

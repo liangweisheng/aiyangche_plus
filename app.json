@@ -26,7 +26,8 @@
     "pages/product/productStockList/productStockList",
     "pages/product/productSelect/productSelect",
     "pages/product/productDetail/productDetail",
-    "pages/product/productTemplateImport/productTemplateImport"
+    "pages/product/productTemplateImport/productTemplateImport",
+    "pages/product/productTemplateAdmin/productTemplateAdmin"
   ],
   "window": {
     "navigationBarBackgroundColor": "#1677ff",
