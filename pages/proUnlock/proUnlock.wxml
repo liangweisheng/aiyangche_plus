@@ -258,6 +258,10 @@
       <view class="download-app-entry" bindtap="onDownloadApp">
         <text class="download-app-text">📱 下载 “汽修店小管家” 手机APP</text>
       </view>
+      <!-- #12 电脑版入口 -->
+      <view class="pc-version-entry" bindtap="onUsePcVersion">
+        <text class="pc-version-text">💻 使用电脑版"汽修店小管家"</text>
+      </view>
     </view>
   </view>
 

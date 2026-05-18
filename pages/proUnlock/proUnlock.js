@@ -1134,6 +1134,19 @@ Page({
     })
   },
 
+  // ===========================
+  // #12 使用电脑版
+  // ===========================
+
+  onUsePcVersion: function () {
+    wx.showModal({
+      title: '使用电脑版',
+      content: '请联系客服获取电脑版',
+      showCancel: false,
+      confirmText: '我知道了'
+    })
+  },
+
   // ====== v5.4.0 导航栏设置（即时生效） ======
 
   _loadNavConfig: function () {
