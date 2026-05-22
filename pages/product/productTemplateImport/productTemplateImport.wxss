@@ -1,7 +1,15 @@
 .container {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 100rpx;
+  overflow: hidden;
+}
+
+/* ====== 固定表头 ====== */
+.sticky-header {
+  flex-shrink: 0;
+  background: #fff;
 }
 
 /* ====== 搜索框 ====== */
@@ -81,6 +89,15 @@
   opacity: 0.8;
 }
 
+/* ====== 可滚动列表区 ====== */
+.scroll-area {
+  flex: 1;
+  min-height: 0;
+  padding: 16rpx 24rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
 /* ====== 加载中（旋转动画） ====== */
 .loading-wrap {
   display: flex;
@@ -109,7 +126,7 @@
 
 /* ====== 模板列表 ====== */
 .template-list {
-  padding: 16rpx 24rpx;
+  /* padding 由 .scroll-area 统一提供 */
 }
 .template-item {
   display: flex;
@@ -123,6 +140,13 @@
 }
 .template-item.selected {
   background: #f0f7ff;
+}
+.template-item.imported {
+  background: #f7f7f7;
+  opacity: 0.65;
+}
+.template-item.imported .template-name {
+  color: #999;
 }
 .template-info {
   flex: 1;
@@ -146,6 +170,14 @@
   padding: 2rpx 12rpx;
   border-radius: 6rpx;
 }
+/* 排序号标签 */
+.template-sortorder-tag {
+  font-size: 22rpx;
+  color: #999;
+  background: #f5f5f5;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+}
 .template-meta {
   display: flex;
   flex-wrap: wrap;
@@ -161,17 +193,6 @@
 .template-specs {
   color: #666;
 }
-.template-stock {
-  font-size: 22rpx;
-  color: #52c41a;
-  margin-top: 4rpx;
-}
-.template-price-self {
-  font-size: 22rpx;
-  color: #999;
-  margin-top: 2rpx;
-}
-
 /* ====== 操作按钮 ====== */
 .template-action {
   flex-shrink: 0;
@@ -185,7 +206,6 @@
   border-radius: 26rpx;
   font-size: 24rpx;
   font-weight: 500;
-  /* 蓝色轮廓 — 导入按钮 */
   color: #1677ff;
   border: 1px solid #1677ff;
   background: #fff;
@@ -199,6 +219,11 @@
   background: #f5f5f5;
   color: #999;
   border: 1px solid #ddd;
+}
+.status-toggle.imported {
+  color: #999;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
 }
 
 /* ====== 空状态 ====== */
@@ -219,12 +244,43 @@
   text-align: center;
 }
 
+/* ====== 加载更多 ====== */
+.load-more-wrap {
+  padding: 20rpx 0 40rpx;
+}
+.load-more-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  font-size: 26rpx;
+  color: #999;
+  padding: 16rpx 0;
+}
+.load-more-tap {
+  color: #1677ff;
+}
+.load-more-tap:active {
+  opacity: 0.7;
+}
+.load-more-done {
+  color: #bbb;
+}
+.load-more-spinner {
+  width: 28rpx;
+  height: 28rpx;
+  border: 4rpx solid #e6f0ff;
+  border-top-color: #1677ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.load-more-text {
+  font-size: 26rpx;
+}
+
 /* ====== 底部操作栏 ====== */
 .batch-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
   padding: 20rpx 24rpx 40rpx;
   background: #fff;
   box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.06);
@@ -340,11 +396,4 @@
 }
 .edit-btn:active {
   opacity: 0.7;
-}
-
-/* 已导入状态按钮样式 */
-.status-toggle.imported {
-  color: #999;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
 }

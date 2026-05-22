@@ -62,8 +62,11 @@
       >
         <view class="card-header">
           <text class="plate">{{mask.maskPlate(item.plate)}}</text>
-          <view class="member-badge" wx:if="{{item.isMember}}">
+          <view class="member-badge" wx:if="{{item.orderCategory === '新开权益卡'}}">
             <text>会员</text>
+          </view>
+          <view class="category-badge category-{{item.orderCategory === '新开权益卡' ? 'new-benefit' : item.orderCategory === '核销权益卡' ? 'use-benefit' : 'none'}}" wx:if="{{item.orderCategory}}">
+            <text>{{item.orderCategory}}</text>
           </view>
           <view class="header-badges">
             <view class="status-badge status-{{item.status === '已完成' ? 'done' : item.status === '待结算' ? 'pending' : 'working'}}">

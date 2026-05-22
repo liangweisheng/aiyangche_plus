@@ -1,5 +1,5 @@
 // pages/product/productTemplateImport/productTemplateImport.js
-// 从模板导入商品 — 上架/下架管理
+// 从模板导入商品 — 上架/下架管理（分页加载，每页100条）
 
 const app = getApp()
 const constants = require('../../../utils/constants')
@@ -7,55 +7,45 @@ const constants = require('../../../utils/constants')
 Page({
   data: {
     currentCategory: '全部',
-    categoryOptions: ['全部', '其他', '机油', '轮胎', '刹车系统', '空调系统', '电器', '美容保养', '传动系统', '悬挂系统', '冷却系统'],
-    templateList: [],       // 当前分类/搜索过滤后的模板列表
-    rawTemplates: [],       // 所有模板（原始数据）
-    shopProducts: {},       // 本店 repair_products 按 _templateId 索引
-    loading: false,
-    importing: false,
-    batchLoading: false,
+    categoryOptions: ['全部', '其他', '机油', '轮胎', '刹车系统', '空调系统', '电器车灯', '美容保养', '动力系统', '传动系统', '悬挂系统', '冷却系统'],
+    templateList: [],            // 经 importStatus 过滤后展示的列表
+    allLoadedTemplates: [],      // 已加载的所有模板（跨页累计，用于勾选/导入）
+    shopProducts: {},            // 本店 repair_products 按 _templateId 索引
+    loading: false,              // 首次加载中
+    loadingPage: false,          // 翻页加载中
+    page: 1,
+    pageSize: 100,
+    totalCount: 0,
+    hasMore: false,
     keyword: '',
     searchTimer: null,
-    importStatusFilter: '',  // ''=全部, imported=已导入, notImported=未导入
-    selectedIds: {},         // 勾选的模板ID { [templateId]: true }
-    selectedCount: 0,        // 当前列表中已勾选数量
-    filteredCount: 0,        // 当前过滤列表总数量
-    selectableCount: 0,      // 当前列表中可勾选（未导入）数量
-    allSelected: false       // 是否全选（当前列表中所有未导入项都已勾选）
+    importStatusFilter: '',      // ''=全部, imported=已导入, notImported=未导入
+    selectedIds: {},
+    selectedCount: 0,
+    filteredCount: 0,
+    selectableCount: 0,
+    allSelected: false,
+    batchLoading: false
   },
 
   onLoad() {
-    // 拦截店员访问
     if (!app.checkPageAccess('admin')) return
     this.loadData()
   },
 
-  /** 加载模板列表 + 本店已导入商品 */
+  /** 加载本店商品索引 + 模板第1页 */
   loadData() {
     var page = this
     var shopPhone = app.getShopPhone()
-    page.setData({ loading: true })
+    page.setData({ loading: true, allLoadedTemplates: [], templateList: [] })
 
-    // 并行请求：模板列表 + 本店商品
-    Promise.all([
-      // 1. 获取模板列表
-      app.callFunction('repair_inventory', { action: 'listTemplateProducts' }),
-      // 2. 获取本店已导入商品（含 _templateId 的）
-      app.callFunction('repair_inventory', {
-        action: 'listProducts',
-        shopPhone: shopPhone,
-        pageSize: 500
-      })
-    ]).then(function (results) {
-      var tmplRes = results[0]
-      var prodRes = results[1]
-      var templates = []
+    // 先加载本店商品索引，再加载模板第1页
+    app.callFunction('repair_inventory', {
+      action: 'listProducts',
+      shopPhone: shopPhone,
+      pageSize: 500
+    }).then(function (prodRes) {
       var shopIndex = {}
-
-      if (tmplRes && tmplRes.code === 0 && tmplRes.data) {
-        templates = tmplRes.data.list || []
-      }
-
       if (prodRes && prodRes.code === 0 && prodRes.data) {
         var products = prodRes.data.list || []
         products.forEach(function (p) {
@@ -69,57 +59,110 @@ Page({
           }
         })
       }
-
-      // 装饰模板列表：标记是否已导入
-      var decorated = templates.map(function (t) {
-        var shop = shopIndex[t._id]
-        return {
-          _id: t._id,
-          name: t.name,
-          category: t.category || '其他',
-          specs: t.specs || [],
-          price: t.price || 0,
-          cost: t.cost || 0,
-          unit: t.unit || '个',
-          remark: t.remark || '',
-          isImported: !!shop,                   // 是否已导入到本店
-          shopProductId: shop ? shop._id : '',   // 本店商品ID
-          importedPrice: shop ? shop.price : 0,  // 本店售价
-          stock: shop ? shop.stock : 0
-        }
-      })
-
-      page.setData({
-        rawTemplates: decorated,
-        loading: false
-      })
-      page.filterTemplates()
+      page.setData({ shopProducts: shopIndex })
+      page._loadPage(1)
     }).catch(function (err) {
-      console.error('加载模板数据失败', err)
-      page.setData({ loading: false })
+      console.error('加载本店商品失败', err)
+      page._loadPage(1)
+    })
+  },
+
+  /** 加载指定页码的模板列表 */
+  _loadPage(n) {
+    var page = this
+    var cat = page.data.currentCategory
+    var kw = page.data.keyword.trim()
+    page.setData({ loadingPage: true })
+
+    app.callFunction('repair_inventory', {
+      action: 'listTemplateProducts',
+      category: cat,
+      keyword: kw || undefined,
+      page: n,
+      pageSize: page.data.pageSize
+    }).then(function (res) {
+      if (res && res.code === 0 && res.data) {
+        var newItems = (res.data.list || []).map(function (t) {
+          var shop = page.data.shopProducts[t._id]
+          return {
+            _id: t._id,
+            name: t.name,
+            category: t.category || '其他',
+            specs: t.specs || [],
+            price: t.price || 0,
+            cost: t.cost || 0,
+            unit: t.unit || '个',
+            remark: t.remark || '',
+            sortOrder: t.sortOrder || 0,
+            isImported: !!shop,
+            shopProductId: shop ? shop._id : '',
+            importedPrice: shop ? shop.price : 0,
+            stock: shop ? shop.stock : 0
+          }
+        })
+
+        var allLoaded = page.data.allLoadedTemplates
+        var totalCount = res.data.total || 0
+
+        if (n === 1) {
+          allLoaded = newItems
+        } else {
+          // 追加，去重
+          var existingIds = {}
+          allLoaded.forEach(function (t) { existingIds[t._id] = true })
+          newItems.forEach(function (t) {
+            if (!existingIds[t._id]) {
+              allLoaded.push(t)
+              existingIds[t._id] = true
+            }
+          })
+        }
+
+        var hasMore = allLoaded.length < totalCount
+
+        page.setData({
+          allLoadedTemplates: allLoaded,
+          page: n,
+          totalCount: totalCount,
+          hasMore: hasMore,
+          loadingPage: false,
+          loading: false
+        })
+        page.filterTemplates()
+      } else {
+        page.setData({ loadingPage: false, loading: false })
+      }
+    }).catch(function (err) {
+      console.error('加载模板列表失败', err)
+      page.setData({ loadingPage: false, loading: false })
       wx.showToast({ title: '加载失败', icon: 'none' })
     })
   },
 
-  /** 按分类/导入状态/搜索过滤 */
+  /** 滚动到底部或点击加载更多 */
+  loadMore() {
+    if (this.data.loadingPage || !this.data.hasMore) return
+    this._loadPage(this.data.page + 1)
+  },
+
+  /** 按导入状态过滤 + 排序（分类/关键词已由服务端处理） */
   filterTemplates() {
-    var list = this.data.rawTemplates
-    var cat = this.data.currentCategory
-    var kw = this.data.keyword.trim().toLowerCase()
+    var list = this.data.allLoadedTemplates
     var st = this.data.importStatusFilter
 
-    if (cat && cat !== '全部') {
-      list = list.filter(function (t) { return t.category === cat })
-    }
-    // 导入状态筛选（与分类可组合为多条件）
     if (st === 'imported') {
       list = list.filter(function (t) { return t.isImported })
     } else if (st === 'notImported') {
       list = list.filter(function (t) { return !t.isImported })
     }
-    if (kw) {
-      list = list.filter(function (t) {
-        return t.name.toLowerCase().indexOf(kw) !== -1
+
+    // 默认排序：未导入在前、已导入在后
+    if (!st) {
+      list = [].concat(list).sort(function (a, b) {
+        if (a.isImported !== b.isImported) {
+          return a.isImported ? 1 : -1
+        }
+        return 0
       })
     }
 
@@ -130,29 +173,28 @@ Page({
   /** 切换分类 */
   onCategoryTap(e) {
     this.setData({ currentCategory: e.currentTarget.dataset.cat })
-    this.filterTemplates()
+    this._loadPage(1)
   },
 
-  /** 切换导入状态筛选（全部/已导入/未导入） */
+  /** 切换导入状态筛选 */
   onImportStatusTap(e) {
     this.setData({ importStatusFilter: e.currentTarget.dataset.status || '' })
     this.filterTemplates()
   },
 
-  /** 搜索输入 */
+  /** 搜索输入（防抖） */
   onSearchInput(e) {
     var page = this
     var val = e.detail.value
     this.setData({ keyword: val })
-    if (page.data.searchTimer) {
-      clearTimeout(page.data.searchTimer)
-    }
+    if (page.data.searchTimer) clearTimeout(page.data.searchTimer)
     page.data.searchTimer = setTimeout(function () {
-      page.filterTemplates()
+      page.setData({ allLoadedTemplates: [], templateList: [] })
+      page._loadPage(1)
     }, 400)
   },
 
-  /** 导入模板商品 */
+  /** 导入单个模板商品 */
   onImportTemplate(e) {
     var page = this
     var templateId = e.currentTarget.dataset.id
@@ -170,7 +212,6 @@ Page({
     })
   },
 
-  /** 执行导入操作 */
   _doImport(template) {
     var page = this
     page._setTemplateImporting(template._id, true)
@@ -193,14 +234,13 @@ Page({
     })
   },
 
-  /** 勾选/取消勾选某个模板 */
+  /** 勾选/取消勾选 */
   onToggleSelect(e) {
     var templateId = e.currentTarget.dataset.id
     if (!templateId) return
     var template = this._findTemplate(templateId)
     if (!template) return
 
-    // 已导入的模板显示提示但不阻止勾选（导入时会过滤掉）
     var selectedIds = Object.assign({}, this.data.selectedIds)
     if (selectedIds[templateId]) {
       delete selectedIds[templateId]
@@ -214,23 +254,17 @@ Page({
     this._recalcSelected()
   },
 
-  /** 全选/取消全选切换 */
+  /** 全选/取消全选 */
   onSelectAllTap() {
     var templateList = this.data.templateList
     var allSelected = this.data.allSelected
     var selectedIds = Object.assign({}, this.data.selectedIds)
 
     if (allSelected) {
-      // 取消全选：清除当前列表所有项
-      templateList.forEach(function (t) {
-        delete selectedIds[t._id]
-      })
+      templateList.forEach(function (t) { delete selectedIds[t._id] })
     } else {
-      // 全选：选择当前列表中所有未导入项
       templateList.forEach(function (t) {
-        if (!t.isImported) {
-          selectedIds[t._id] = true
-        }
+        if (!t.isImported) selectedIds[t._id] = true
       })
     }
     this.setData({ selectedIds: selectedIds })
@@ -243,11 +277,11 @@ Page({
     var shopPhone = app.getShopPhone()
     if (!shopPhone) return
 
-    // 收集勾选且未导入的模板ID
+    // 从 allLoadedTemplates 收集勾选且未导入的模板ID
     var templateIds = []
     var selectedIds = page.data.selectedIds
-    var raw = page.data.rawTemplates
-    raw.forEach(function (t) {
+    var allLoaded = page.data.allLoadedTemplates
+    allLoaded.forEach(function (t) {
       if (selectedIds[t._id] && !t.isImported) {
         templateIds.push(t._id)
       }
@@ -272,7 +306,6 @@ Page({
           page.setData({ batchLoading: false, selectedIds: {}, selectedCount: 0 })
           if (res && res.code === 0) {
             wx.showToast({ title: '导入完成', icon: 'success' })
-            // 重新加载数据
             page.loadData()
           } else {
             wx.showToast({ title: (res && res.msg) || '导入失败', icon: 'none' })
@@ -290,7 +323,7 @@ Page({
     wx.navigateTo({ url: '/pages/product/productAdd/productAdd' })
   },
 
-  /** 跳转创建模板商品页面（密码验证） */
+  /** 跳转创建模板商品页面 */
   onGoCreateTemplate() {
     var page = this
     wx.showModal({
@@ -309,7 +342,7 @@ Page({
     })
   },
 
-  /** 点击编辑按钮 → 编辑模板商品（需密码验证） */
+  /** 点击编辑按钮 */
   onEditTemplate(e) {
     var page = this
     var templateId = e.currentTarget.dataset.id
@@ -333,14 +366,13 @@ Page({
   // ========== 辅助方法 ==========
 
   _findTemplate(templateId) {
-    var raw = this.data.rawTemplates
-    for (var i = 0; i < raw.length; i++) {
-      if (raw[i]._id === templateId) return raw[i]
+    var all = this.data.allLoadedTemplates
+    for (var i = 0; i < all.length; i++) {
+      if (all[i]._id === templateId) return all[i]
     }
     return null
   },
 
-  /** 重算当前列表的勾选统计 */
   _recalcSelected(list) {
     var templateList = list || this.data.templateList
     var selectedIds = this.data.selectedIds
@@ -350,9 +382,7 @@ Page({
     templateList.forEach(function (t) {
       if (!t.isImported) {
         selectableCount++
-        if (selectedIds[t._id]) {
-          selectedCount++
-        }
+        if (selectedIds[t._id]) selectedCount++
       }
     })
 
@@ -366,23 +396,23 @@ Page({
   },
 
   _setTemplateImporting(templateId, val) {
-    var raw = this.data.rawTemplates.map(function (t) {
+    var all = this.data.allLoadedTemplates.map(function (t) {
       if (t._id === templateId) t.importing = val
       return t
     })
-    this.setData({ rawTemplates: raw })
+    this.setData({ allLoadedTemplates: all })
     this.filterTemplates()
   },
 
   _markImported(templateId) {
-    var raw = this.data.rawTemplates.map(function (t) {
+    var all = this.data.allLoadedTemplates.map(function (t) {
       if (t._id === templateId) {
         t.isImported = true
         t.importing = false
       }
       return t
     })
-    this.setData({ rawTemplates: raw })
+    this.setData({ allLoadedTemplates: all })
     this.filterTemplates()
   }
 })

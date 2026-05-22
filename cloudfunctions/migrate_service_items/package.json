@@ -1,0 +1,9 @@
+{
+  "name": "migrate_service_items",
+  "version": "1.0.0",
+  "description": "工单服务项目数据迁移 - 双写新格式 + 清理旧格式（一次性脚本）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

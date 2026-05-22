@@ -382,6 +382,83 @@ page {
   border: none;
 }
 
+/* 关联商品 */
+.benefit-products-section {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 2rpx solid #f0f0f0;
+}
+
+.select-product-btn {
+  flex: 1;
+  height: 60rpx;
+  padding: 0 20rpx;
+  font-size: 24rpx;
+  color: #722ed1;
+  background: #f9f0ff;
+  border: 2rpx solid #d3adf7;
+  border-radius: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.select-product-btn:active {
+  background: #efdbff;
+}
+
+.selected-products {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+.product-tag {
+  display: flex;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  background: #f9f0ff;
+  border: 2rpx solid #d3adf7;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  color: #722ed1;
+}
+
+.product-tag-text {
+  max-width: 240rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-tag-del {
+  margin-left: 8rpx;
+  width: 32rpx;
+  height: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff4d4f;
+  font-size: 22rpx;
+  flex-shrink: 0;
+}
+
+.products-hint {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+/* 已添加权益列表中关联商品展示 */
+.added-benefit-products {
+  font-size: 20rpx;
+  color: #722ed1;
+  margin-top: 4rpx;
+  line-height: 1.4;
+}
+
 /* 添加权益按钮 */
 .add-benefit-btn {
   margin-top: 20rpx;

@@ -338,6 +338,35 @@
   word-break: break-all;
 }
 
+/* 关联商品展示 */
+.benefit-products {
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid rgba(114, 46, 209, 0.15);
+}
+
+.benefit-products-label {
+  font-size: 20rpx;
+  color: #999;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.benefit-products-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.benefit-products-item {
+  font-size: 20rpx;
+  color: #722ed1;
+  background: #f9f0ff;
+  border: 2rpx solid #d3adf7;
+  border-radius: 12rpx;
+  padding: 4rpx 12rpx;
+}
+
 .no-benefit-hint {
   font-size: 26rpx;
   color: #bbb;
@@ -805,4 +834,8 @@
   font-size: 28rpx;
   color: #505050;
   line-height: 1.5;
+}
+.photo-em {
+  color: #d4380d;
+  font-weight: 700;
 }

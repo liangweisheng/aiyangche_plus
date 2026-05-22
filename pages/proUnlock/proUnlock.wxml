@@ -50,36 +50,7 @@
         <text class="info-label">有效期至</text>
         <text class="info-value">{{expireLabel}}</text>
       </view>
-      <!-- 门店联系方式（仅 Pro 版显示） -->
-      <block wx:if="{{isPro}}">
-      <view class="shop-detail-divider" wx:if="{{isOwner || shopTel || shopAddr}}">
-        <text class="divider-text">门店联系方式</text>
-      </view>
-      <!-- 店主账号：可编辑 -->
-      <view class="info-item info-item-editable" wx:if="{{isOwner}}" bindtap="onEditShopTel">
-        <text class="info-label">门店电话</text>
-        <view class="info-value-row">
-          <text class="info-value info-value-dark">{{shopTel || '点击设置'}}</text>
-          <text class="edit-icon-sm">📝</text>
-        </view>
-      </view>
-      <view class="info-item info-item-editable" wx:if="{{isOwner}}" bindtap="onEditShopAddr">
-        <text class="info-label">门店地址</text>
-        <view class="info-value-row">
-          <text class="info-value info-value-dark info-value-addr">{{shopAddr || '点击设置'}}</text>
-          <text class="edit-icon-sm">📝</text>
-        </view>
-      </view>
-      <!-- 非店主账号：只读展示 -->
-      <view class="info-item" wx:if="{{!isOwner && shopTel}}">
-        <text class="info-label">门店电话</text>
-        <text class="info-value info-value-dark">{{shopTel}}</text>
-      </view>
-      <view class="info-item" wx:if="{{!isOwner && shopAddr}}">
-        <text class="info-label">门店地址</text>
-        <text class="info-value info-value-dark info-value-addr">{{shopAddr}}</text>
-      </view>
-      </block>
+
     </view>
   </view>
 
@@ -174,6 +145,41 @@
           <text>用于每月经营报告的基准值对标和诊断分析</text>
         </view>
       </block>
+      <!-- 门店联系方式（仅 Pro 版显示） -->
+      <block wx:if="{{isPro}}">
+        <view class="settings-divider"></view>
+        <view class="settings-section-title">
+          <text>📞 门店联系方式</text>
+        </view>
+        <!-- 店主账号：可编辑 -->
+        <view class="profile-form-item" wx:if="{{isOwner}}" bindtap="onEditShopTel">
+          <text class="profile-label">门店电话</text>
+          <view class="profile-value-row">
+            <text class="profile-value">{{shopTel || '点击设置'}}</text>
+            <text class="profile-edit-icon">📝</text>
+          </view>
+        </view>
+        <view class="profile-form-item" wx:if="{{isOwner}}" bindtap="onEditShopAddr">
+          <text class="profile-label">门店地址</text>
+          <view class="profile-value-row">
+            <text class="profile-value">{{shopAddr || '点击设置'}}</text>
+            <text class="profile-edit-icon">📝</text>
+          </view>
+        </view>
+        <!-- 非店主账号：只读展示 -->
+        <view class="profile-form-item" wx:if="{{!isOwner && shopTel}}">
+          <text class="profile-label">门店电话</text>
+          <view class="profile-value-row">
+            <text class="profile-value">{{shopTel}}</text>
+          </view>
+        </view>
+        <view class="profile-form-item" wx:if="{{!isOwner && shopAddr}}">
+          <text class="profile-label">门店地址</text>
+          <view class="profile-value-row">
+            <text class="profile-value">{{shopAddr}}</text>
+          </view>
+        </view>
+      </block>
     </view>
   </view>
 
@@ -186,7 +192,7 @@
       <view class="export-info">
         <text class="export-title">数据导出</text>
         <text class="export-desc" wx:if="{{isPro && isOwner}}">导出工单、车辆、会员数据</text>
-        <text class="export-desc export-desc-lock" wx:if="{{!isPro || !isOwner}}">仅店主账号可用</text>
+        <text class="export-desc export-desc-lock" wx:if="{{!isPro || !isOwner}}">仅店主账号可用（需开通pro版）</text>
       </view>
       <text class="export-arrow" wx:if="{{isPro && isOwner}}">›</text>
       <text class="export-lock" wx:if="{{!isPro || !isOwner}}">🔒</text>
@@ -198,7 +204,7 @@
     <view class="collapse-header" bindtap="toggleInventory">
       <view class="collapse-title">
         <text class="icon">📦</text>
-        库存管理
+        进销存管理
       </view>
       <text class="collapse-arrow {{inventoryExpanded ? 'expanded' : ''}}">›</text>
     </view>
@@ -261,6 +267,37 @@
     </view>
   </view>
 
+  <!-- ★ ⑥½ 账号管理（店主/游客/管理员员工可见） -->
+  <view class="card account-mgmt-card" wx:if="{{isOwner || isGuest || isAdminRole}}">
+    <view class="collapse-header" bindtap="toggleAccountMgmt">
+      <view class="collapse-title">
+        <text class="icon">🔐</text>
+        账号管理
+      </view>
+      <text class="collapse-arrow {{accountMgmtExpanded ? 'expanded' : ''}}">›</text>
+    </view>
+    <view wx:if="{{accountMgmtExpanded}}">
+      <!-- 退出登录（仅非游客的店主可见） -->
+      <view class="mgmt-item mgmt-item-warn" wx:if="{{isOwner && !isGuest}}" bindtap="onLogout">
+        <text class="mgmt-item-text">退出登录</text>
+        <text class="mgmt-item-arrow">›</text>
+      </view>
+      <!-- 员工退出登录（仅管理员员工可见） -->
+      <view class="mgmt-item mgmt-item-warn" wx:if="{{isAdminRole}}" bindtap="onStaffLogout">
+        <text class="mgmt-item-text">退出登录</text>
+        <text class="mgmt-item-arrow">›</text>
+      </view>
+      <!-- 注销账号（仅店主账号/游客可见，游客点按时引导登录） -->
+      <view class="mgmt-item mgmt-item-danger" bindtap="onDeleteAccount">
+        <text class="mgmt-item-text">注销账号</text>
+        <text class="mgmt-item-arrow mgmt-item-arrow-danger">›</text>
+      </view>
+      <view class="mgmt-tip">
+        <text>注销后所有数据将被永久删除且不可恢复</text>
+      </view>
+    </view>
+  </view>
+
   <!-- ★ ⑦ Pro版特权（仅免费版显示） -->
   <view class="card pro-card" wx:if="{{!isPro}}">
     <view class="card-title pro-title">
@@ -311,11 +348,11 @@
       </view>
       <view class="pro-item">
         <text class="check">✓</text>
-        员工管理功能
+        员工账号功能
       </view>
       <view class="pro-item">
         <text class="check">✓</text>
-        持续功能更新
+        AI经营诊断
       </view>
     </view>
   </view>
@@ -472,12 +509,7 @@
     </view>
   </view>
 
-  <!-- ★ v6.0.5 员工管理员退出登录（仅管理员员工可见，店主账号/游客不可见） -->
-  <view class="card staff-logout-card" wx:if="{{isAdminRole}}">
-    <view class="staff-logout" bindtap="onStaffLogout">
-      <text class="staff-logout-text">退出登录</text>
-    </view>
-  </view>
+  <!-- ★ 员工退出已移至账号管理卡片内 -->
 
   <!-- 底部隐私提示（dashboard风格） -->
   <view class="privacy-footer">
@@ -485,6 +517,8 @@
     <text class="privacy-divider">|</text>
     <text class="privacy-link" bindtap="onGoAgreement">用户服务协议</text>
   </view>
+  <!-- 数据存储说明 -->
+  <view class="data-footer">您的数据安全存储在腾讯云数据库（微信云开发）</view>
 
   <!-- 经营诊断配置编辑弹窗 -->
   <view class="modal-overlay" wx:if="{{showEditProfileModal}}" bindtap="onCancelEditProfile">

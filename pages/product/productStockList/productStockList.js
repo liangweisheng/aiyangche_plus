@@ -5,7 +5,7 @@ Page({
   data: {
     keyword: '',
     currentCategory: '全部',
-    categoryOptions: ['全部', '其他', '机油', '轮胎', '刹车系统', '空调系统', '电器', '美容保养', '传动系统', '悬挂系统', '冷却系统'],
+    categoryOptions: ['全部', '其他', '机油', '轮胎', '刹车系统', '空调系统', '电器车灯', '美容保养', '动力系统', '传动系统', '悬挂系统', '冷却系统'],
     productList: [],
     loading: false,
     searchTimer: null

@@ -111,6 +111,21 @@ function createChain(collectionName) {
       _collections[collectionName].push(newDoc)
       return { _id: newDoc._id }
     },
+    update: async function(options) {
+      // 支持 .where(cond).update({ data: {...} }) 模式（repair_inventory 大量使用）
+      var docs = _collections[collectionName] || []
+      var updateData = options.data || {}
+      var updatedCount = 0
+      for (var i = 0; i < docs.length; i++) {
+        if (matchWhere(docs[i], _where)) {
+          for (var key in updateData) {
+            docs[i][key] = updateData[key]
+          }
+          updatedCount++
+        }
+      }
+      return { updated: updatedCount }
+    },
     doc: function(id) {
       return {
         update: async function(options) {
@@ -214,15 +229,71 @@ function matchWhere(doc, where) {
       continue
     }
 
+    // _.eq() 返回的对象带 __eq 标记
+    if (val && val.__eq) {
+      if (doc[key] !== val.value) return false
+      continue
+    }
+
+    // _.exists() 返回的对象带 __exists 标记
+    if (val && val.__exists) {
+      var hasKey = doc[key] !== undefined
+      if (val.value !== hasKey) return false
+      continue
+    }
+
     // _.gte() 返回的对象带 __gte 标记
     if (val && val.__gte) {
-      if (doc[key] === undefined || doc[key] < val.value) return false
+      if (doc[key] === undefined) return false
+      var gteVal = val.value
+      if (gteVal instanceof Date) {
+        var docVal = doc[key] instanceof Date ? doc[key] : new Date(doc[key])
+        if (docVal < gteVal) return false
+      } else {
+        if (doc[key] < gteVal) return false
+      }
       continue
     }
 
     // _.lte() 返回的对象带 __lte 标记
     if (val && val.__lte) {
-      if (doc[key] === undefined || doc[key] > val.value) return false
+      if (doc[key] === undefined) return false
+      var lteVal = val.value
+      if (lteVal instanceof Date) {
+        var docVal = doc[key] instanceof Date ? doc[key] : new Date(doc[key])
+        if (docVal > lteVal) return false
+      } else {
+        if (doc[key] > lteVal) return false
+      }
+      continue
+    }
+
+    // 原生 $gte / $lte / $eq 语法（如 { createTime: { $gte: ..., $lte: ... } }）
+    // 用于 repair_inventory getStockLogs 日期筛选
+    if (val && typeof val === 'object' && !val.__neq && !val.__in && !val.__regexp && !val.__gte && !val.__lte && !val.__or && !val.__and && !val.__eq && !val.__exists) {
+      var matched = true
+      if (val.$gte !== undefined) {
+        if (doc[key] === undefined) matched = false
+        else if (val.$gte instanceof Date) {
+          var docDate = doc[key] instanceof Date ? doc[key] : new Date(doc[key])
+          if (docDate < val.$gte) matched = false
+        } else {
+          if (doc[key] < val.$gte) matched = false
+        }
+      }
+      if (val.$lte !== undefined) {
+        if (doc[key] === undefined) matched = false
+        else if (val.$lte instanceof Date) {
+          var docDate = doc[key] instanceof Date ? doc[key] : new Date(doc[key])
+          if (docDate > val.$lte) matched = false
+        } else {
+          if (doc[key] > val.$lte) matched = false
+        }
+      }
+      if (val.$eq !== undefined) {
+        if (doc[key] !== val.$eq) matched = false
+      }
+      if (!matched) return false
       continue
     }
 
@@ -269,6 +340,12 @@ var cloud = {
         },
         lte: function(value) {
           return { __lte: true, value: value }
+        },
+        eq: function(value) {
+          return { __eq: true, value: value }
+        },
+        exists: function(value) {
+          return { __exists: true, value: value }
         }
       },
       // db.RegExp 模拟

@@ -9,14 +9,23 @@
 ### 运行测试
 
 ```bash
-# 运行全部测试（85 个用例）
+# 运行全部测试（154 个用例）
 npx jest --verbose
 
-# 只跑权限矩阵测试（65 个用例）
+# 只跑权限矩阵测试（74 个用例）
 npx jest checkPermission --verbose
 
 # 只跑列表查询测试（20 个用例）
 npx jest listQuery --verbose
+
+# 只跑进销存测试（34 个用例）
+npx jest inventory --verbose
+
+# 只跑工单流程测试（8 个用例）
+npx jest orderFlow --verbose
+
+# 只跑导出数据测试（19 个用例）
+npx jest exportData --verbose
 
 # 运行单个测试用例（按名称匹配）
 npx jest -t "店主.*registered"
@@ -28,9 +37,9 @@ npx jest --watch
 ### 预期输出
 
 ```
-Test Suites: 2 passed, 2 total
-Tests:       85 passed, 85 total
-Time:        0.916 s
+Test Suites: 5 passed, 5 total
+Tests:       154 passed, 154 total
+Time:        1.343 s
 ```
 
 ---
@@ -40,25 +49,28 @@ Time:        0.916 s
 ```
 tests/
 ├── __mocks__/
-│   └── wx-server-sdk.js    ← 云开发 SDK 模拟层（模拟数据库查询）
-├── checkPermission.test.js  ← 权限矩阵测试（37 个 action × 4 种角色）
-└── listQuery.test.js        ← 列表查询测试（5 个 list action）
+│   └── wx-server-sdk.js         ← 云开发 SDK 模拟层（支持 where().update() 等）
+├── checkPermission.test.js       ← 权限矩阵测试（37 个 action × 4 种角色）
+├── listQuery.test.js             ← 列表查询测试（5 个 list action）
+├── inventory.test.js             ← 进销存云函数测试（9 个 action）
+├── orderFlow.test.js             ← 工单流程端到端测试（orderCategory）
+└── exportData.test.js            ← 导出数据多类型 + 筛选测试
 ```
 
 ---
 
 ## 三、测试覆盖了什么
 
-### checkPermission.test.js（65 个用例）
+### checkPermission.test.js（74 个用例）
 
 | 测试套件 | 用例数 | 说明 |
 |---------|--------|------|
 | public 动作 | 6 | getOpenId/loginByPhoneCode 等无需登录即可调用 |
-| registered 动作 | 7 | 店主/员工可调用，无 shopPhone 或陌生人被拒 |
+| registered 动作 | 9 | 店主/员工可调用，无 shopPhone 或陌生人被拒 |
 | admin 动作 | 4 | 仅管理员角色可调用，staff 被拒 |
 | admin+pro 动作 | 4 | 管理员 + Pro版才能调用 |
 | superAdmin+pro 动作 | 4 | 仅店主（superAdmin）+ Pro版才能调用 |
-| _checkShopAccess 边界 | 3 | 员工 status/跨门店/clientPhone 降级 |
+| _checkShopAccess 边界 | 4 | 员工 status/跨门店/clientPhone 降级 |
 | 全量权限矩阵 | 37 | 确保测试中的权限配置和云函数代码同步 |
 
 ### listQuery.test.js（20 个用例）
@@ -70,6 +82,47 @@ tests/
 | listMembers | 3 | 权限(admin only) + 空数据 |
 | listCheckSheets | 3 | 权限(registered) + 空数据 |
 | exportData | 6 | 权限(superAdmin+pro) + 参数校验 + 空数据 |
+
+### inventory.test.js（34 个用例）🆕
+
+| 测试套件 | 用例数 | 说明 |
+|---------|:--:|------|
+| addProduct | 5 | 权限(admin) + 参数校验 |
+| listProducts | 5 | 权限(registered) + 分类筛选 + 空数据 |
+| getProductDetail | 3 | 数据格式 + 不存在商品 + 参数校验 |
+| addStock | 5 | 权限(admin) + 有/无规格入库 + 参数校验 |
+| deductStock | 6 | 权限(registered) + 库存不足 + 空items + 商品不存在 |
+| adjustStock | 3 | 权限(admin) + isZero校验 |
+| getStockLogs | 5 | 权限(admin) + 类型筛选 + 日期筛选 + 空数据 |
+| 快捷短语 | 4 | getPhrases/savePhrases 权限 + 参数校验 |
+| updateProduct | 3 | 权限(admin) + 参数校验 |
+
+### orderFlow.test.js（8 个用例）🆕
+
+| 测试套件 | 用例数 | 说明 |
+|---------|:--:|------|
+| createOrder 权限 | 3 | orderCategory传递 + 无orderCategory + 员工创建 |
+| listOrders 展示 | 3 | orderCategory完整性 + 分页不丢失 + 空列表 |
+| useBenefit | 1 | 核销不因权限被拒 |
+| Dashboard | 1 | 基本响应格式验证 |
+
+### exportData.test.js（19 个用例）🆕
+
+| 测试套件 | 用例数 | 说明 |
+|---------|:--:|------|
+| 导出类型覆盖 | 5 | cars/orders/members/checkSheets/stock_logs |
+| 日期筛选 | 5 | 仅start/仅end/范围/范围外/精确单日 |
+| 空数据 | 3 | 3种类型空列表不崩溃 |
+| 参数校验 | 2 | 无效type + 缺少type |
+| 权限边界 | 4 | superAdmin/无Pro/staff/员工管理员 |
+
+### Mock 增强 🆕
+
+`__mocks__/wx-server-sdk.js` 新增：
+- `where().update()` 链式调用
+- `_.eq()` / `_.exists()` 命令
+- 原生 `$gte` / `$lte` / `$eq` 语法
+- Date 对象自动转换比较
 
 ---
 

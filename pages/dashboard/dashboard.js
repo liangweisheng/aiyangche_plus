@@ -234,6 +234,7 @@ Page({
       if (page.data._dashboardReqVersion !== version) return
       console.error('看板数据加载失败', err)
       page.setData({ loading: false })
+      wx.showToast({ title: '加载失败，请下拉刷新', icon: 'none', duration: 2000 })
     })
   },
 
@@ -631,6 +632,13 @@ Page({
     if (plate) {
       wx.navigateTo({ url: '/pages/carDetail/carDetail?plate=' + plate })
     }
+  },
+
+  /** 🔄 刷新生意机会列表 */
+  onRefreshAlerts() {
+    var page = this
+    wx.showToast({ title: '刷新中...', icon: 'loading', duration: 800 })
+    page.fetchDashboardData()
   },
 
   // ====== 进销存快捷操作（v6.3.1） ======

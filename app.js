@@ -1105,6 +1105,18 @@ App({
   },
 
   /**
+   * 注销账号：清除所有本地缓存 + 跳转登录页
+   * 与 logout 的区别：不进入游客模式，直接跳登录页
+   */
+  deleteAccount: function () {
+    this._clearAuthCache()
+    wx.showToast({ title: '账号已注销', icon: 'success', duration: 2000 })
+    setTimeout(function () {
+      wx.reLaunch({ url: '/pages/welcome/welcome?mode=login' })
+    }, 1500)
+  },
+
+  /**
    * 员工退出登录：清本地缓存 + 清云端 staffOpenid 绑定 + 跳转登录页
    * 与 logout() 区别：不进入游客模式（多端模式下游客模式不可用）
    */

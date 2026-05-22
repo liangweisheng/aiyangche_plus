@@ -424,6 +424,7 @@ Page({
           benefitTotal: benefit.total || 0,
           amount: Number(benefit.amount) || 0,
           plate: plate,
+          shopPhone: shopPhone,
           operatorPhone: app.getOperatorPhone(),
           operatorName: app.getOperatorName()
         }).then(function (res) {

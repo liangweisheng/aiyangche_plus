@@ -75,6 +75,26 @@
   flex-shrink: 0;
 }
 
+/* 工单分类标签 */
+.category-tag {
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 6rpx 16rpx;
+  border-radius: 10rpx;
+}
+.category-tag.category-new-benefit {
+  background: rgba(114, 46, 209, 0.3);
+  color: #fff;
+}
+.category-tag.category-use-benefit {
+  background: rgba(250, 140, 22, 0.25);
+  color: #fff;
+}
+.category-tag.category-normal {
+  background: rgba(82, 196, 26, 0.2);
+  color: #fff;
+}
+
 /* 工单状态标签（详情页 - 深色背景适配） */
 .status-tag {
   font-size: 22rpx;

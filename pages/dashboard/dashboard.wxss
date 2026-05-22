@@ -242,6 +242,15 @@
   color: #ddd;
 }
 
+/* 数据存储说明 */
+.data-footer {
+  text-align: center;
+  font-size: 22rpx;
+  color: #bbb;
+  padding-bottom: 40rpx;
+  margin-top: -12rpx;
+}
+
 /* 免费版工单超限提醒横幅 */
 .limit-tip-banner {
   display: flex;
@@ -511,27 +520,36 @@
 /* ⚡️快速搜索 */
 .quick-search-section {
   padding: 0 24rpx;
-  margin: 30rpx 0;
+  margin: 20rpx 0;
 }
 
 .quick-search-wrapper {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: #fff8f0;
   border-radius: 24rpx;
   padding: 0 24rpx;
   height: 88rpx;
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
+  border: 2rpx solid #e0e0e0;
 }
 
 .quick-search-wrapper:focus-within {
+  background: #fff;
+  border-color: #ffa940;
   box-shadow: 0 6rpx 28rpx rgba(22, 119, 255, 0.12);
 }
 
 .quick-search-icon {
   font-size: 32rpx;
   margin-right: 12rpx;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
 }
 
 .quick-search-input {
@@ -659,4 +677,36 @@
 .qs-empty-text {
   font-size: 26rpx;
   color: #bbb;
+}
+
+.qs-empty-link {
+  font-size: 26rpx;
+  color: #1677ff;
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: 4rpx;
+}
+
+/* 🔄 生意机会刷新按钮 */
+.alert-refresh-btn {
+  margin-left: auto;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.alert-refresh-btn:active {
+  background: #e0e0e0;
+  transform: scale(0.92);
+}
+
+.alert-refresh-icon {
+  font-size: 28rpx;
+  line-height: 1;
 }

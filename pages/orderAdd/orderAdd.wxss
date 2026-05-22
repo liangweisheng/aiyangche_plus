@@ -275,7 +275,12 @@
   color: #1677ff;
   padding: 10rpx 28rpx;
   background: rgba(22, 119, 255, 0.06);
+  border: 2rpx solid rgba(22, 119, 255, 0.35);
   border-radius: 12rpx;
+}
+
+.phrase-manage-btn:active {
+  background: rgba(22, 119, 255, 0.15);
 }
 
 .section-actions {
@@ -293,8 +298,8 @@
   color: #52c41a;
   padding: 10rpx 28rpx;
   background: rgba(82, 196, 26, 0.06);
+  border: 2rpx solid rgba(82, 196, 26, 0.4);
   border-radius: 12rpx;
-  border: 2rpx solid rgba(82, 196, 26, 0.2);
 }
 
 .product-pick-btn:active {
@@ -429,25 +434,25 @@
 }
 
 .svc-col.col-num {
-  width: 40rpx;
+  width: 10rpx;   /* 28rpx → 16rpx，进一步缩窄 */
   flex-shrink: 0;
   text-align: center;
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #bbb;
 }
 
 .svc-col.col-name {
-  flex: 3;
+  flex: 5;          /* 1 → 5，与 .svc-input.col-name 保持一致，解决表头偏移 */
   min-width: 0;
 }
 
 .svc-col.col-spec {
-  flex: 2.5;
+  flex: 1.5;        /* 2.5 → 1.5，缩窄 */
   min-width: 0;
 }
 
 .svc-col.col-amount {
-  flex: 1.5;
+  flex: 1.5;        /* 不变 */
   min-width: 0;
 }
 
@@ -462,16 +467,16 @@
 }
 
 .svc-input.col-num {
-  width: 40rpx;
+  width: 24rpx;
   text-align: center;
 }
 
 .svc-input.col-name {
-  flex: 3;
+  flex: 5;          /* 4 → 5 */
 }
 
 .svc-input.col-spec {
-  flex: 2.5;
+  flex: 1.5;        /* 2.5 → 1.5 */
 }
 
 .svc-input.col-amount {
@@ -481,7 +486,7 @@
 
 .svc-placeholder {
   color: #ccc;
-  font-size: 26rpx;
+  font-size: 20rpx;   /* 26rpx → 20rpx */
 }
 
 /* 金额触发区（替代 input） */
@@ -1226,21 +1231,8 @@
   color: #999;
 }
 
-/* 📷 car-picker OCR 识别按钮 */
-.car-picker-ocr {
-  font-size: 28rpx;
-  padding: 8rpx;
-  flex-shrink: 0;
-  margin-left: 4rpx;
-}
-.car-picker-ocr:active {
-  opacity: 0.6;
-}
-.car-picker-ocr-icon {
-  width: 64rpx;
-  height: 64rpx;
-  display: block;
-}
+
+
 
 .car-picker-body {
   flex: 1;
@@ -1375,4 +1367,28 @@
   font-size: 22rpx;
   color: #1677ff;
   font-weight: 700;
+}
+
+/* 商品行整体只读样式 */
+.svc-row-readonly {
+  background: #fafbfc;
+  border-radius: 12rpx;
+  padding: 16rpx 0;
+}
+
+/* 商品行金额只读展示 */
+.svc-amount-display {
+  height: 72rpx;
+  background: #f0f1f3;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1.5;
+  min-width: 0;
+}
+
+/* 商品行隐藏删除按钮 */
+.svc-del-btn.hidden {
+  visibility: hidden;
 }

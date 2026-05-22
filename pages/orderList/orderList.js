@@ -157,14 +157,15 @@ Page({
       if (reqVersion !== page._reqVersion) return  // 竞态保护
 
       if (res.code !== 0 || !res.data) {
-        page.setData({ loading: false })
+        page.setData({ loading: false, isEmpty: page.data.orderList.length === 0 })
         return
       }
 
       var newData = (res.data.list || []).map(function (item) {
         return Object.assign({}, item, {
           createTime: item.createTime ? util.formatDateTime(item.createTime) : '',
-          isMember: !!item.isMember
+          isMember: !!item.isMember,
+          orderCategory: item.orderCategory || ''
         })
       })
 

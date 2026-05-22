@@ -61,7 +61,9 @@ Page({
     // 进销存功能开关（默认开启）
     inventoryEnabled: true,
     // 自由开单模式（默认开启）
-    freeOrderMode: true
+    freeOrderMode: true,
+    // 账号管理折叠状态
+    accountMgmtExpanded: false
   },
 
   // 切换激活 Pro 版卡片展开/收起
@@ -1246,6 +1248,7 @@ Page({
     // 互斥保护：不能两个同时关闭
     if (!enabled && !this.data.freeOrderMode) {
       wx.showToast({ title: '至少保留一个开单模式', icon: 'none' })
+      this.setData({ inventoryEnabled: true })
       return
     }
     this.setData({ inventoryEnabled: enabled })
@@ -1262,6 +1265,7 @@ Page({
     // 互斥保护：不能两个同时关闭
     if (!enabled && !this.data.inventoryEnabled) {
       wx.showToast({ title: '至少保留一个开单模式', icon: 'none' })
+      this.setData({ freeOrderMode: true })
       return
     }
     this.setData({ freeOrderMode: enabled })
@@ -1286,5 +1290,80 @@ Page({
   /** 跳转库存明细 */
   onGoProductStockList: function () {
     wx.navigateTo({ url: '/pages/product/productStockList/productStockList' })
+  },
+
+  // ====== 账号管理 ======
+
+  /** 切换账号管理展开/收起 */
+  toggleAccountMgmt: function () {
+    this.setData({ accountMgmtExpanded: !this.data.accountMgmtExpanded })
+  },
+
+  /** 店主退出登录 - 调用 app.logout() */
+  onLogout: function () {
+    getApp().logout()
+  },
+
+  /** 注销账号 - 双重确认 + 云函数守卫 */
+  onDeleteAccount: function () {
+    var page = this
+    var app = getApp()
+    // 游客模式拦截
+    if (page.data.isGuest) {
+      wx.showModal({
+        title: '游客不可注销',
+        content: '请先登录自己的门店账号后再进行注销操作',
+        confirmText: '去登录',
+        success: function (res) {
+          if (res.confirm) {
+            wx.reLaunch({ url: '/pages/welcome/welcome?mode=login' })
+          }
+        }
+      })
+      return
+    }
+    // 第一层确认
+    wx.showModal({
+      title: '⚠️ 注销账号',
+      content: '注销后，该门店的所有数据（包括车辆、工单、会员、查车单、月报、商品、库存等）将被永久删除，且不可恢复。\n\n此操作不可撤销，请谨慎操作。',
+      confirmText: '确认注销',
+      confirmColor: '#ff4d4f',
+      cancelText: '取消',
+      success: function (res) {
+        if (!res.confirm) return
+        // 第二层确认：用户输入"确认注销"文字
+        wx.showModal({
+          title: '再次确认',
+          content: '请输入"确认注销"以继续操作',
+          editable: true,
+          placeholderText: '请输入：确认注销',
+          confirmText: '永久删除所有数据',
+          confirmColor: '#ff4d4f',
+          cancelText: '取消',
+          success: function (res2) {
+            if (!res2.confirm) return
+            if ((res2.content || '').trim() !== '确认注销') {
+              app.toastFail('请输入"确认注销"以确认')
+              return
+            }
+            // 调用云函数删除数据（严格鉴权 + openid 验证）
+            app.showLoading('正在删除所有数据...')
+            util.callRepair('deleteAccount', { shopPhone: app.getShopPhone() })
+              .then(function (res) {
+                app.hideLoading()
+                if (res.code === 0) {
+                  app.deleteAccount()
+                } else {
+                  app.toastFail(res.msg || '注销失败')
+                }
+              })
+              .catch(function () {
+                app.hideLoading()
+                app.toastFail('网络异常，请重试')
+              })
+          }
+        })
+      }
+    })
   }
 })

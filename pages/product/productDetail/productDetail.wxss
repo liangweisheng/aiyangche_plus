@@ -421,6 +421,9 @@
 }
 
 .picker-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 28rpx;
   color: #333;
   padding: 0 16rpx;
@@ -429,6 +432,13 @@
   border: 2rpx solid #e8e8e8;
   border-radius: 8rpx;
   min-width: 300rpx;
+}
+
+.picker-arrow {
+  font-size: 20rpx;
+  color: #999;
+  margin-left: 8rpx;
+  flex-shrink: 0;
 }
 
 .adjust-tip {

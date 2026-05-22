@@ -11,6 +11,7 @@
         </view>
       </view>
       <view class="header-tags">
+        <view class="category-tag category-{{order.orderCategory === '新开权益卡' ? 'new-benefit' : order.orderCategory === '核销权益卡' ? 'use-benefit' : 'normal'}}" wx:if="{{order.orderCategory}}">{{order.orderCategory}}</view>
         <view class="status-tag status-{{order.status === '已完成' ? 'done' : order.status === '待结算' ? 'pending' : 'working'}}">{{order.status || '施工中'}}</view>
         <view class="pay-tag">{{payMethodText}}</view>
       </view>
@@ -35,16 +36,18 @@
       <view class="svc-table">
         <view class="svc-thead">
           <text class="svc-th" style="width:60rpx;">序</text>
-          <text class="svc-th" style="flex:2;">项目名</text>
-          <text class="svc-th" style="flex:2;">规格</text>
-          <text class="svc-th" style="width:140rpx;text-align:right;">金额</text>
+          <text class="svc-th" style="flex:2.0;">项目名</text>
+          <text class="svc-th" style="flex:1.2;">规格</text>
+          <text class="svc-th" style="width:80rpx;text-align:center;">数量</text>
+          <text class="svc-th" style="width:120rpx;text-align:right;">金额</text>
         </view>
         <view class="svc-tbody">
           <view class="svc-tr {{index % 2 === 1 ? 'svc-tr-alt' : ''}}" wx:for="{{itemRows}}" wx:key="index">
             <text class="svc-td" style="width:60rpx;">{{item.index}}</text>
-            <text class="svc-td svc-name" style="flex:2;">{{item.name}}</text>
-            <text class="svc-td" style="flex:2;">{{item.spec}}</text>
-            <text class="svc-td svc-amt" style="width:140rpx;text-align:right;">{{item.amount > 0 ? '¥' + item.amount : ''}}</text>
+            <text class="svc-td svc-name" style="flex:2.0;">{{item.name}}</text>
+            <text class="svc-td" style="flex:1.2;">{{item.spec}}</text>
+            <text class="svc-td" style="width:80rpx;text-align:center;">{{item.qty}}</text>
+            <text class="svc-td svc-amt" style="width:120rpx;text-align:right;">{{item.amount > 0 ? '¥' + item.amount : ''}}</text>
           </view>
         </view>
       </view>

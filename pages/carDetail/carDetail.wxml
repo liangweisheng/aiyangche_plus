@@ -202,6 +202,13 @@
         <view class="benefit-remark" wx:if="{{item.remark}}">
           <text>备注：{{item.remark}}</text>
         </view>
+        <!-- 关联商品展示 -->
+        <view class="benefit-products" wx:if="{{item.products && item.products.length > 0}}">
+          <text class="benefit-products-label">关联商品（核销时扣减库存）</text>
+          <view class="benefit-products-list">
+            <text class="benefit-products-item" wx:for="{{item.products}}" wx:key="productId" wx:for-item="prod">{{prod.productName}}{{prod.spec ? '(' + prod.spec + ')' : ''}} × {{prod.quantity}}{{prod.unit}}</text>
+          </view>
+        </view>
       <view class="benefit-footer" wx:if="{{(item.remain || 0) <= 0}}">
         <text class="benefit-expired">权益次数已用完</text>
         <text class="benefit-del-btn" bindtap="onRemoveBenefit" data-index="{{index}}">删除此权益</text>
@@ -315,8 +322,8 @@
         <text class="photo-placeholder-text">添加车辆照片</text>
       </view>
       <view class="photo-placeholder-right">
-        <text class="photo-placeholder-right-text">建议添加车牌照片、车架号照片</text>
-        <text class="photo-placeholder-right-text">照片可直接转发给配件商定配件</text>
+        <text class="photo-placeholder-right-text">建议添加车牌照片、<text class="photo-em">车架号照片</text></text>
+        <text class="photo-placeholder-right-text">照片可直接<text class="photo-em">转发给配件商</text>定配件</text>
       </view>
     </view>
   </view>

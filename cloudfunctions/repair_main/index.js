@@ -7,8 +7,9 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
-const MAX_LIMIT = 100
 const benchmarks = require('./benchmarks')
+const { fetchAllOrders, MAX_LIMIT } = require('./common/db-utils')
+const { createAuthModule } = require('./common/auth')
 
 // ============================
 // 统一鉴权中间件 — Phase 2
@@ -70,27 +71,44 @@ var ACTION_PERMISSIONS = {
 
   // OCR 域
   ocrPlate: 'registered',
-  ocrVIN: 'registered'
+  ocrVIN: 'registered',
+  // 账号管理域
+  deleteAccount: 'superAdmin'   // ★ 最严格权限：仅店主 + openid匹配
 }
 
+// ★ auth 初始化必须在 ACTION_PERMISSIONS 定义之后
+var auth = createAuthModule(db, _, ACTION_PERMISSIONS)
+
 // ============================
-// 分页获取全部记录（突破单次limit限制）
+// parseServiceItems - 解析工单服务项目为统一数组格式
+// 兼容两种输入：
+//   旧格式（字符串）：serviceItems="名 规，名 规" + serviceAmounts/Quantities/Categories
+//   新格式（数组）：serviceItems=[{name,spec,amount,qty,category},...]
+// 返回：对象数组 [{name,spec,amount,qty,category}]
 // ============================
-async function fetchAllOrders(where, field) {
-  var countRes = await db.collection('repair_orders').where(where).count()
-  var total = countRes.total
-  if (total === 0) return []
-  var allData = []
-  var batch = 0
-  var batchSize = Math.min(MAX_LIMIT, total)
-  while (batch * MAX_LIMIT < total) {
-    var query = db.collection('repair_orders').where(where).field(field).skip(batch * MAX_LIMIT).limit(batchSize)
-    var res = await query.get()
-    allData = allData.concat(res.data || [])
-    batch++
-    batchSize = Math.min(MAX_LIMIT, total - batch * MAX_LIMIT)
+function parseServiceItems(serviceItems, serviceAmounts, serviceQuantities, serviceCategories) {
+  // 已经是新格式（数组）
+  if (Array.isArray(serviceItems)) return serviceItems
+  // 空或无效的旧格式
+  if (!serviceItems || typeof serviceItems !== 'string' || !serviceItems.trim()) return []
+
+  var names = serviceItems.trim().split(/[,，]/).map(function (s) { return s.trim() }).filter(function (s) { return s })
+  var amounts = (serviceAmounts || '').split(',').map(function (a) { return Number(a) || 0 })
+  var quantities = (serviceQuantities || '').split(',').map(function (q) { return Number(q) || 1 })
+  var categories = (serviceCategories || '').split(',').map(function (c) { return c.trim() })
+
+  var result = []
+  for (var i = 0; i < names.length; i++) {
+    var parts = names[i].split(/\s+/)
+    result.push({
+      name: parts[0] || names[i],
+      spec: parts.slice(1).join(' ') || '',
+      amount: amounts[i] || 0,
+      qty: quantities[i] || 1,
+      category: categories[i] || ''
+    })
   }
-  return allData
+  return result
 }
 
 // ============================
@@ -339,13 +357,17 @@ async function addMember(event, openid) {
 
     var safeBenefits = Array.isArray(benefits) ? benefits : []
     safeBenefits = safeBenefits.map(function(b) {
-      return {
+      var item = {
         name: b.name || '', total: Number(b.total) || 0,
         remain: Number(b.remain) || 0,
         amount: Number(b.amount) || 0,
         remark: b.remark || '',
         addedTime: b.addedTime || db.serverDate()
       }
+      if (b.products && b.products.length > 0) {
+        item.products = b.products
+      }
+      return item
     })
     var memberData = {
       carNumber: plateTrim,
@@ -399,6 +421,8 @@ async function createOrder(event, openid) {
   var carDocId = event.carDocId || ''
   var partCost = event.partCost || 0
   var profit = event.profit !== undefined ? event.profit : 0
+  var serviceCategories = event.serviceCategories || ''
+  var orderCategory = event.orderCategory || ''
 
   if (!plate) {
     return { code: -1, msg: '车牌号不能为空' }
@@ -419,6 +443,7 @@ async function createOrder(event, openid) {
       plate: plate,
       serviceItems: serviceItems.trim(),
       serviceAmounts: (serviceAmounts || '').trim(),
+      serviceCategories: serviceCategories,
       totalAmount: amount,
       paidAmount: Number(paidAmount) || 0,
       payMethod: payMethod,
@@ -433,6 +458,10 @@ async function createOrder(event, openid) {
     if (openid) orderData._openid = openid
     if (event.operatorPhone) orderData.operatorPhone = event.operatorPhone
     if (event.operatorName) orderData.operatorName = event.operatorName
+    if (orderCategory) orderData.orderCategory = orderCategory
+
+    // ★ 双写：构建数组格式 _serviceItemsArr（兼容旧格式字符串）
+    orderData._serviceItemsArr = parseServiceItems(serviceItems, serviceAmounts, event.serviceQuantities, serviceCategories)
 
     var orderResult = await db.collection('repair_orders').add({ data: orderData })
 
@@ -506,9 +535,9 @@ async function getDashboardStats(event, openid) {
         .where(Object.assign({}, baseWhere, { createTime: _.gte(todayStart) }))
         .count(),
       // 今日营收（分页全量）
-      fetchAllOrders(Object.assign({}, baseWhere, { createTime: _.gte(todayStart) }), { totalAmount: true }),
+      fetchAllOrders(db, _, Object.assign({}, baseWhere, { createTime: _.gte(todayStart) }), { totalAmount: true }),
       // 总营收（分页全量）
-      fetchAllOrders(baseWhere, { totalAmount: true }),
+      fetchAllOrders(db, _, baseWhere, { totalAmount: true }),
       // 车辆总数
       db.collection('repair_cars').where(carBaseWhere).count(),
       // 会员总数
@@ -614,9 +643,9 @@ async function getReportOrders(event, openid) {
     var where = { shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.gte(new Date(startTime)) }
     // 可选：限制结束时间（用于历史月份/年份选择）
     if (endTime > 0) {
-      where.createTime = _.and(_.gte(new Date(startTime)), _.lte(new Date(endTime)))
+      where.createTime = _.and([_.gte(new Date(startTime)), _.lte(new Date(endTime))])
     }
-    var orders = await fetchAllOrders(where, {
+    var orders = await fetchAllOrders(db, _, where, {
       plate: true, totalAmount: true, payMethod: true,
       createTime: true, status: true, items: true
     })
@@ -638,7 +667,7 @@ async function getTotalSpent(event, openid) {
 
   try {
     var where = { shopPhone: shopPhone, plate: plate, isVoided: _.neq(true) }
-    var orders = await fetchAllOrders(where, { totalAmount: true })
+    var orders = await fetchAllOrders(db, _, where, { totalAmount: true })
     var spent = orders.reduce(function (sum, item) { return sum + (item.totalAmount || 0) }, 0)
     return { code: 0, data: { totalSpent: spent, orderCount: orders.length } }
   } catch (err) {
@@ -658,7 +687,7 @@ async function getCarOrderStats(event, openid) {
 
   try {
     var where = { shopPhone: shopPhone, plate: plate, status: '已完成', isVoided: _.neq(true) }
-    var orders = await fetchAllOrders(where, { totalAmount: true })
+    var orders = await fetchAllOrders(db, _, where, { totalAmount: true })
     var totalAmount = orders.reduce(function (sum, item) { return sum + (item.totalAmount || 0) }, 0)
     return { code: 0, data: { totalAmount: totalAmount, orderCount: orders.length } }
   } catch (err) {
@@ -870,6 +899,45 @@ async function useBenefit(event, openid) {
       return { code: -3, msg: '无权操作此会员' }
     }
 
+    // 获取当前权益的关联商品（从 DB 读取，确保权威性）
+    var benefit = null
+    if (member.data.benefits && member.data.benefits.length > benefitIdx) {
+      benefit = member.data.benefits[benefitIdx]
+    }
+    var benefitProducts = (benefit && benefit.products) || []
+
+    // ★ 如果有关联商品：先校验库存是否充足（不扣减），任一不足则整体失败
+    if (benefitProducts.length > 0) {
+      for (var pi = 0; pi < benefitProducts.length; pi++) {
+        var bp = benefitProducts[pi]
+        try {
+          var prodRes = await db.collection('repair_products')
+            .where({ _id: bp.productId, shopPhone: shopPhone })
+            .field({ specStock: true, stock: true, specs: true, name: true })
+            .get()
+          if (!prodRes.data || prodRes.data.length === 0) {
+            return { code: -10, msg: '关联商品 "' + (bp.productName || '') + '" 已不存在，请在权益中重新选择商品' }
+          }
+          var prod = prodRes.data[0]
+          if (bp.spec) {
+            var specStock = 0
+            ;(prod.specStock || []).forEach(function (s) {
+              if (s.label === bp.spec) specStock = s.stock || 0
+            })
+            if (specStock < bp.quantity) {
+              return { code: -10, msg: '商品 "' + prod.name + '(' + bp.spec + ')" 库存不足（当前 ' + specStock + '，需要 ' + bp.quantity + '）' }
+            }
+          } else {
+            if ((prod.stock || 0) < bp.quantity) {
+              return { code: -10, msg: '商品 "' + prod.name + '" 库存不足（当前 ' + (prod.stock || 0) + '，需要 ' + bp.quantity + '）' }
+            }
+          }
+        } catch (e) {
+          return { code: -10, msg: '库存校验异常: ' + bp.productName }
+        }
+      }
+    }
+
     // 1. 扣减权益次数
     var updateData = { updateTime: db.serverDate() }
     if (member.data.benefits && member.data.benefits.length > 0) {
@@ -887,10 +955,32 @@ async function useBenefit(event, openid) {
     await db.collection('repair_members').doc(memberDocId).update({ data: updateData })
 
     // 2. 生成权益核销工单（核销工单金额统一为 0）
+    var orderRef = ''
+    // ★ 构建服务项目字符串：权益名称 + 关联商品（如有），追加到工单商品列表
+    var baseServiceItems = benefitName || '权益核销'
+    var baseServiceAmounts = '0'
+    var baseServiceQuantities = '1'
+    if (benefitProducts.length > 0) {
+      var productNames = []
+      var productAmts = []
+      var productQtys = []
+      benefitProducts.forEach(function (bp) {
+        var itemName = '[权益]' + bp.productName
+        if (bp.spec) itemName += ' ' + bp.spec
+        if (bp.quantity > 1) itemName += ' ×' + bp.quantity
+        productNames.push(itemName)
+        productAmts.push('0')
+        productQtys.push(String(bp.quantity || 1))
+      })
+      baseServiceItems += ',' + productNames.join(',')
+      baseServiceAmounts += ',' + productAmts.join(',')
+      baseServiceQuantities += ',' + productQtys.join(',')
+    }
     var orderData = {
       plate: plate,
-      serviceItems: benefitName || '权益核销',
-      serviceAmounts: '0',
+      serviceItems: baseServiceItems,
+      serviceAmounts: baseServiceAmounts,
+      serviceQuantities: baseServiceQuantities,
       totalAmount: 0,
       paidAmount: 0,
       payMethod: '1',
@@ -903,9 +993,62 @@ async function useBenefit(event, openid) {
     if (openid) orderData._openid = openid
     if (event.operatorPhone) orderData.operatorPhone = event.operatorPhone
     if (event.operatorName) orderData.operatorName = event.operatorName
+    orderData.orderCategory = '核销权益卡'
+    // ★ 双写：权益核销工单也构建数组格式
+    orderData._serviceItemsArr = parseServiceItems(orderData.serviceItems, baseServiceAmounts, baseServiceQuantities, '')
     var orderRes = await db.collection('repair_orders').add({ data: orderData })
+    orderRef = orderRes._id
 
-    return { code: 0, msg: '已使用', data: { newRemain: newRemain, orderId: orderRes._id } }
+    // ★ 有关联商品：执行库存扣减（调用 repair_inventory.deductStock）
+    if (benefitProducts.length > 0) {
+      try {
+        var deductResult = await cloud.callFunction({
+          name: 'repair_inventory',
+          data: {
+            action: 'deductStock',
+            clientOpenid: openid,
+            shopPhone: shopPhone,
+            items: benefitProducts.map(function (bp) {
+              return {
+                productId: bp.productId,
+                spec: bp.spec || '',
+                quantity: bp.quantity,
+                amount: 0
+              }
+            }),
+            operator: event.operatorName || '',
+            orderRef: orderRef
+          }
+        })
+        if (deductResult.result && deductResult.result.code !== 0) {
+          // 库存扣减失败：回滚权益次数 + 删除已创建工单
+          var rollbackRemain = newRemain + 1
+          var rollbackData = { updateTime: db.serverDate() }
+          if (member.data.benefits && member.data.benefits.length > 0) {
+            rollbackData['benefits.' + benefitIdx + '.remain'] = rollbackRemain
+          } else {
+            rollbackData.benefitRemain = _.inc(1)
+          }
+          await db.collection('repair_members').doc(memberDocId).update({ data: rollbackData })
+          await db.collection('repair_orders').doc(orderRef).remove()
+          return { code: -11, msg: deductResult.result.msg || '库存扣减失败' }
+        }
+      } catch (e) {
+        // 网络异常：回滚权益次数 + 删除已创建工单
+        var rollbackRemain = newRemain + 1
+        var rollbackData = { updateTime: db.serverDate() }
+        if (member.data.benefits && member.data.benefits.length > 0) {
+          rollbackData['benefits.' + benefitIdx + '.remain'] = rollbackRemain
+        } else {
+          rollbackData.benefitRemain = _.inc(1)
+        }
+        await db.collection('repair_members').doc(memberDocId).update({ data: rollbackData })
+        await db.collection('repair_orders').doc(orderRef).remove()
+        return { code: -99, msg: '库存扣减网络异常，权益已恢复' }
+      }
+    }
+
+    return { code: 0, msg: '已使用', data: { newRemain: newRemain, orderId: orderRef } }
   } catch (err) {
     console.error('useBenefit 错误:', err)
     return { code: -99, msg: '操作失败，请重试' }
@@ -928,6 +1071,15 @@ async function editOrder(event, openid) {
     if (!order.data) return { code: -2, msg: '工单不存在' }
     if (order.data.shopPhone && order.data.shopPhone !== shopPhone) {
       return { code: -3, msg: '无权操作此工单' }
+    }
+    // ★ 双写：编辑工单时如果有 serviceItems，同步构建 _serviceItemsArr
+    if (updateData.serviceItems !== undefined) {
+      updateData._serviceItemsArr = parseServiceItems(
+        updateData.serviceItems,
+        updateData.serviceAmounts,
+        updateData.serviceQuantities,
+        updateData.serviceCategories
+      )
     }
     await db.collection('repair_orders').doc(docId).update({ data: updateData })
 
@@ -1326,12 +1478,12 @@ async function getCustomerRanking(event, openid) {
     if (endTime) {
       var endDate = new Date(endTime)
       if (!isNaN(endDate.getTime())) {
-        where.createTime = _.gte(startDate).and(_.lte(endDate))
+        where.createTime = _.and([_.gte(startDate), _.lte(endDate)])
       }
     }
 
     // 只查 plate 和 totalAmount 两个字段，大幅减少数据传输量
-    var orders = await fetchAllOrders(where, { plate: true, totalAmount: true })
+    var orders = await fetchAllOrders(db, _, where, { plate: true, totalAmount: true })
 
     if (orders.length === 0) {
       return { code: 0, data: { list: [], total: 0, page: page, pageSize: pageSize } }
@@ -1414,31 +1566,7 @@ async function getCallerAdminInfo(openid, shopPhone) {
   return record
 }
 
-// ============================
-// _checkShopAccess - 轻量级门店访问权限校验
-// 验证调用者（openid）是否属于该门店（店主或员工）
-// 返回 true/false
-// ============================
-async function _checkShopAccess(openid, shopPhone) {
-  if (!shopPhone) return false             // 必须有 shopPhone
-  if (!openid) return true                 // 空 openid 信任 shopPhone（多端模式）
-  // 游客共享账号放行：shopPhone 为游客账号时，任何 openid 均可访问（与 checkPermission 保持一致）
-  var GUEST_PHONE = '13507720000'
-  if (shopPhone === GUEST_PHONE) return true
-  try {
-    var res = await db.collection('repair_activationCodes')
-      .where(_.or([
-        { openid: openid, phone: shopPhone },
-        { staffOpenid: openid, shopPhone: shopPhone, status: 'active' }  // ★ 员工必须 status=active
-      ]))
-      .limit(1)
-      .get()
-    return !!(res.data && res.data.length > 0)
-  } catch (e) {
-    console.error('[ACCESS] _checkShopAccess异常 shopPhone=' + shopPhone, e)
-    return false
-  }
-}
+// _checkShopAccess → 已提取到 ./common/auth.js，通过 auth._checkShopAccess 调用
 
 // ============================
 // addStaff - 添加员工（仅管理员，Pro版）
@@ -1657,7 +1785,7 @@ async function generateMonthlyReport(event, openid) {
   // 鉴权：验证调用者属于该门店（店主或员工）
   // 空 openid 表示系统内部调用（如定时触发器批量生成），跳过鉴权
   if (openid) {
-    var hasAccess = await _checkShopAccess(openid, shopPhone)
+    var hasAccess = await auth._checkShopAccess(openid, shopPhone)
     if (!hasAccess) return { code: -3, msg: '无权访问该门店数据' }
   }
 
@@ -1668,11 +1796,11 @@ async function generateMonthlyReport(event, openid) {
     var monthStart = new Date(year, month, 1)
     var monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999)
 
-    var baseWhere = { shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.gte(monthStart).and(_.lte(monthEnd)) }
+    var baseWhere = { shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.and([_.gte(monthStart), _.lte(monthEnd)]) }
 
     // 并行获取：当月订单、历史所有订单(用于新客/老客判断)、车辆列表、门店配置
-    var ordersRes = await fetchAllOrders(baseWhere, { plate: true, totalAmount: true, serviceItems: true, createTime: true })
-    var allOrdersRes = await fetchAllOrders({ shopPhone: shopPhone, isVoided: _.neq(true) }, { plate: true, createTime: true })
+    var ordersRes = await fetchAllOrders(db, _, baseWhere, { plate: true, totalAmount: true, serviceItems: true, createTime: true })
+    var allOrdersRes = await fetchAllOrders(db, _, { shopPhone: shopPhone, isVoided: _.neq(true) }, { plate: true, createTime: true })
 
     // ====== 三重前置校验 ======
 
@@ -1755,8 +1883,8 @@ async function generateMonthlyReport(event, openid) {
     // ====== 客单价趋势（对比上月）=====
     var prevMonthStart = new Date(year, month - 1, 1)
     var prevMonthEnd = new Date(year, month, 0, 23, 59, 59, 999)
-    var prevOrders = await fetchAllOrders(
-      { shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.gte(prevMonthStart).and(_.lte(prevMonthEnd)) },
+    var prevOrders = await fetchAllOrders(db, _,
+      { shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.and([_.gte(prevMonthStart), _.lte(prevMonthEnd)]) },
       { totalAmount: true }
     )
     var prevRevenue = prevOrders.reduce(function (s, o) { return s + (parseFloat(o.totalAmount) || 0) }, 0)
@@ -1950,7 +2078,7 @@ async function getMonthlyReport(event, openid) {
   }
 
   // 鉴权：验证调用者属于该门店
-  var hasAccess = await _checkShopAccess(openid, shopPhone)
+  var hasAccess = await auth._checkShopAccess(openid, shopPhone)
   if (!hasAccess) return { code: -3, msg: '无权访问该门店数据' }
 
   try {
@@ -1968,7 +2096,7 @@ async function getMonthlyReport(event, openid) {
     var _rmStart = new Date(Number(_rmParts[0]), Number(_rmParts[1]) - 1, 1)
     var _rmEnd = new Date(Number(_rmParts[0]), Number(_rmParts[1]), 0, 23, 59, 59)
     var _quickCheck = await db.collection('repair_orders')
-      .where({ shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.gte(_rmStart).and(_.lte(_rmEnd)) })
+      .where({ shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.and([_.gte(_rmStart), _.lte(_rmEnd)]) })
       .count()
     if (_quickCheck.total < MIN_REPORT_ORDERS) {
       return { code: -2, msg: '该月份工单数(' + _quickCheck.total + ')未达报告生成门槛(' + MIN_REPORT_ORDERS + '单)' }
@@ -1999,7 +2127,7 @@ async function listRecentReports(event, openid) {
   if (!shopPhone) return { code: -1, msg: '缺少门店标识' }
 
   // 鉴权：验证调用者属于该门店
-  var hasAccess = await _checkShopAccess(openid, shopPhone)
+  var hasAccess = await auth._checkShopAccess(openid, shopPhone)
   if (!hasAccess) return { code: -3, msg: '无权访问该门店数据' }
 
   try {
@@ -2207,7 +2335,7 @@ async function batchGenerateMonthlyReports(event, openid) {
     var countRes = await db.collection('repair_orders')
       .where({
         isVoided: _.neq(true),
-        createTime: _.gte(monthStart).and(_.lte(monthEnd))
+        createTime: _.and([_.gte(monthStart), _.lte(monthEnd)])
       })
       .field({ shopPhone: true })
       .count()
@@ -2223,7 +2351,7 @@ async function batchGenerateMonthlyReports(event, openid) {
       var ordersBatch = await db.collection('repair_orders')
         .where({
           isVoided: _.neq(true),
-          createTime: _.gte(monthStart).and(_.lte(monthEnd))
+          createTime: _.and([_.gte(monthStart), _.lte(monthEnd)])
         })
         .field({ shopPhone: true })
         .skip(batchIdx * MAX_LIMIT)
@@ -2819,233 +2947,178 @@ async function ocrVIN(event, openid) {
   }
 }
 
-// ============================
-// 统一鉴权函数 — Phase 2
-// 根据 ACTION_PERMISSIONS 配置校验调用者权限
-// 返回 { ok: true } 或 { ok: false, code, msg }
-// ============================
-async function checkPermission(action, event, openid) {
-  var required = ACTION_PERMISSIONS[action]
-  if (!required) return { ok: true }   // 未配置权限的 action，默认放行
+// checkPermission / _getCallerRecord / _validatePhoneAccess → 已提取到 ./common/auth.js，通过 auth.xxx 调用
 
-  // public：任何人可调用
-  if (required === 'public') return { ok: true }
-
-  // 以下权限等级需要 shopPhone
+// ============================
+// deleteAccount - 注销账号
+// ★ 最严格安全设计：
+// 1. 权限等级 superAdmin（仅店主 + openid 匹配）
+// 2. 函数内部额外验证 openid 必须匹配 shopPhone
+// 3. 二次验证开放给非 openid 路径的兜底
+// 4. 只通过 shopPhone 删除数据，确保不会误删其他门店
+// 5. 多端模式无 openid → 自然被 superAdmin 拦截
+// ============================
+async function deleteAccount(event, openid) {
   var shopPhone = event.shopPhone || ''
   if (!shopPhone) {
-    console.warn('[PERM] action=' + action + ' REJECTED: 缺少shopPhone')
-    return { ok: false, code: -403, msg: '缺少门店标识' }
+    return { code: -1, msg: '缺少门店标识' }
   }
 
-  // 游客账号识别：共享演示账号，无真实 openid，继承管理员权限（不含 superAdmin）
+  // ★ 安全守卫1：拒绝游客账号注销（防止误删演示数据）
   var GUEST_PHONE = '13507720000'
-  var isGuestShop = (shopPhone === GUEST_PHONE)
-
-  // registered：已注册用户（店主或员工）
-  if (required === 'registered') {
-    // 游客账号放行（共享真实注册账号，视为已注册）
-    if (isGuestShop) return { ok: true }
-
-    // ★ 优化：保持短路降级逻辑，每层内部并行化
-    // 原逻辑最差5次串行DB查询 → 现在3轮并行（1+2+2），大幅减少等待时间
-
-    // 第1层：openid 验证（1次 $or 查询）
-    if (openid && openid.length > 5) {
-      var hasAccess = await _checkShopAccess(openid, shopPhone)
-      if (hasAccess) return { ok: true }
-    }
-
-    // 第2层：clientPhone 验证（员工+店主并行）
-    if (event.clientPhone) {
-      var phoneResults = await Promise.all([
-        db.collection('repair_activationCodes')
-          .where({ phone: event.clientPhone, shopPhone: shopPhone, status: 'active' })
-          .limit(1).get(),
-        db.collection('repair_activationCodes')
-          .where({ type: 'free', phone: event.clientPhone })
-          .limit(1).get()
-      ])
-      // 员工匹配
-      if (phoneResults[0].data && phoneResults[0].data.length > 0) return { ok: true }
-      // 店主匹配（phone 必须等于 shopPhone）
-      if (phoneResults[1].data && phoneResults[1].data.length > 0 &&
-          phoneResults[1].data[0].phone === shopPhone) return { ok: true }
-    }
-
-    // 第3层：shopPhone 兜底（员工+店主并行）
-    var shopResults = await Promise.all([
-      db.collection('repair_activationCodes')
-        .where({ phone: shopPhone, shopPhone: shopPhone, status: 'active' })
-        .limit(1).get(),
-      db.collection('repair_activationCodes')
-        .where({ type: 'free', phone: shopPhone })
-        .limit(1).get()
-    ])
-    if (shopResults[0].data && shopResults[0].data.length > 0) return { ok: true }
-    if (shopResults[1].data && shopResults[1].data.length > 0 &&
-        shopResults[1].data[0].phone === shopPhone) return { ok: true }
-
-    console.warn('[PERM] action=' + action + ' REJECTED: openid/clientPhone/shopPhone 均验证失败')
-    return { ok: false, code: -403, msg: '未登录' }
+  if (shopPhone === GUEST_PHONE) {
+    console.warn('[deleteAccount] REJECTED: 游客账号不可注销')
+    return { code: -403, msg: '演示账号不可注销' }
   }
 
-  // 解析组合标记（如 'admin+pro'）
-  var parts = required.split('+')
-  var roleRequired = parts[0]   // 'admin' | 'superAdmin'
-  var needPro = parts.indexOf('pro') !== -1
-
-  // 游客账号继承管理员权限（superAdmin 需 openid 匹配，游客无法满足）
-  if (isGuestShop) {
-    if (roleRequired === 'superAdmin') {
-      console.warn('[PERM] action=' + action + ' REJECTED: 游客无superAdmin权限')
-      return { ok: false, code: -403, msg: '需要店主账号权限' }
-    }
-    // admin 级别放行，Pro 状态按需检查
-    if (needPro) {
-      var guestRecord = await db.collection('repair_activationCodes')
-        .where({ phone: GUEST_PHONE, type: 'free' })
-        .field({ code: true, expireTime: true })
-        .limit(1).get()
-      if (guestRecord.data && guestRecord.data.length > 0) {
-        var gRec = guestRecord.data[0]
-        var isPro = !!(gRec.code && new Date(gRec.expireTime).getTime() > Date.now())
-        if (!isPro) {
-          console.warn('[PERM] action=' + action + ' REJECTED: 游客Pro已过期')
-          return { ok: false, code: -403, msg: '仅Pro版可使用此功能' }
-        }
-      } else {
-        console.warn('[PERM] action=' + action + ' REJECTED: 游客账号记录不存在')
-        return { ok: false, code: -403, msg: '仅Pro版可使用此功能' }
-      }
-    }
-    return { ok: true }
+  // ★ 安全守卫2：拒绝无 openid 的请求（多端模式/无openid场景）
+  if (!openid || openid.length < 6) {
+    console.error('[deleteAccount] REJECTED: 缺少有效openid')
+    return { code: -403, msg: '安全验证失败，请使用微信小程序操作' }
   }
 
-  // admin / superAdmin：需要验证角色
-  var callerRecord = await _getCallerRecord(openid, event.clientPhone, shopPhone)
-  if (!callerRecord) {
-    console.warn('[PERM] action=' + action + ' REJECTED: _getCallerRecord返回null')
-    return { ok: false, code: -403, msg: '账号已失效，请重新登录' }
+  // ★ 安全守卫3：双重验证 openid 是否属于该 shopPhone 的店主
+  // checkPermission 已通过 superAdmin 验证了 callerRecord.isSuperAdmin，
+  // 但这里再独立查一次，防止任何鉴权绕过
+  var ownerCheck = await db.collection('repair_activationCodes')
+    .where({ type: 'free', phone: shopPhone, openid: openid })
+    .field({ _id: true, code: true })
+    .limit(1)
+    .get()
+
+  if (!ownerCheck.data || ownerCheck.data.length === 0) {
+    console.error('[deleteAccount] REJECTED: openid=' + openid + ' 不属于 shopPhone=' + shopPhone + ' 的店主')
+    return { code: -403, msg: '安全验证失败，请重新登录后重试' }
   }
 
-  if (roleRequired === 'admin') {
-    if (callerRecord.role !== 'admin') {
-      console.warn('[PERM] action=' + action + ' REJECTED: role=' + callerRecord.role + ' 需要admin')
-      return { ok: false, code: -403, msg: '需要管理员权限' }
-    }
-  } else if (roleRequired === 'superAdmin') {
-    if (!callerRecord.isSuperAdmin) {
-      console.warn('[PERM] action=' + action + ' REJECTED: isSuperAdmin=false')
-      return { ok: false, code: -403, msg: '需要店主账号权限' }
-    }
-  }
+  console.log('[deleteAccount] 开始删除 shopPhone=' + shopPhone + ', openid=' + openid)
 
-  // +pro：需要 Pro 版
-  if (needPro) {
-    var proRecord = {
-      code: callerRecord._ownerCode || callerRecord.code || '',
-      expireTime: callerRecord._ownerExpireTime || callerRecord.expireTime || ''
-    }
-    var isPro = !!(proRecord.code && new Date(proRecord.expireTime).getTime() > Date.now())
-    if (!isPro) {
-      console.warn('[PERM] action=' + action + ' REJECTED: 非Pro用户')
-      return { ok: false, code: -403, msg: '仅Pro版可使用此功能' }
-    }
-  }
+  // ====== 开始清理数据 ======
+  var deleteResults = []
+  var errors = []
 
-  return { ok: true }
-}
-
-// ============================
-// _getCallerRecord - 获取调用者记录（含角色判断）
-// 返回 { role, isSuperAdmin, code, expireTime, _ownerCode, _ownerExpireTime } 或 null
-// ============================
-async function _getCallerRecord(openid, clientPhone, shopPhone) {
+  // 1. 删除员工记录（type='staff', shopPhone=shopPhone）
   try {
-    // ★ 优化：分层短路 + 每层内并行
-    // 原逻辑4次串行 → 现在2轮并行，同时保持短路减少不必要的查询
-
-    // 第1层：openid 查询（店主+员工并行）
-    if (openid && openid.length > 5) {
-      var openidResults = await Promise.all([
-        db.collection('repair_activationCodes')
-          .where({ openid: openid, type: 'free' })
-          .field({ phone: true, role: true, code: true, expireTime: true, openid: true, addedBy: true })
-          .limit(1).get(),
-        db.collection('repair_activationCodes')
-          .where({ staffOpenid: openid, shopPhone: shopPhone, status: 'active' })
-          .field({ phone: true, role: true, shopPhone: true, status: true })
-          .limit(1).get()
-      ])
-      // 优先级1: openid → 店主（phone 必须匹配 shopPhone）
-      if (openidResults[0].data && openidResults[0].data.length > 0) {
-        var owner = openidResults[0].data[0]
-        if (owner.phone === shopPhone) {
-          return { role: 'admin', isSuperAdmin: true, code: owner.code, expireTime: owner.expireTime }
-        }
-      }
-      // 优先级2: openid → 员工
-      if (openidResults[1].data && openidResults[1].data.length > 0) {
-        var staff = openidResults[1].data[0]
-        return { role: staff.role || 'staff', isSuperAdmin: false }
-      }
-    }
-
-    // 第2层：clientPhone 查询（店主+员工并行）
-    if (clientPhone) {
-      var phoneResults = await Promise.all([
-        db.collection('repair_activationCodes')
-          .where({ type: 'free', phone: clientPhone })
-          .field({ phone: true, role: true, code: true, expireTime: true })
-          .limit(1).get(),
-        db.collection('repair_activationCodes')
-          .where({ phone: clientPhone, shopPhone: shopPhone, status: 'active' })
-          .field({ phone: true, role: true, shopPhone: true, status: true })
-          .limit(1).get()
-      ])
-      // 优先级3: clientPhone → 店主（phone 必须匹配 shopPhone）
-      if (phoneResults[0].data && phoneResults[0].data.length > 0) {
-        var phoneOwner = phoneResults[0].data[0]
-        if (phoneOwner.phone === shopPhone) {
-          return { role: 'admin', isSuperAdmin: true, code: phoneOwner.code, expireTime: phoneOwner.expireTime }
-        }
-      }
-      // 优先级4: clientPhone → 员工
-      if (phoneResults[1].data && phoneResults[1].data.length > 0) {
-        var phoneStaff = phoneResults[1].data[0]
-        return { role: phoneStaff.role || 'staff', isSuperAdmin: false }
-      }
-    }
-
-    return null
-  } catch (e) {
-    console.error('[_getCallerRecord] 查询失败:', e)
-    return null
-  }
-}
-
-// ============================
-// _validatePhoneAccess - 通过手机号验证用户是否属于该门店
-// 返回 true/false
-// ============================
-async function _validatePhoneAccess(clientPhone, shopPhone) {
-  try {
-    // 查是否是员工
     var staffRes = await db.collection('repair_activationCodes')
-      .where({ phone: clientPhone, shopPhone: shopPhone, status: 'active' })
-      .limit(1).get()
-    if (staffRes.data && staffRes.data.length > 0) return true
-
-    // 查是否是店主
-    var ownerRes = await db.collection('repair_activationCodes')
-      .where({ type: 'free', phone: clientPhone })
-      .limit(1).get()
-    if (ownerRes.data && ownerRes.data.length > 0 && ownerRes.data[0].phone === shopPhone) return true
-
-    return false
+      .where({ shopPhone: shopPhone, type: 'staff' })
+      .remove()
+    deleteResults.push('员工记录: ' + (staffRes.stats ? staffRes.stats.removed : 0) + '条')
   } catch (e) {
-    return false
+    errors.push('员工记录: ' + e.message)
+  }
+
+  // 2. 删除工单
+  try {
+    var ordersRes = await db.collection('repair_orders')
+      .where({ shopPhone: shopPhone })
+      .remove()
+    deleteResults.push('工单: ' + (ordersRes.stats ? ordersRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('工单: ' + e.message)
+  }
+
+  // 3. 删除车辆
+  try {
+    var carsRes = await db.collection('repair_cars')
+      .where({ shopPhone: shopPhone })
+      .remove()
+    deleteResults.push('车辆: ' + (carsRes.stats ? carsRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('车辆: ' + e.message)
+  }
+
+  // 4. 删除会员
+  try {
+    var membersRes = await db.collection('repair_members')
+      .where({ shopPhone: shopPhone })
+      .remove()
+    deleteResults.push('会员: ' + (membersRes.stats ? membersRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('会员: ' + e.message)
+  }
+
+  // 5. 删除查车单
+  try {
+    var sheetsRes = await db.collection('repair_checkSheets')
+      .where({ shopPhone: shopPhone })
+      .remove()
+    deleteResults.push('查车单: ' + (sheetsRes.stats ? sheetsRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('查车单: ' + e.message)
+  }
+
+  // 6. 删除月报
+  try {
+    var reportsRes = await db.collection('repair_monthly_reports')
+      .where({ shopPhone: shopPhone })
+      .remove()
+    deleteResults.push('月报: ' + (reportsRes.stats ? reportsRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('月报: ' + e.message)
+  }
+
+  // 7. 删除商品
+  try {
+    var productsRes = await db.collection('repair_products')
+      .where({ shopPhone: shopPhone })
+      .remove()
+    deleteResults.push('商品: ' + (productsRes.stats ? productsRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('商品: ' + e.message)
+  }
+
+  // 8. 删除入库记录
+  try {
+    var stockInRes = await db.collection('repair_stock_in')
+      .where({ shopPhone: shopPhone })
+      .remove()
+    deleteResults.push('入库记录: ' + (stockInRes.stats ? stockInRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('入库记录: ' + e.message)
+  }
+
+  // 9. 删除出库记录
+  try {
+    var stockOutRes = await db.collection('repair_stock_out')
+      .where({ shopPhone: shopPhone })
+      .remove()
+    deleteResults.push('出库记录: ' + (stockOutRes.stats ? stockOutRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('出库记录: ' + e.message)
+  }
+
+  // 10. 最后删除店主账号记录（必须最后删除！前面的删除都依赖 shopPhone 条件）
+  try {
+    var adminRes = await db.collection('repair_activationCodes')
+      .where({ type: 'free', phone: shopPhone })
+      .remove()
+    deleteResults.push('账号记录: ' + (adminRes.stats ? adminRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('账号记录: ' + e.message)
+  }
+
+  // 11. 删除 shopProfile
+  try {
+    var profileRes = await db.collection('repair_shop_profiles')
+      .where({ shopPhone: shopPhone })
+      .remove()
+    deleteResults.push('经营配置: ' + (profileRes.stats ? profileRes.stats.removed : 0) + '条')
+  } catch (e) {
+    errors.push('经营配置: ' + e.message)
+  }
+
+  console.log('[deleteAccount] 完成 shopPhone=' + shopPhone + ' 结果:', deleteResults.join(' | '))
+  if (errors.length > 0) {
+    console.warn('[deleteAccount] 部分删除错误:', errors.join(' | '))
+  }
+
+  return {
+    code: 0,
+    msg: '注销成功',
+    data: {
+      deleted: deleteResults,
+      errors: errors.length > 0 ? errors : undefined
+    }
   }
 }
 
@@ -3112,7 +3185,8 @@ exports.main = async (event, context) => {
     listCheckSheets: listCheckSheets,
     exportData: exportData,
     ocrPlate: ocrPlate,
-    ocrVIN: ocrVIN
+    ocrVIN: ocrVIN,
+    deleteAccount: deleteAccount
   }
 
   if (!handler[action]) {
@@ -3123,7 +3197,7 @@ exports.main = async (event, context) => {
   // 统一鉴权（Phase 2）：替代原有 WRITE_ACTIONS + _validateWriteAccess
   // 根据 ACTION_PERMISSIONS 配置自动校验权限
   // ============================
-  var permResult = await checkPermission(action, event, openid)
+  var permResult = await auth.checkPermission(action, event, openid)
   if (!permResult.ok) {
     return { code: permResult.code, msg: permResult.msg }
   }

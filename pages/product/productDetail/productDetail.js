@@ -320,6 +320,24 @@ Page({
     // 通用阻止事件冒泡（用于筛选弹窗等）
   },
 
+  // ========== 流水跳转 ==========
+
+  /** 点击流水记录跳转详情 */
+  onLogTap(e) {
+    var dataset = e.currentTarget.dataset
+    var logId = dataset.id
+    var logType = dataset.type
+    var orderRef = dataset.orderref
+
+    if (logType === 'out' && orderRef) {
+      // 出库流水：跳转工单详情
+      wx.navigateTo({ url: '/pages/orderDetail/orderDetail?id=' + orderRef })
+    } else if (logId) {
+      // 入库/调整流水：跳转通用流水详情页
+      wx.navigateTo({ url: '/pages/product/productStockLogDetail/productStockLogDetail?id=' + logId })
+    }
+  },
+
   onAdjustQtyInput(e) {
     var val = e.detail.value
     // 只允许数字和小数点

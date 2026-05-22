@@ -909,6 +909,15 @@ page {
   color: #ddd;
 }
 
+/* 数据存储说明 */
+.data-footer {
+  text-align: center;
+  font-size: 22rpx;
+  color: #bbb;
+  padding-bottom: 40rpx;
+  margin-top: -12rpx;
+}
+
 .profile-form-item {
   display: flex;
   align-items: center;
@@ -1295,27 +1304,54 @@ page {
   margin-right: 4rpx;
 }
 
-/* ========== v6.0.5 员工管理员退出登录 ========== */
-
-.staff-logout-card {
-  padding: 0;
-  min-height: 0;
+/* ====== 账号管理 ====== */
+.account-mgmt-card {
+  margin-top: 16rpx;
 }
-
-.staff-logout {
-  padding: 28rpx 0;
-  text-align: center;
+.account-mgmt-card .collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-
-.staff-logout:active {
-  opacity: 0.7;
+.mgmt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+  margin: 0 0;
+  border-bottom: 1rpx solid #f0f0f0;
 }
-
-.staff-logout-text {
+.mgmt-item:last-child {
+  border-bottom: none;
+}
+.mgmt-item-warn:active {
+  background-color: #fffbe6;
+}
+.mgmt-item-danger:active {
+  background-color: #fff2f0;
+}
+.mgmt-item-text {
   font-size: 28rpx;
-  color: #ff4d4f;
-  font-weight: 600;
+  color: #333;
 }
+.mgmt-item-danger .mgmt-item-text {
+  color: #ff4d4f;
+  font-weight: 500;
+}
+.mgmt-item-arrow {
+  font-size: 32rpx;
+  color: #ccc;
+}
+.mgmt-item-arrow-danger {
+  color: #ff4d4f;
+}
+.mgmt-tip {
+  padding: 20rpx 32rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+
 
 /* ========== 经营诊断配置编辑弹窗 ========== */
 .modal-overlay {

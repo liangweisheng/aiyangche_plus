@@ -7,13 +7,19 @@
     <view class="form-group">
       <text class="form-label">商品分类 <text class="required">*</text></text>
       <picker mode="selector" range="{{categoryOptions}}" value="{{categoryIndex}}" bindchange="onCategoryChange">
-        <view class="form-picker {{categoryIndex === 0 ? 'placeholder' : ''}}">{{categoryOptions[categoryIndex]}}</view>
+        <view class="form-picker {{categoryIndex === 0 ? 'placeholder' : ''}}">
+          <text class="picker-text">{{categoryOptions[categoryIndex]}}</text>
+          <text class="picker-arrow">▼</text>
+        </view>
       </picker>
     </view>
     <view class="form-group">
       <text class="form-label">单位</text>
       <picker mode="selector" range="{{unitOptions}}" value="{{unitIndex}}" bindchange="onUnitChange">
-        <view class="form-picker">{{unitOptions[unitIndex]}}</view>
+        <view class="form-picker">
+          <text class="picker-text">{{unitOptions[unitIndex]}}</text>
+          <text class="picker-arrow">▼</text>
+        </view>
       </picker>
     </view>
     <view class="form-group">

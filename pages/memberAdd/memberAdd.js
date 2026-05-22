@@ -19,6 +19,7 @@ Page({
     phone: '',
     benefits: [],
     curBenefit: { name: '', total: '', remain: '', amount: '' },
+    inventoryEnabled: true,
     remark: '',
     benefitPresets: ['10次洗车卡', '2次保养卡', '5次补胎卡', '3次洗车卡', '自定义卡：直接填写到下方栏位'],
     autoFocusSearch: true,
@@ -64,15 +65,9 @@ Page({
       this.searchCar(plate)
     }
     this.loadRecentCars()
-  },
-
-  onShow() {
-    // OCR fallback: cameraScan 返回时的兜底处理
-    var ocrResult = app.globalData._ocrResult
-    if (ocrResult && ocrResult.plate) {
-      app.globalData._ocrResult = null
-      this._showOcrConfirm(ocrResult.plate)
-    }
+    // 加载进销存开关状态
+    var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
+    this.setData({ inventoryEnabled: invEnabled !== false })
   },
 
   onUnload() {
@@ -244,6 +239,40 @@ Page({
     })
   },
 
+  // 选择关联商品（跳转 productSelect）
+  onSelectBenefitProduct() {
+    var page = this
+    // 暂存当前权益的 products 到 storage 用于回显
+    wx.setStorageSync('benefit_tempProducts', page.data.curBenefit.products || [])
+    wx.navigateTo({
+      url: '/pages/product/productSelect/productSelect?mode=benefitSelect&storageKey=benefit_tempProducts&skipStockCheck=true'
+    })
+  },
+
+  // 移除当前权益的某个关联商品
+  onRemoveBenefitProduct(e) {
+    var idx = e.currentTarget.dataset.index
+    var products = (this.data.curBenefit.products || []).slice()
+    products.splice(idx, 1)
+    this.setData({ 'curBenefit.products': products })
+  },
+
+  // 从 productSelect 返回时读取已选商品
+  onShow() {
+    // OCR fallback: cameraScan 返回时的兜底处理
+    var ocrResult = app.globalData._ocrResult
+    if (ocrResult && ocrResult.plate) {
+      app.globalData._ocrResult = null
+      this._showOcrConfirm(ocrResult.plate)
+    }
+    // 从 productSelect 返回，读取已选商品
+    var tempProducts = wx.getStorageSync('benefit_tempProducts')
+    if (tempProducts && tempProducts.length > 0) {
+      this.setData({ 'curBenefit.products': tempProducts })
+      // 不清除 storage，后续 onAddBenefit 会带 products 字段进入 benefits 数组
+    }
+  },
+
   // 添加当前权益到列表
   onAddBenefit() {
     var cur = this.data.curBenefit
@@ -256,16 +285,59 @@ Page({
       wx.showToast({ title: '该权益已添加，请勿重复', icon: 'none' })
       return
     }
-    var benefits = this.data.benefits.concat([{
+    // 检查关联商品是否有数量 > 1 的，需要用户确认
+    var products = cur.products || []
+    var highQtyProducts = products.filter(function (p) { return p.quantity > 1 })
+    if (highQtyProducts.length > 0) {
+      var confirmMsg = '关联商品的"数量"为每次核销权益时从库存扣减的份数。\n\n以下商品数量超过1：\n'
+      highQtyProducts.forEach(function (p) {
+        confirmMsg += '• ' + (p.productName || p.name) + (p.spec ? '(' + p.spec + ')' : '') + ' ×' + p.quantity + (p.unit || '份') + '\n'
+      })
+      confirmMsg += '\n请确认数量设置无误？'
+      var page = this
+      wx.showModal({
+        title: '确认库存扣减数量',
+        content: confirmMsg,
+        confirmText: '确认无误',
+        cancelText: '我再想想',
+        success: function (res) {
+          if (res.confirm) {
+            page._doAddBenefit()
+          }
+        }
+      })
+      return
+    }
+    this._doAddBenefit()
+  },
+
+  _doAddBenefit() {
+    var cur = this.data.curBenefit
+    var benefitItem = {
       name: cur.name,
       total: Number(cur.total) || 0,
       remain: Number(cur.remain) || 0,
       amount: Number(cur.amount) || 0
-    }])
+    }
+    // 关联商品：有选中商品时保存 products 数组
+    if (cur.products && cur.products.length > 0) {
+      benefitItem.products = cur.products.map(function (p) {
+        return {
+          productId: p.productId || p._productId,
+          productName: p.productName || p.name,
+          spec: p.spec || '',
+          quantity: p.quantity || 1,
+          unit: p.unit || '个'
+        }
+      })
+    }
+    var benefits = this.data.benefits.concat([benefitItem])
     this.setData({
       benefits: benefits,
       curBenefit: { name: '', total: '', remain: '', amount: '' }
     })
+    // 清除临时 storage
+    wx.removeStorageSync('benefit_tempProducts')
   },
 
   // 移除已添加的权益
@@ -362,7 +434,11 @@ Page({
             existingBenefits = [{ name: member.benefitName, total: member.benefitTotal || 0, remain: member.benefitRemain || 0 }]
           }
           var mergedBenefits = existingBenefits.concat(
-            benefits.map(function(b) { return { name: b.name, total: b.total, remain: b.remain, amount: Number(b.amount) || 0, remark: remark || '', addedTime: new Date().toISOString() } })
+            benefits.map(function(b) {
+              var item = { name: b.name, total: b.total, remain: b.remain, amount: Number(b.amount) || 0, remark: remark || '', addedTime: new Date().toISOString() }
+              if (b.products && b.products.length > 0) item.products = b.products
+              return item
+            })
           )
 
           var updateData = {
@@ -394,7 +470,9 @@ Page({
           ownerName: name || '未填写',
           phone: phone || '无',
           benefits: benefits.map(function(b) {
-            return { name: b.name, total: b.total, remain: b.remain, amount: Number(b.amount) || 0, remark: remark || '', addedTime: new Date().toISOString() }
+            var item = { name: b.name, total: b.total, remain: b.remain, amount: Number(b.amount) || 0, remark: remark || '', addedTime: new Date().toISOString() }
+            if (b.products && b.products.length > 0) item.products = b.products
+            return item
           }),
           remark: remark || '',
           operatorPhone: app.getOperatorPhone(),
@@ -434,7 +512,8 @@ Page({
               remark: remark || '',
               operatorPhone: app.getOperatorPhone(),
               operatorName: app.getOperatorName(),
-              _skipAmountCheck: true
+              _skipAmountCheck: true,
+              orderCategory: '新开权益卡'
             })
           }
         }

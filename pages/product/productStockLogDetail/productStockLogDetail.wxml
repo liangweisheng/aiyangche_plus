@@ -1,0 +1,77 @@
+<view class="container">
+  <!-- 加载态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 流水详情 -->
+  <view class="detail-card" wx:if="{{!loading && log}}">
+    <!-- 顶部：类型 + 数量 -->
+    <view class="detail-header">
+      <text class="type-badge {{typeClass}}">{{typeText}}</text>
+      <text class="qty-text">{{qtyDisplay}}</text>
+    </view>
+
+    <!-- 字段列表 -->
+    <view class="field-list">
+      <!-- 规格 -->
+      <view class="field-row" wx:if="{{log.spec}}">
+        <text class="field-label">规格</text>
+        <text class="field-value">{{log.spec}}</text>
+      </view>
+
+      <!-- 供货商（入库） -->
+      <view class="field-row" wx:if="{{log.type === 'in' && log.supplier}}">
+        <text class="field-label">供货商</text>
+        <text class="field-value">{{log.supplier}}</text>
+      </view>
+
+      <!-- 进价（入库） -->
+      <view class="field-row" wx:if="{{log.type === 'in' && log.cost > 0}}">
+        <text class="field-label">进价</text>
+        <text class="field-value price">¥{{log.cost}}</text>
+      </view>
+
+      <!-- 售价（出库） -->
+      <view class="field-row" wx:if="{{log.type === 'out' && log.salePrice > 0}}">
+        <text class="field-label">售价</text>
+        <text class="field-value price">¥{{log.salePrice}}</text>
+      </view>
+
+      <!-- 关联工单（出库） -->
+      <view class="field-row" wx:if="{{log.type === 'out' && log.orderRef}}">
+        <text class="field-label">关联工单</text>
+        <text class="field-value order-ref" bindtap="onViewOrder">查看详情 →</text>
+      </view>
+
+      <!-- 调整原因（库存调整） -->
+      <view class="field-row" wx:if="{{log.type === 'adjust' && adjustReason}}">
+        <text class="field-label">调整原因</text>
+        <text class="field-value">{{adjustReason}}</text>
+      </view>
+
+      <!-- 操作人 -->
+      <view class="field-row" wx:if="{{log.operator}}">
+        <text class="field-label">操作人</text>
+        <text class="field-value">{{log.operator}}</text>
+      </view>
+
+      <!-- 备注 -->
+      <view class="field-row" wx:if="{{log.remark && log.type !== 'adjust'}}">
+        <text class="field-label">备注</text>
+        <text class="field-value remark">{{log.remark}}</text>
+      </view>
+
+      <!-- 时间 -->
+      <view class="field-row">
+        <text class="field-label">时间</text>
+        <text class="field-value time">{{displayTime}}</text>
+      </view>
+    </view>
+
+    <!-- 操作按钮（仅出库流水且有 orderRef 时显示） -->
+    <view class="action-area" wx:if="{{log.type === 'out' && log.orderRef}}">
+      <button class="action-btn" bindtap="onViewOrder">查看工单详情</button>
+    </view>
+  </view>
+</view>

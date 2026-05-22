@@ -44,7 +44,7 @@ Page({
     phraseNeedExpand: false,
     showPhraseEdit: false,
     phraseEditText: '',
-    defaultPhrases: ['洗车', '底盘维修', '补胎', '机油保养', '轮胎更换', '刹车片更换', '空调清洗', '雨刮更换', '电瓶更换', '全车检查', '洗车打蜡', '玻璃水补充', '防冻液更换', '变速箱油更换', '火花塞更换'],
+    defaultPhrases: ['工时费', '洗车', '底盘维修', '补胎', '机油保养', '轮胎更换', '刹车片更换', '空调清洗', '雨刮更换', '电瓶更换', '全车检查', '洗车打蜡', '玻璃水补充', '防冻液更换', '变速箱油更换', '火花塞更换'],
     // 内嵌式车牌选择器
     showCarPicker: false,
     carPickerKeyword: '',
@@ -146,6 +146,7 @@ Page({
               r._productItemSpec = di.spec || ''
               r._productQuantity = di.quantity
               r._productCost = di.cost || 0
+              r._productCategory = di.category || ''
             }
           })
         }
@@ -225,7 +226,8 @@ Page({
               _productId: item._productId || '',
               _productItemSpec: item._productItemSpec || '',
               _productQuantity: item._productQuantity || 0,
-              _fromProduct: true
+              _fromProduct: true,
+              _productCategory: item._productCategory || ''
             }
             filledRow = true
             break
@@ -239,7 +241,8 @@ Page({
             _productId: item._productId || '',
             _productItemSpec: item._productItemSpec || '',
             _productQuantity: item._productQuantity || 0,
-            _fromProduct: true
+            _fromProduct: true,
+            _productCategory: item._productCategory || ''
           })
         }
       })
@@ -494,32 +497,6 @@ Page({
     })
   },
 
-  // 📷 车牌OCR识别 - car-picker弹层 → cameraScan 蒙层相机页
-  onCarPickerScanPlate() {
-    var page = this
-    wx.navigateTo({
-      url: '/pages/cameraScan/cameraScan?mode=plate',
-      events: {
-        ocrResult: function (res) {
-          if (res && res.plate) {
-            page._showOcrConfirm(res.plate, function (plate) {
-              page.setPlate(plate)
-              page.setData({ showCarPicker: false })
-            })
-          }
-        }
-      },
-      fail: function () {
-        ocrHelper.scanPlate(function (plate) {
-          page._showOcrConfirm(plate, function (p) {
-            page.setPlate(p)
-            page.setData({ showCarPicker: false })
-          })
-        })
-      }
-    })
-  },
-
   // OCR识别确认弹窗（复用）
   _showOcrConfirm(plate, callback) {
     wx.showModal({
@@ -665,6 +642,8 @@ Page({
   onPhraseTap(e) {
     var text = e.currentTarget.dataset.text
     var activeRow = this.data.activeRow
+    var rows = this.data.serviceRows
+    if (rows[activeRow] && rows[activeRow]._fromProduct) return
     var key = 'serviceRows[' + activeRow + '].name'
     this.setData({ [key]: text })
   },
@@ -1169,16 +1148,27 @@ Page({
     var rows = page.data.serviceRows
     var itemsText = []
     var amounts = []
+    var quantities = []
     rows.forEach(function (r) {
       if (r.name.trim()) {
         var line = r.name.trim()
         if (r.spec.trim()) line += ' ' + r.spec.trim()
         itemsText.push(line)
         amounts.push(Number(r.amount) || 0)
+        quantities.push(Number(r._productQuantity) || 1)
       }
     })
     form.serviceItems = itemsText.join('，')
     form.serviceAmounts = amounts.join(',')
+    form.serviceQuantities = quantities.join(',')
+    // 构建商品分类（逗号分隔，按行索引对齐）
+    var categories = []
+    rows.forEach(function (r) {
+      if (r.name.trim()) {
+        categories.push(r._productCategory || '自定义商品')
+      }
+    })
+    form.serviceCategories = categories.join(',')
 
     page.saveOrder(plate, form, '施工中', true)
   },
@@ -1237,7 +1227,8 @@ Page({
           quantity: r._productQuantity,
           cost: r._productCost || 0,
           itemName: r.name || '',
-          rowIndex: i
+          rowIndex: i,
+          category: r._productCategory || ''
         })
       }
     })
@@ -1274,6 +1265,8 @@ Page({
       plate: plate,
       serviceItems: form.serviceItems.trim(),
       serviceAmounts: form.serviceAmounts || '',
+      serviceQuantities: form.serviceQuantities || '',
+      serviceCategories: form.serviceCategories || '',
       totalAmount: amount,
       paidAmount: paidAmount,
       payMethod: form.payMethod || '1',
@@ -1286,7 +1279,8 @@ Page({
       operatorPhone: app.getOperatorPhone(),
       operatorName: app.getOperatorName(),
       partCost: partCost,
-      profit: profit
+      profit: profit,
+      orderCategory: '普通工单'
     }
 
     // 存储扣减项到订单记录（用于作废时回滚库存）
@@ -1363,12 +1357,23 @@ Page({
 
     // 保存各项金额（逗号分隔）
     var amounts = []
+    var quantities = []
     rows.forEach(function (r) {
       if (r.name.trim()) {
         amounts.push(Number(r.amount) || 0)
+        quantities.push(Number(r._productQuantity) || 1)
       }
     })
     form.serviceAmounts = amounts.join(',')
+    form.serviceQuantities = quantities.join(',')
+    // 构建商品分类（逗号分隔，按行索引对齐）
+    var categories = []
+    rows.forEach(function (r) {
+      if (r.name.trim()) {
+        categories.push(r._productCategory || '自定义商品')
+      }
+    })
+    form.serviceCategories = categories.join(',')
 
     var status = form.payMethod === '2' ? '待结算' : '已完成'
     page.saveOrder(page.data.plate, form, status)

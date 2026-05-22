@@ -73,7 +73,18 @@
   </view>
 
   <view class="policy-section">
-    <view class="section-head">八、联系我们</view>
+    <view class="section-head">八、账号注销</view>
+    <view class="section-body">
+      <text class="text-block">1. 您有权申请注销您的门店账号。注销后，该账号下的所有数据（包括但不限于车辆档案、工单记录、会员数据、查车单、月报、商品库存等）将被永久删除且不可恢复。</text>
+      <text class="text-block">2. 注销方式：在"我的"页面 → "账号管理" → "注销账号"，按照指引完成双重确认后即可注销。</text>
+      <text class="text-block">3. 注销后，原门店码将同时失效，您无法再以该门店身份登录系统。</text>
+      <text class="text-block">4. 注销操作不可撤销，请在操作前确认已备份重要数据。</text>
+      <text class="text-block">5. 如遇注销相关问题，可通过"九、联系我们"中的方式联系客服处理。</text>
+    </view>
+  </view>
+
+  <view class="policy-section">
+    <view class="section-head">九、联系我们</view>
     <view class="section-body">
       <text class="text-block">如果您对本协议有任何疑问或建议，请通过以下方式联系我们：</text>
       <text class="text-block">微信：liang-weisheng</text>

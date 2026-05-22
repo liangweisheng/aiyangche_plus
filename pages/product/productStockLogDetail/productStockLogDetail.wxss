@@ -1,0 +1,137 @@
+/* pages/product/productStockLogDetail/productStockLogDetail.wxss */
+.container {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 24rpx;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 120rpx 0;
+  font-size: 28rpx;
+  color: #bbb;
+}
+
+/* ===== 详情卡片 ===== */
+.detail-card {
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.04);
+}
+
+/* ===== 顶部类型 + 数量 ===== */
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40rpx 32rpx;
+  background: linear-gradient(135deg, #f0f5ff, #e8f0ff);
+}
+
+.type-badge {
+  font-size: 32rpx;
+  font-weight: 700;
+  padding: 8rpx 24rpx;
+  border-radius: 12rpx;
+  background: #fff;
+}
+
+.type-badge.type-in {
+  color: #52c41a;
+  border: 2rpx solid #52c41a;
+}
+
+.type-badge.type-out {
+  color: #ff4d4f;
+  border: 2rpx solid #ff4d4f;
+}
+
+.type-badge.type-adjust {
+  color: #fa8c16;
+  border: 2rpx solid #fa8c16;
+}
+
+.qty-text {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+/* ===== 字段列表 ===== */
+.field-list {
+  padding: 24rpx 32rpx;
+}
+
+.field-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid #f5f5f5;
+}
+
+.field-row:last-child {
+  border-bottom: none;
+}
+
+.field-label {
+  width: 140rpx;
+  flex-shrink: 0;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.field-value {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  word-break: break-all;
+}
+
+.field-value.price {
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+.field-value.time {
+  color: #999;
+  font-size: 26rpx;
+}
+
+.field-value.remark {
+  color: #666;
+  line-height: 1.5;
+}
+
+.field-value.order-ref {
+  color: #1677ff;
+  font-weight: 500;
+}
+
+.field-value.order-ref:active {
+  opacity: 0.7;
+}
+
+/* ===== 操作按钮区 ===== */
+.action-area {
+  padding: 16rpx 32rpx 40rpx;
+}
+
+.action-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-size: 30rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #1677ff, #4096ff);
+  border-radius: 44rpx;
+  padding: 0;
+  border: none;
+}
+
+.action-btn::after { border: none; }
+
+.action-btn:active {
+  opacity: 0.85;
+}

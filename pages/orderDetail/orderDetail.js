@@ -56,14 +56,22 @@ Page({
         // 解析服务项目表格数据
         var items = (order.serviceItems || '').split(/[,，]/).filter(function (s) { return s.trim() })
         var amounts = (order.serviceAmounts || '').split(',').map(function (a) { return Number(a) || 0 })
+        var quantities = (order.serviceQuantities || '').split(',').map(function (q) { return Number(q) || 0 })
+        var isBenefitOrder = order.remark && order.remark.indexOf('权益核销') === 0
         var itemRows = items.map(function (item, idx) {
           var text = item.trim()
           var parts = text.split(/\s+/)
+          var name = parts[0] || ''
+          // 权益核销工单：第一项项目名加 [核销] 前缀
+          if (idx === 0 && isBenefitOrder && name) {
+            name = '[核销]' + name
+          }
           return {
             index: idx + 1,
-            name: parts[0] || '',
+            name: name,
             spec: parts.slice(1).join(' ') || '',
-            amount: amounts[idx] || 0
+            amount: amounts[idx] || 0,
+            qty: quantities[idx] || 1
           }
         })
 
@@ -186,6 +194,8 @@ Page({
     // ====== 动态计算高度 ======
     var items = (order.serviceItems || '').split(/[,，]/).filter(function (s) { return s.trim() })
     var amounts = (order.serviceAmounts || '').split(',').map(function (a) { return Number(a) || 0 })
+    var quantities = (order.serviceQuantities || '').split(',').map(function (q) { return Number(q) || 1 })
+    var isBenefitOrderForShare = order.remark && order.remark.indexOf('权益核销') === 0
     var tableRowH = 32
     var tableH = 50 + items.length * tableRowH + 16
     if (tableH < 100) tableH = 100
@@ -247,19 +257,20 @@ Page({
     ctx.setFillStyle('#ffffff')
     ctx.fill()
 
-    // 表头
+    // 表头 — 5列布局（序号 | 项目名 | 规格 | 数量 | 金额）
     var y = cardY + 30
-    var col1 = cardX + 16      // 序号
-    var col2 = cardX + 56      // 项目
-    var col3 = cardX + 280     // 规格
-    var colAmtL = cardX + cardW - 90  // 金额左对齐位置
-    var colAmtR = cardX + cardW - 24  // 金额右边界
+    var col1 = cardX + 16      // 序号（左对齐）
+    var col2 = cardX + 56      // 项目名（左对齐，缩小与序号列间距）
+    var col3 = cardX + 278     // 规格（左对齐，宽~150px）
+    var colQtyL = cardX + 404  // 数量左边界（居中显示区域，宽~60px）
+    var colAmtR = cardX + cardW - 20 // 金额右边界
 
     ctx.setFillStyle('#999999')
     ctx.setFontSize(12)
     ctx.fillText('序号', col1, y)
     ctx.fillText('项目', col2, y)
     ctx.fillText('规格', col3, y)
+    ctx.fillText('数量', colQtyL + 16, y)
     // 金额表头右对齐
     ctx.fillText('金额', colAmtR - ctx.measureText('金额').width, y)
 
@@ -280,8 +291,13 @@ Page({
       var text = item.trim()
       var parts = text.split(/\s+/)
       var name = parts[0] || ''
+      // 权益核销工单第一项加 [核销] 前缀
+      if (idx === 0 && isBenefitOrderForShare && name) {
+        name = '[核销]' + name
+      }
       var spec = parts.slice(1).join(' ') || ''
       var amt = amounts[idx] || 0
+      var qty = quantities[idx] || 1
 
       // 偶数行交替背景
       if (idx % 2 === 1) {
@@ -293,10 +309,16 @@ Page({
       ctx.setFillStyle('#999999')
       ctx.fillText(String(idx + 1), col1, y)
       ctx.setFillStyle('#333333')
-      var nameShow = name.length > 8 ? name.substring(0, 8) + '…' : name
+      var nameShow = name.length > 16 ? name.substring(0, 16) + '…' : name
       ctx.fillText(nameShow, col2, y)
       ctx.setFillStyle('#666666')
-      ctx.fillText(spec.length > 5 ? spec.substring(0, 5) + '…' : spec, col3, y)
+      var specShow = spec.length > 12 ? spec.substring(0, 10) + '…' : spec
+      ctx.fillText(specShow, col3, y)
+      // 数量居中
+      ctx.setFillStyle('#333333')
+      ctx.setTextAlign('center')
+      ctx.fillText(String(qty), colQtyL + 30, y)
+      ctx.setTextAlign('left')
       // 金额右对齐
       if (amt > 0) {
         ctx.setFillStyle('#1677ff')

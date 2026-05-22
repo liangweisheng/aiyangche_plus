@@ -110,7 +110,8 @@
       </view>
       <view class="quick-search-empty" wx:elif="{{searchEmpty}}">
         <text class="qs-empty-icon">🔍</text>
-        <text class="qs-empty-text">未找到匹配车辆</text>
+        <text class="qs-empty-text">未找到匹配车辆，请</text>
+        <text class="qs-empty-link" bindtap="goToAddCar">新增车辆</text>
       </view>
       <view wx:elif="{{searchResults.length > 0}}">
         <view class="quick-search-label">搜索结果({{searchResults.length}})</view>
@@ -182,6 +183,9 @@
     <view class="section-title-row">
       <text class="section-title">💡 生意机会</text>
       <text class="alert-badge" wx:if="{{alertList.length > 0}}">{{alertList.length}}条</text>
+      <view class="alert-refresh-btn" bindtap="onRefreshAlerts">
+        <text class="alert-refresh-icon">🔄</text>
+      </view>
     </view>
 
     <view class="alert-card" wx:if="{{alertList.length > 0}}">
@@ -213,6 +217,8 @@
     <text class="privacy-divider">|</text>
     <text class="privacy-link" bindtap="onGoAgreement">用户服务协议</text>
   </view>
+  <!-- 数据存储说明 -->
+  <view class="data-footer">您的数据安全存储在腾讯云数据库（微信云开发）</view>
 
   <!-- 隐藏Canvas：用于生成分享卡片 -->
   <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:400px;"></canvas>

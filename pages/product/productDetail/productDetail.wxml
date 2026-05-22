@@ -68,7 +68,7 @@
     </view>
   </view>
   <view class="log-list">
-    <view class="log-item" wx:for="{{stockLogs}}" wx:key="_id">
+    <view class="log-item" wx:for="{{stockLogs}}" wx:key="_id" bindtap="onLogTap" data-id="{{item._id}}" data-type="{{item.type}}" data-orderref="{{item.orderRef}}">
       <!-- 第一行：类型 + 数量 | 规格 + 价格 -->
       <view class="log-row-top">
         <view class="log-left">
@@ -123,7 +123,10 @@
         <view class="form-row" wx:if="{{adjustSpecOptions.length > 0}}">
           <text class="form-label">规格</text>
           <picker mode="selector" range="{{adjustSpecOptions}}" value="{{adjustSpecIndex}}" bindchange="onAdjustSpecChange">
-            <view class="picker-value">{{adjustSpec}}</view>
+            <view class="picker-value">
+              <text class="picker-text">{{adjustSpec}}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
           </picker>
         </view>
         <!-- 当前库存 -->
@@ -135,7 +138,10 @@
         <view class="form-row">
           <text class="form-label">调整原因</text>
           <picker mode="selector" range="{{adjustReasons}}" value="{{adjustReasonIndex}}" bindchange="onAdjustReasonChange">
-            <view class="picker-value">{{adjustReason}}</view>
+            <view class="picker-value">
+              <text class="picker-text">{{adjustReason}}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
           </picker>
         </view>
         <!-- 库存调整为 -->

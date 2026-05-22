@@ -1,11 +1,16 @@
 <view class="container">
   <!-- 左侧分类栏 -->
   <scroll-view class="category-sidebar" scroll-y>
-    <view class="cat-item {{currentCategory === item ? 'active' : ''}}" wx:for="{{categoryOptions}}" wx:key="item" data-cat="{{item}}" bindtap="onCategoryTap">{{item}}</view>
+    <view class="cat-item {{currentCategory === item ? 'active' : ''}} {{index === categoryOptions.length - 1 ? 'cat-item-template' : ''}}" wx:for="{{categoryOptions}}" wx:key="item" data-cat="{{item}}" bindtap="onCategoryTap">{{item}}</view>
   </scroll-view>
 
   <!-- 右侧商品列表 -->
   <view class="product-main">
+    <!-- 权益模式提示 -->
+    <view class="benefit-mode-banner" wx:if="{{_benefitMode}}">
+      <text class="banner-icon">💡</text>
+      <text class="banner-text">设置的数量为每次核销权益时从库存扣减的份数</text>
+    </view>
     <!-- 搜索 -->
     <view class="search-box">
       <text class="search-icon">🔍</text>
@@ -16,37 +21,58 @@
     <scroll-view class="product-scroll" scroll-y>
       <view class="product-list">
         <view class="product-card" wx:for="{{productList}}" wx:key="_id">
-          <!-- 商品名 -->
-          <text class="product-card-name">{{item.name}}</text>
-          <!-- 规格行 -->
-          <view class="spec-row" wx:for="{{item.displaySpecs}}" wx:for-item="spec" wx:key="index">
-            <view class="spec-label-wrap">
-              <text class="spec-label">{{spec.label}}</text>
-              <text class="spec-price" wx:if="{{spec.price}}">¥{{spec.price}}</text>
-              <text class="spec-stock-hint" wx:if="{{spec.stock >= 0}}">(剩{{spec.stock}})</text>
+          <!-- 商品名 + 模板角标 -->
+          <text class="product-card-name">{{item.name}}<text class="template-badge" wx:if="{{item.isTemplate}}">模板</text></text>
+
+          <!-- 模板商品：导入按钮 -->
+          <block wx:if="{{item.isTemplate && item.specs && item.specs.length > 0}}">
+            <view class="template-import-row">
+              <view class="spec-tags">
+                <text class="spec-tag" wx:for="{{item.specs}}" wx:for-index="sidx" wx:key="sidx">{{item}}</text>
+              </view>
+              <view class="template-import-btn" data-id="{{item._id}}" bindtap="onImportTemplate" hover-class="template-import-btn-hover" wx:if="{{!item.importing && !item.isImported}}">导入</view>
+              <text class="template-imported-label" wx:elif="{{item.isImported}}">已导入</text>
+              <text class="template-importing" wx:else>导入中...</text>
             </view>
-            <view class="spec-qty-control">
-              <text class="qty-btn qty-minus" data-pid="{{item._id}}" data-spec="{{spec.label}}" data-delta="{{-1}}" bindtap="onQtyChange">−</text>
-              <text class="qty-num">{{spec.quantity > 0 ? spec.quantity : '0'}}</text>
-              <text class="qty-btn qty-plus" data-pid="{{item._id}}" data-spec="{{spec.label}}" data-delta="{{1}}" bindtap="onQtyChange">+</text>
+          </block>
+
+          <!-- 普通商品：规格行 -->
+          <block wx:else>
+            <view class="spec-row" wx:for="{{item.displaySpecs}}" wx:for-item="spec" wx:key="index">
+              <view class="spec-label-wrap">
+                <text class="spec-label">{{spec.label}}</text>
+                <text class="spec-price" wx:if="{{spec.price}}">¥{{spec.price}}</text>
+                <text class="spec-stock-hint" wx:if="{{skipStockCheck || spec.stock >= 0}}">(剩{{spec.stock}})</text>
+              </view>
+              <view class="spec-qty-control">
+                <text class="qty-btn qty-minus" data-pid="{{item._id}}" data-spec="{{spec.label}}" data-delta="{{-1}}" bindtap="onQtyChange">−</text>
+                <input class="qty-num {{!skipStockCheck && spec.stock <= 0 ? 'qty-num-disabled' : ''}}" type="number" value="{{spec.quantity}}" data-pid="{{item._id}}" data-spec="{{spec.label}}" bindinput="onQtyInput" bindblur="onQtyBlur" disabled="{{!skipStockCheck && spec.stock <= 0}}" />
+                <text class="qty-btn qty-plus {{!skipStockCheck && spec.quantity >= spec.stock ? 'qty-plus-disabled' : ''}}" data-pid="{{item._id}}" data-spec="{{spec.label}}" data-delta="{{1}}" bindtap="onQtyChange" wx:if="{{skipStockCheck || spec.stock > 0}}">+</text>
+                <text class="out-of-stock-tag" wx:elif="{{!skipStockCheck}}">无货</text>
+              </view>
             </view>
-          </view>
-          <!-- 无规格展示 -->
-          <view class="spec-row" wx:if="{{!item.specs || item.specs.length === 0}}">
-            <text class="spec-label">¥{{item.price}}/{{item.unit}} <text class="spec-stock-hint" wx:if="{{item.stock >= 0}}">(剩{{item.stock}})</text></text>
-            <view class="spec-qty-control">
-              <text class="qty-btn qty-minus" data-pid="{{item._id}}" data-spec="" data-delta="{{-1}}" bindtap="onQtyChange">−</text>
-              <text class="qty-num">{{item._qty > 0 ? item._qty : '0'}}</text>
-              <text class="qty-btn qty-plus" data-pid="{{item._id}}" data-spec="" data-delta="{{1}}" bindtap="onQtyChange">+</text>
+            <!-- 无规格展示 -->
+            <view class="spec-row {{!skipStockCheck && item.stock <= 0 ? 'spec-row-disabled' : ''}}" wx:if="{{!item.specs || item.specs.length === 0}}">
+              <text class="spec-label">¥{{item.price}}/{{item.unit}}
+                <text class="spec-stock-hint" wx:if="{{skipStockCheck || item.stock > 0}}">(剩{{item.stock}})</text>
+                <text class="out-of-stock-tag-inline" wx:elif="{{!skipStockCheck}}">无货</text>
+              </text>
+              <view class="spec-qty-control">
+                <text class="qty-btn qty-minus" data-pid="{{item._id}}" data-spec="" data-delta="{{-1}}" bindtap="onQtyChange">−</text>
+                <input class="qty-num {{!skipStockCheck && item.stock <= 0 ? 'qty-num-disabled' : ''}}" type="number" value="{{item._qty}}" data-pid="{{item._id}}" data-spec="" bindinput="onQtyInput" bindblur="onQtyBlur" disabled="{{!skipStockCheck && item.stock <= 0}}" />
+                <text class="qty-btn qty-plus {{!skipStockCheck && item._qty >= item.stock ? 'qty-plus-disabled' : ''}}" data-pid="{{item._id}}" data-spec="" data-delta="{{1}}" bindtap="onQtyChange" wx:if="{{skipStockCheck || item.stock > 0}}">+</text>
+                <text class="out-of-stock-tag" wx:elif="{{!skipStockCheck}}">无货</text>
+              </view>
             </view>
-          </view>
+          </block>
         </view>
 
-        <view class="empty-state" wx:if="{{productList.length === 0 && !loading}}">
+        <view class="empty-state" wx:if="{{productList.length === 0 && !loading && !templateLoading}}">
           <text class="empty-icon">📦</text>
-          <text class="empty-text">暂无商品</text>
+          <text class="empty-text" wx:if="{{templateMode}}">暂无模板商品</text>
+          <text class="empty-text" wx:else>暂无商品</text>
         </view>
-        <view class="loading-state" wx:if="{{loading}}">
+        <view class="loading-state" wx:if="{{loading || templateLoading}}">
           <text>加载中...</text>
         </view>
       </view>
@@ -56,7 +82,7 @@
   <!-- 底部确认栏 -->
   <view class="bottom-bar" wx:if="{{selectedItems.length > 0}}">
     <text class="bar-summary">已选 {{selectedItems.length}} 件</text>
-    <text class="bar-total">合计：¥{{totalAmount}}</text>
+    <text class="bar-total" wx:if="{{!_benefitMode}}">合计：¥{{totalAmount}}</text>
     <button class="bar-btn" bindtap="onConfirm">确定</button>
   </view>
 </view>

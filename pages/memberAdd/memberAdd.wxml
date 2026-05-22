@@ -162,6 +162,23 @@
             bindinput="onCurAmountInput"
           />
         </view>
+        <!-- 关联商品（仅在进销存模式开启时显示） -->
+        <view class="benefit-products-section" wx:if="{{inventoryEnabled !== false}}">
+          <view class="field-row">
+            <text class="field-label">关联商品</text>
+            <view class="select-product-btn" bindtap="onSelectBenefitProduct">
+              <text wx:if="{{!curBenefit.products || curBenefit.products.length === 0}}">选择商品</text>
+              <text wx:else>重新选择</text>
+            </view>
+          </view>
+          <view class="selected-products" wx:if="{{curBenefit.products && curBenefit.products.length > 0}}">
+            <view class="product-tag" wx:for="{{curBenefit.products}}" wx:key="productId">
+              <text class="product-tag-text">{{item.productName}}{{item.spec ? '(' + item.spec + ')' : ''}} × {{item.quantity}}{{item.unit}}{{item.quantity > 1 ? '/次' : ''}}</text>
+              <text class="product-tag-del" data-index="{{index}}" bindtap="onRemoveBenefitProduct">✕</text>
+            </view>
+          </view>
+          <text class="products-hint" wx:if="{{!curBenefit.products || curBenefit.products.length === 0}}">可选，每次核销权益时都将从库存扣减对应数量</text>
+        </view>
       </view>
       <view class="add-benefit-btn" bindtap="onAddBenefit">
         <text>+ 添加此权益</text>
@@ -180,6 +197,9 @@
             <text class="added-benefit-name">{{item.name}}</text>
             <text class="added-benefit-count">剩余 {{item.remain}} / {{item.total}} 次</text>
             <text class="added-benefit-amount" wx:if="{{item.amount > 0}}">金额 ¥{{item.amount}}</text>
+            <text class="added-benefit-products" wx:if="{{item.products && item.products.length > 0}}">
+              关联商品：<text wx:for="{{item.products}}" wx:key="productId">{{item.productName}}{{item.spec ? '(' + item.spec + ')' : ''}} × {{item.quantity}}{{item.unit}}{{item.quantity > 1 ? '/次' : ''}} </text>
+            </text>
           </view>
           <view class="added-benefit-del" bindtap="onRemoveBenefit" data-index="{{index}}">✕</view>
         </view>
