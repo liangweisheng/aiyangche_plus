@@ -486,6 +486,36 @@ function padZero(n) {
 // ============================
 
 /**
+ * action → 云函数名 映射表
+ * 核心业务 action 走 repair_main，低耦合 action 走 repair_aux
+ * @see doc/v6.5.0-repair_main-拆分实施计划.md
+ */
+var ACTION_CLOUD_FUNCTION = {
+  // repair_aux：门店管理
+  activatePro: 'repair_aux',
+  updateShopInfo: 'repair_aux',
+  updateMyDisplayName: 'repair_aux',
+  updateShopProfile: 'repair_aux',
+  getShopProfile: 'repair_aux',
+  deleteAccount: 'repair_aux',
+  // repair_aux：员工管理
+  addStaff: 'repair_aux',
+  removeStaff: 'repair_aux',
+  updateStaffRole: 'repair_aux',
+  listStaffs: 'repair_aux',
+  updateStaffOpenid: 'repair_aux',
+  // repair_aux：月报
+  generateMonthlyReport: 'repair_aux',
+  getMonthlyReport: 'repair_aux',
+  listRecentReports: 'repair_aux',
+  batchGenerateMonthlyReports: 'repair_aux',
+  // repair_aux：OCR
+  ocrPlate: 'repair_aux',
+  ocrVIN: 'repair_aux'
+  // 未列出的 action 默认走 repair_main
+}
+
+/**
  * 调用 repair_main 聚合云函数（统一走云函数，不直接操作数据库）
  * @param {string} action action 名称
  * @param {Object} data 业务参数（自动注入 shopPhone）
@@ -510,7 +540,7 @@ function callRepair(action, data) {
     }
     var params = Object.assign(baseParams, data || {})
     cloud.callFunction({
-      name: 'repair_main',
+      name: ACTION_CLOUD_FUNCTION[action] || 'repair_main',
       data: params,
       success: function (res) {
         resolve(res.result)
