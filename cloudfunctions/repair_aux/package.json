@@ -1,0 +1,9 @@
+{
+  "name": "repair_aux",
+  "version": "1.0.0",
+  "description": "AI养车 - 辅助云函数（门店管理/员工管理/月报/OCR）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
