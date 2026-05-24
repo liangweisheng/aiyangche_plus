@@ -71,7 +71,7 @@
 ⚠️ **云函数有变更，需要上传并部署 `repair_inventory` 到正式环境**
 ⚠️ **需要在云开发控制台新建 `repair_stock_receipts` 数据库集合**
 
-**变更统计：** 26 文件（+481 / -71 行）
+**小程序变更统计：** 26 文件（+481 / -71 行）
 - 🆕 `pages/product/productReceiptDetail/`（4文件，入库单详情页）
 - 📝 `cloudfunctions/repair_inventory/index.js`（+223行，4个新action + batchId生成 + 入库单快照）
 - 📝 `pages/product/productStockLogDetail/`（3文件，入库单号展示 + 查看入库单按钮）
@@ -85,7 +85,29 @@
 - 📝 `app.json`（注册 receiptDetail 路由）
 - 📝 `utils/constants.js`（版本号 v6.5.0 → v6.5.1）
 
-**向后兼容性：** ✅ `repair_stock_receipts` 为新独立集合，不影响旧数据；旧库存流水无 `batchId` 则隐入入库单入口
+### Web管理后台（v6.5.1 同步发布）
+
+12. **Web端PC管理后台全面升级**（`web-admin/` 独立Vue3项目）
+    - 7个功能模块：仪表盘、报表中心、车辆管理、工单管理、会员管理、库存管理（商品+入库单）、门店设置
+    - 技术栈：Vue3 + Vite6 + Pinia + Element Plus + ECharts5 + CloudBase JS SDK
+    - CloudBase 匿名认证登录 + 手机号门店码验证
+    - 侧边栏动态菜单 + 角色守卫（仅管理员可登录）
+    - Dashboard 7日营收趋势折线图 + 商机提醒列表
+    - 报表中心4时段Tab（今日/本周/本月/本年）+ 消费排行
+    - 库存管理：商品CRUD + 多规格 + 上下架 + 入库管理 + 入库单追溯
+
+13. **Code Review 质量提升（Sprint 1-3）**
+    - **P0修复 × 5**：ECharts内存泄漏(2处)、作废操作原子性、表单验证、CloudBase SDK返回值解析
+    - **P1修复 × 6**：全局错误边界、路由角色校验、请求去重、金额格式化统一、三态补齐(3页)
+    - **产品增强 × 5**：CSV导出工具、公共CSS样式、工单/会员列表导出按钮、operator硬编码修复
+
+14. **新增文件清单**
+    - 🆕 `web-admin/src/api/`（7个API模块：auth/car/cloud/dashboard/inventory/member/order/report/shop）
+    - 🆕 `web-admin/src/views/`（15个页面组件，覆盖全部功能模块）
+    - 🆕 `web-admin/src/utils/export.js`（CSV导出工具，BOM+中文转义）
+    - 🆕 `web-admin/src/assets/common.css`（公共样式库）
+
+**变更统计：** 26 文件（+481 / -71 行）+ **web-admin/ 35 文件（+4204 / -321 行）**
 
 ---
 
