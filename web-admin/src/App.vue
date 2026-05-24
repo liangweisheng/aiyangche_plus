@@ -10,7 +10,7 @@
 </template>
 
 <script setup>
-import { ref, onErrorCaptured } from 'vue'
+import { ref, onMounted, onErrorCaptured } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElButton } from 'element-plus'
 

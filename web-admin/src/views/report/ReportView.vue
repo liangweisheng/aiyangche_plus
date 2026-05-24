@@ -8,11 +8,44 @@
 
     <!-- Tab 切换 -->
     <el-tabs v-model="activeTab" class="report-tabs" @tab-change="onTabChange">
-      <el-tab-pane label="今日" name="today" />
-      <el-tab-pane label="本周" name="week" />
-      <el-tab-pane label="本月" name="month" />
-      <el-tab-pane label="本年" name="year" />
+      <el-tab-pane name="today">
+        <template #label>今日</template>
+      </el-tab-pane>
+      <el-tab-pane name="week">
+        <template #label>
+          本周
+          <el-icon v-if="!isPro" class="lock-icon"><Lock /></el-icon>
+        </template>
+      </el-tab-pane>
+      <el-tab-pane name="month">
+        <template #label>
+          本月
+          <el-icon v-if="!isPro" class="lock-icon"><Lock /></el-icon>
+        </template>
+      </el-tab-pane>
+      <el-tab-pane name="year">
+        <template #label>
+          本年
+          <el-icon v-if="!isPro" class="lock-icon"><Lock /></el-icon>
+        </template>
+      </el-tab-pane>
     </el-tabs>
+
+    <!-- 免费版升级引导（非Pro账号点击本周/本月/本年时显示） -->
+    <el-alert
+      v-if="showFreeUpgrade"
+      type="warning"
+      :closable="false"
+      show-icon
+      class="upgrade-alert"
+    >
+      <template #title>
+        <span>开通 Pro 版可查看高级报表数据</span>
+        <el-button type="warning" size="small" class="upgrade-btn" @click="goUpgrade">
+          立即升级
+        </el-button>
+      </template>
+    </el-alert>
 
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-wrapper">
@@ -120,17 +153,24 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { fetchReportOrders, fetchCustomerRanking } from '@/api/report'
 import { formatYuan } from '@/utils/format'
 import StatCard from '@/components/StatCard.vue'
+import { Lock } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import dayjs from 'dayjs'
 
+const router = useRouter()
 const userStore = useUserStore()
+
+// ============ 权限 ============
+const isPro = computed(() => userStore.isPro)
 
 // ============ 状态 ============
 const activeTab = ref('today')
+const showFreeUpgrade = ref(false)
 const loading = ref(false)
 const loadError = ref('')
 const chartLoading = ref(false)
@@ -215,8 +255,24 @@ function getTimeRange() {
 }
 
 /** Tab 切换 */
-function onTabChange() {
+function onTabChange(tabName) {
+  // 免费版只能看"今日"，其他 Tab 显示升级引导
+  if (!isPro.value && tabName !== 'today') {
+    showFreeUpgrade.value = true
+    // 清空旧数据，避免显示今日的缓存数据
+    summary.orderCount = 0
+    ranking.list = []
+    ranking.total = 0
+    allOrders = []
+    return
+  }
+  showFreeUpgrade.value = false
   loadData()
+}
+
+/** 跳转到升级页面 */
+function goUpgrade() {
+  router.push('/settings#upgrade')
 }
 
 /** 加载数据 */
@@ -446,6 +502,23 @@ function rankBg(index) {
 
 .report-tabs {
   margin-bottom: 16px;
+}
+
+/* 免费版锁图标 */
+.lock-icon {
+  font-size: 13px;
+  margin-left: 2px;
+  vertical-align: -1px;
+  color: #c0c4cc;
+}
+
+/* 升级引导条 */
+.upgrade-alert {
+  margin-bottom: 16px;
+}
+
+.upgrade-btn {
+  margin-left: 12px;
 }
 
 /* 加载/错误/空态 */
