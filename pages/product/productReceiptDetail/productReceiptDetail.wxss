@@ -1,0 +1,185 @@
+/* pages/product/productReceiptDetail/productReceiptDetail.wxss */
+.container {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 24rpx;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 120rpx 0;
+  font-size: 28rpx;
+  color: #bbb;
+}
+
+/* ===== 入库单卡片 ===== */
+.receipt-card {
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.04);
+}
+
+/* ===== 顶部 ===== */
+.receipt-header {
+  padding: 36rpx 32rpx 24rpx;
+  background: linear-gradient(135deg, #e8f5e9, #f0faf0);
+  border-bottom: 2rpx solid #c8e6c9;
+}
+
+.receipt-batch-id {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #2e7d32;
+  margin-bottom: 8rpx;
+}
+
+.receipt-time {
+  font-size: 24rpx;
+  color: #66bb6a;
+}
+
+/* ===== 商品明细 ===== */
+.items-section {
+  padding: 24rpx 0;
+}
+
+.items-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #333;
+  padding: 0 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.items-table {
+  margin: 0 24rpx;
+  border: 2rpx solid #e8e8e8;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  background: #f5f7fa;
+  padding: 14rpx 16rpx;
+  font-size: 24rpx;
+  color: #999;
+  font-weight: 500;
+  border-bottom: 2rpx solid #e8e8e8;
+}
+
+.table-row {
+  display: flex;
+  align-items: center;
+  padding: 14rpx 16rpx;
+  font-size: 26rpx;
+  color: #333;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.col-name {
+  flex: 2;
+  word-break: break-all;
+}
+
+.item-name {
+  display: block;
+}
+
+.item-spec {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.col-cost {
+  flex: 1;
+  text-align: center;
+  color: #666;
+}
+
+.col-qty {
+  flex: 0.7;
+  text-align: center;
+  font-weight: 600;
+}
+
+.col-subtotal {
+  flex: 1;
+  text-align: right;
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+/* ===== 汇总 ===== */
+.summary-section {
+  margin: 0 32rpx;
+  padding: 24rpx 0;
+  border-top: 2rpx dashed #e0e0e0;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10rpx 0;
+}
+
+.summary-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.summary-value {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+.summary-value.total-cost {
+  font-size: 34rpx;
+  color: #ff4d4f;
+  font-weight: 700;
+}
+
+/* ===== 其他信息 ===== */
+.info-section {
+  padding: 24rpx 32rpx;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 16rpx 0;
+  border-bottom: 2rpx solid #f5f5f5;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  width: 120rpx;
+  flex-shrink: 0;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.info-value {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  word-break: break-all;
+}
+
+.info-value.remark {
+  color: #666;
+  line-height: 1.5;
+}

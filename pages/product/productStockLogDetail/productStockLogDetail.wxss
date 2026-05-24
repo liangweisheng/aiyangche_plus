@@ -135,3 +135,14 @@
 .action-btn:active {
   opacity: 0.85;
 }
+
+.action-btn.receipt-btn {
+  background: linear-gradient(135deg, #52c41a, #73d13d);
+}
+
+.field-value.batch-id {
+  font-family: monospace;
+  font-size: 26rpx;
+  color: #2e7d32;
+  font-weight: 600;
+}

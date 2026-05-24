@@ -18,6 +18,7 @@ var ACTION_PERMISSIONS = {
   addProduct: 'admin',
   updateProduct: 'admin',
   getStockLogs: 'admin',
+  getStockLogDetail: 'registered',
   getPhrases: 'registered',
   savePhrases: 'admin',
   // 模板商品管理
@@ -34,7 +35,11 @@ var ACTION_PERMISSIONS = {
   updateStockLogOrderId: 'admin',
   // 模板商品创建/编辑/详情
   saveTemplateProduct: 'superAdmin',
-  getTemplateProductDetail: 'superAdmin'
+  getTemplateProductDetail: 'superAdmin',
+  // 入库单管理
+  listReceipts: 'admin',
+  getReceiptDetail: 'registered',
+  getReceiptByLogId: 'registered'
 }
 
 // ===========================
@@ -182,7 +187,7 @@ async function _updateSpecStock(productId, shopPhone, spec, delta) {
     })
   }
 
-  return { newStock: newTotal, newSpecStock: specStock, productName: product.name, specPrice: specPrice, cost: product.cost || 0 }
+  return { newStock: newTotal, newSpecStock: specStock, productName: product.name, specPrice: specPrice, cost: product.cost || 0, unit: product.unit || '个' }
 }
 
 // ===========================
@@ -312,6 +317,9 @@ async function addStock(event) {
       return { code: -1, msg: e.message }
     }
 
+    // 生成入库单号（单条也生成，方便统一追溯）
+    var batchId = _generateBatchId(shopPhone)
+
     // 写入库存流水
     await db.collection('repair_stock_logs').add({
       data: {
@@ -325,11 +333,29 @@ async function addStock(event) {
         operator: operator || '',
         supplier: supplier || '',
         remark: remark || '',
+        batchId: batchId,
         createTime: new Date()
       }
     })
 
-    return { code: 0, msg: '入库成功', data: { newStock: result.newStock } }
+    // 保存入库单快照
+    await _saveReceipt({
+      batchId: batchId,
+      shopPhone: shopPhone,
+      items: [{
+        productId: productId,
+        productName: result.productName,
+        spec: spec || '',
+        quantity: qty,
+        cost: costPrice,
+        unit: result.unit || '个'
+      }],
+      supplier: supplier || '',
+      remark: remark || '',
+      operator: operator || ''
+    })
+
+    return { code: 0, msg: '入库成功', data: { newStock: result.newStock, batchId: batchId } }
   } catch (e) {
     return { code: -1, msg: '入库失败: ' + e.message }
   }
@@ -523,6 +549,26 @@ async function getStockLogs(event) {
 }
 
 /**
+ * 获取单条库存流水详情
+ */
+async function getStockLogDetail(event) {
+  var { logId, shopPhone } = event
+  if (!logId || !shopPhone) return { code: -1, msg: '参数不足' }
+
+  try {
+    var res = await db.collection('repair_stock_logs')
+      .where({ _id: logId, shopPhone: shopPhone })
+      .get()
+    if (!res.data || res.data.length === 0) {
+      return { code: -1, msg: '流水不存在' }
+    }
+    return { code: 0, data: res.data[0] }
+  } catch (e) {
+    return { code: -1, msg: '查询失败: ' + e.message }
+  }
+}
+
+/**
  * 获取门店快捷短语
  */
 async function getPhrases(event) {
@@ -643,7 +689,11 @@ async function batchAddStock(event) {
     return { code: -1, msg: '参数不足' }
   }
 
+  // 生成入库单号
+  var batchId = _generateBatchId(shopPhone)
+  var receiptItems = []
   var errors = []
+
   for (var i = 0; i < items.length; i++) {
     var item = items[i]
     if (!item.productId || !item.quantity || item.quantity <= 0) {
@@ -670,19 +720,174 @@ async function batchAddStock(event) {
           operator: operator || '',
           supplier: supplier || '',
           remark: remark || '',
+          batchId: batchId,
           createTime: new Date()
         }
+      })
+      // 记录入库单商品快照
+      receiptItems.push({
+        productId: item.productId,
+        productName: result.productName,
+        spec: item.spec || '',
+        quantity: qty,
+        cost: costPrice,
+        unit: item.unit || ''
       })
     } catch (e) {
       errors.push({ index: i, productId: item.productId, msg: e.message })
     }
   }
 
-  if (errors.length > 0) {
-    return { code: -1, msg: '部分入库失败', data: { errors: errors, succeeded: items.length - errors.length } }
+  // 保存入库单快照（即使部分失败也保存成功的部分）
+  if (receiptItems.length > 0) {
+    await _saveReceipt({
+      batchId: batchId,
+      shopPhone: shopPhone,
+      items: receiptItems,
+      supplier: supplier || '',
+      remark: remark || '',
+      operator: operator || ''
+    })
   }
-  return { code: 0, msg: '批量入库成功，共 ' + items.length + ' 项' }
+
+  if (errors.length > 0) {
+    return { code: -1, msg: '部分入库失败', data: { errors: errors, succeeded: items.length - errors.length, batchId: batchId } }
+  }
+  return { code: 0, msg: '批量入库成功，共 ' + items.length + ' 项', data: { batchId: batchId } }
 }
+
+// ===========================
+// 入库单工具函数
+// ===========================
+
+/**
+ * 生成入库单号
+ * 格式：IN + YYYYMMDD + 3位流水号
+ * 例：IN20260523001
+ */
+function _generateBatchId(shopPhone) {
+  var now = new Date()
+  var y = now.getFullYear()
+  var m = ('0' + (now.getMonth() + 1)).slice(-2)
+  var d = ('0' + now.getDate()).slice(-2)
+  var dateStr = '' + y + m + d
+  var rand = ('00' + Math.floor(Math.random() * 999 + 1)).slice(-3)
+  return 'IN' + dateStr + rand
+}
+
+/**
+ * 保存入库单快照到 repair_stock_receipts 集合
+ */
+async function _saveReceipt(receipt) {
+  var totalQuantity = 0
+  var totalCost = 0
+  ;(receipt.items || []).forEach(function (item) {
+    totalQuantity += item.quantity || 0
+    totalCost += (item.quantity || 0) * (item.cost || 0)
+  })
+
+  await db.collection('repair_stock_receipts').add({
+    data: {
+      batchId: receipt.batchId,
+      shopPhone: receipt.shopPhone,
+      items: receipt.items,
+      totalQuantity: totalQuantity,
+      totalCost: parseFloat(totalCost.toFixed(2)),
+      supplier: receipt.supplier || '',
+      remark: receipt.remark || '',
+      operator: receipt.operator || '',
+      createTime: new Date()
+    }
+  })
+}
+
+// ===========================
+// 入库单相关 action
+// ===========================
+
+/**
+ * 入库单列表（分页查询）
+ */
+async function listReceipts(event) {
+  var { shopPhone, page, pageSize } = event
+  if (!shopPhone) return { code: -1, msg: 'shopPhone 必填' }
+
+  var limit = pageSize || 20
+  var skip = ((page || 1) - 1) * limit
+
+  try {
+    var countRes = await db.collection('repair_stock_receipts')
+      .where({ shopPhone: shopPhone }).count()
+    var total = countRes.total || 0
+    var listRes = await db.collection('repair_stock_receipts')
+      .where({ shopPhone: shopPhone })
+      .orderBy('createTime', 'desc')
+      .skip(skip)
+      .limit(limit)
+      .get()
+    return { code: 0, data: { list: listRes.data || [], total: total } }
+  } catch (e) {
+    return { code: -1, msg: '查询失败: ' + e.message }
+  }
+}
+
+/**
+ * 按入库单号获取详情
+ */
+async function getReceiptDetail(event) {
+  var { batchId, shopPhone } = event
+  if (!batchId || !shopPhone) return { code: -1, msg: '参数不足' }
+
+  try {
+    var res = await db.collection('repair_stock_receipts')
+      .where({ batchId: batchId, shopPhone: shopPhone })
+      .limit(1)
+      .get()
+    if (!res.data || res.data.length === 0) {
+      return { code: -1, msg: '入库单不存在' }
+    }
+    return { code: 0, data: res.data[0] }
+  } catch (e) {
+    return { code: -1, msg: '查询失败: ' + e.message }
+  }
+}
+
+/**
+ * 根据流水 ID 反查所属入库单
+ */
+async function getReceiptByLogId(event) {
+  var { logId, shopPhone } = event
+  if (!logId || !shopPhone) return { code: -1, msg: '参数不足' }
+
+  try {
+    // 先查流水记录获取 batchId
+    var logRes = await db.collection('repair_stock_logs')
+      .where({ _id: logId, shopPhone: shopPhone })
+      .limit(1)
+      .get()
+    if (!logRes.data || logRes.data.length === 0) {
+      return { code: -1, msg: '流水不存在' }
+    }
+    var batchId = logRes.data[0].batchId
+    if (!batchId) {
+      return { code: -1, msg: '该流水无关联入库单（可能是旧数据）' }
+    }
+    // 再查入库单
+    var receiptRes = await db.collection('repair_stock_receipts')
+      .where({ batchId: batchId, shopPhone: shopPhone })
+      .limit(1)
+      .get()
+    if (!receiptRes.data || receiptRes.data.length === 0) {
+      return { code: -1, msg: '入库单不存在' }
+    }
+    return { code: 0, data: receiptRes.data[0] }
+  } catch (e) {
+    return { code: -1, msg: '查询失败: ' + e.message }
+  }
+}
+
+// ===========================
+// ===========================
 
 /**
  * 工单保存后将 orderRef 更新为订单 _id（新工单回填 orderId）
@@ -1033,6 +1238,8 @@ exports.main = async (event, context) => {
       return await getProductDetail(event)
     case 'getStockLogs':
       return await getStockLogs(event)
+    case 'getStockLogDetail':
+      return await getStockLogDetail(event)
     case 'getPhrases':
       return await getPhrases(event)
     case 'savePhrases':
@@ -1057,6 +1264,12 @@ exports.main = async (event, context) => {
       return await saveTemplateProduct(event)
     case 'getTemplateProductDetail':
       return await getTemplateProductDetail(event)
+    case 'listReceipts':
+      return await listReceipts(event)
+    case 'getReceiptDetail':
+      return await getReceiptDetail(event)
+    case 'getReceiptByLogId':
+      return await getReceiptByLogId(event)
     default:
       return { code: -1, msg: '未知 action: ' + action }
   }

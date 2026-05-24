@@ -1,0 +1,65 @@
+<view class="container">
+  <!-- 加载态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 入库单详情 -->
+  <view class="receipt-card" wx:if="{{!loading && receipt}}">
+    <!-- 顶部：单号 + 时间 -->
+    <view class="receipt-header">
+      <text class="receipt-batch-id">入库单号：{{receipt.batchId}}</text>
+      <text class="receipt-time">{{displayTime}}</text>
+    </view>
+
+    <!-- 商品明细表格 -->
+    <view class="items-section">
+      <view class="items-title">商品明细</view>
+      <view class="items-table">
+        <view class="table-header">
+          <text class="col-name">品名/规格</text>
+          <text class="col-cost">进价</text>
+          <text class="col-qty">数量</text>
+          <text class="col-subtotal">小计</text>
+        </view>
+        <view class="table-row" wx:for="{{items}}" wx:key="index">
+          <text class="col-name">
+            <text class="item-name">{{item.productName}}</text>
+            <text class="item-spec" wx:if="{{item.spec}}">({{item.spec}})</text>
+          </text>
+          <text class="col-cost">¥{{item.cost}}</text>
+          <text class="col-qty">{{item.quantity}}</text>
+          <text class="col-subtotal">¥{{item._subtotal}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 汇总 -->
+    <view class="summary-section">
+      <view class="summary-row">
+        <text class="summary-label">合计数量</text>
+        <text class="summary-value">{{receipt.totalQuantity}}</text>
+      </view>
+      <view class="summary-row">
+        <text class="summary-label">合计金额</text>
+        <text class="summary-value total-cost">¥{{receipt.totalCost}}</text>
+      </view>
+    </view>
+
+    <!-- 其他信息 -->
+    <view class="info-section">
+      <view class="info-row" wx:if="{{receipt.supplier}}">
+        <text class="info-label">供货商</text>
+        <text class="info-value">{{receipt.supplier}}</text>
+      </view>
+      <view class="info-row" wx:if="{{receipt.operator}}">
+        <text class="info-label">操作人</text>
+        <text class="info-value">{{receipt.operator}}</text>
+      </view>
+      <view class="info-row" wx:if="{{receipt.remark}}">
+        <text class="info-label">备注</text>
+        <text class="info-value remark">{{receipt.remark}}</text>
+      </view>
+    </view>
+  </view>
+</view>

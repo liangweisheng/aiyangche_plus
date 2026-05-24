@@ -65,6 +65,7 @@
       <text class="empty-icon">🚗</text>
       <text class="empty-text">暂无车辆</text>
       <text class="empty-hint">新增车辆后将在这里显示</text>
+      <view class="empty-cta" bindtap="onAddCar">➕ 去添加第一辆车 →</view>
     </view>
 
     <!-- 搜索结果为空 -->
@@ -72,6 +73,7 @@
       <text class="empty-icon">🔍</text>
       <text class="empty-text">未找到匹配车辆</text>
       <text class="empty-hint">试试其他筛选条件</text>
+      <view class="empty-cta secondary" bindtap="onAddCar">➕ 去添加车辆</view>
     </view>
 
     <!-- 卡片列表 -->

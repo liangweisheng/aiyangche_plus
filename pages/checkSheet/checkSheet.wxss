@@ -128,6 +128,23 @@
 .dropdown-empty .empty-text {
   font-size: 26rpx;
   color: #ccc;
+  margin-bottom: 24rpx;
+}
+
+.dropdown-empty .empty-cta {
+  display: inline-block;
+  padding: 16rpx 40rpx;
+  background: #fff;
+  color: #1677ff;
+  font-size: 26rpx;
+  font-weight: 600;
+  border-radius: 36rpx;
+  border: 2rpx solid #1677ff;
+}
+
+.dropdown-empty .empty-cta:active {
+  opacity: 0.7;
+  transform: scale(0.95);
 }
 
 /* 最近添加 */

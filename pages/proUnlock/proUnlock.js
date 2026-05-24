@@ -1299,9 +1299,14 @@ Page({
     this.setData({ accountMgmtExpanded: !this.data.accountMgmtExpanded })
   },
 
-  /** 店主退出登录 - 调用 app.logout() */
+  /** 店主退出登录 - 暂不可用 */
   onLogout: function () {
-    getApp().logout()
+    wx.showModal({
+      title: '提示',
+      content: '此功能暂不可使用',
+      showCancel: false,
+      confirmText: '知道了'
+    })
   },
 
   /** 注销账号 - 双重确认 + 云函数守卫 */

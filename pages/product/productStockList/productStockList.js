@@ -71,5 +71,9 @@ Page({
   onGoDetail(e) {
     var id = e.currentTarget.dataset.id
     wx.navigateTo({ url: '/pages/product/productDetail/productDetail?id=' + id })
+  },
+
+  onAddProduct() {
+    wx.navigateTo({ url: '/pages/product/productAdd/productAdd' })
   }
 })

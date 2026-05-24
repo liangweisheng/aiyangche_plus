@@ -298,6 +298,19 @@
   color: #666;
 }
 
+.log-receipt-link {
+  font-size: 22rpx;
+  color: #1677ff;
+  background: #e8f0ff;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+}
+
+.log-receipt-link:active {
+  background: #d0e0ff;
+}
+
 .log-cost {
   font-size: 24rpx;
   color: #999;

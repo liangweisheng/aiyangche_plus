@@ -338,6 +338,15 @@ Page({
     }
   },
 
+  /** 查看入库单（从流水列表入口） */
+  onViewReceipt(e) {
+    var dataset = e.currentTarget.dataset
+    var logId = dataset.id
+    if (logId) {
+      wx.navigateTo({ url: '/pages/product/productReceiptDetail/productReceiptDetail?logId=' + logId })
+    }
+  },
+
   onAdjustQtyInput(e) {
     var val = e.detail.value
     // 只允许数字和小数点

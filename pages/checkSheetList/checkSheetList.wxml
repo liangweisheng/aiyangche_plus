@@ -60,6 +60,8 @@
     <view class="empty-state" wx:if="{{list.length === 0 && !loading}}">
       <text class="empty-icon">📋</text>
       <text class="empty-text">暂无查车单记录</text>
+      <text class="empty-hint">创建查车单后会自动保存在这里</text>
+      <view class="empty-cta" bindtap="onNewCheckSheet">📋 去创建第一张查车单 →</view>
     </view>
 
     <!-- 加载更多 -->

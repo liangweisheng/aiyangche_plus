@@ -118,7 +118,7 @@ Page({
       if (res && res.code === 0) {
         wx.showToast({ title: '批量入库成功', icon: 'success' })
         page.setData({ selectedItems: [], supplier: '', remark: '' })
-        setTimeout(function () { wx.navigateBack() }, 1500)
+        setTimeout(function () { wx.redirectTo({ url: '/pages/product/productStockList/productStockList' }) }, 1500)
       } else {
         var msg = (res && res.msg) || '入库失败'
         if (res && res.data && res.data.errors) {

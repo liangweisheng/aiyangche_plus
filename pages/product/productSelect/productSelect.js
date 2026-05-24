@@ -25,6 +25,7 @@ Page({
     // 权益关联模式：跳过库存检查 + 隐藏金额合计
     this._benefitMode = options && options.mode === 'benefitSelect'
     this.setData({
+      _benefitMode: this._benefitMode,
       skipStockCheck: this._skipStockCheck,
       categoryOptions: this.data.categoryOptions,
       storageKey: (options && options.storageKey) || 'orderAdd_selectedProducts',
@@ -51,6 +52,8 @@ Page({
     var cat = e.currentTarget.dataset.cat
     this.setData({ currentCategory: cat })
     if (cat === '模板商品库') {
+      // 立即清空列表，避免旧数据遮挡 loading 提示
+      this.setData({ productList: [] })
       this._loadTemplateProducts()
     } else {
       this.setData({ templateMode: false, rawTemplates: [] })
@@ -258,6 +261,8 @@ Page({
       name: t.name,
       category: t.category || '其他',
       specs: t.specs || [],
+      specPrice: t.specPrice || [],
+      specCost: t.specCost || [],
       price: t.price || 0,
       cost: t.cost || 0,
       unit: t.unit || '个',
@@ -387,6 +392,23 @@ Page({
       }
     }
 
+    // 权益模式：数量 > 1 时即时提醒
+    if (this._benefitMode && delta > 0) {
+      var qtyBefore = 0
+      var prod = this.data.rawProducts.filter(function (p) { return p._id === pid })[0]
+      if (prod) {
+        if (specLabel === '') {
+          qtyBefore = prod._qty || 0
+        } else {
+          var m = (prod.displaySpecs || []).filter(function (s) { return s.label === specLabel })[0]
+          if (m) qtyBefore = m.quantity || 0
+        }
+      }
+      if (qtyBefore === 1 && delta > 0) {
+        wx.showToast({ title: '此数量为每次核销时扣减库存的份数', icon: 'none', duration: 2000 })
+      }
+    }
+
     var raw = this.data.rawProducts.map(function (p) {
       if (p._id !== pid) return p
       p = JSON.parse(JSON.stringify(p))
@@ -424,6 +446,11 @@ Page({
       if (val > stockLimit) {
         val = stockLimit
       }
+    }
+
+    // 权益模式：手动输入 > 1 时即时提醒
+    if (this._benefitMode && val > 1) {
+      wx.showToast({ title: '此数量为每次核销时扣减库存的份数', icon: 'none', duration: 2000 })
     }
 
     var raw = this.data.rawProducts.map(function (p) {

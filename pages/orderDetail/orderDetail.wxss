@@ -23,16 +23,17 @@
 
 .top-card-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12rpx;
   margin-bottom: 20rpx;
 }
 
 .plate-area {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: 320rpx;
 }
 
 .plate-area:active {
@@ -45,8 +46,7 @@
   border-radius: 10rpx;
   display: inline-flex;
   align-items: baseline;
-  max-width: 460rpx;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .plate-text {
@@ -55,9 +55,7 @@
   font-weight: 800;
   letter-spacing: 2rpx;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 1;
+  flex-shrink: 0;
 }
 
 .plate-hint {
@@ -71,15 +69,16 @@
 .header-tags {
   display: flex;
   align-items: center;
-  gap: 10rpx;
-  flex-shrink: 0;
+  gap: 8rpx;
+  flex-shrink: 1;
+  flex-wrap: wrap;
 }
 
 /* 工单分类标签 */
 .category-tag {
-  font-size: 22rpx;
+  font-size: 20rpx;
   font-weight: 600;
-  padding: 6rpx 16rpx;
+  padding: 4rpx 12rpx;
   border-radius: 10rpx;
 }
 .category-tag.category-new-benefit {
@@ -97,9 +96,9 @@
 
 /* 工单状态标签（详情页 - 深色背景适配） */
 .status-tag {
-  font-size: 22rpx;
+  font-size: 20rpx;
   font-weight: 600;
-  padding: 6rpx 16rpx;
+  padding: 4rpx 12rpx;
   border-radius: 10rpx;
 }
 
@@ -121,9 +120,9 @@
 .pay-tag {
   background: rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.95);
-  font-size: 22rpx;
+  font-size: 20rpx;
   font-weight: 600;
-  padding: 6rpx 16rpx;
+  padding: 4rpx 12rpx;
   border-radius: 10rpx;
 }
 

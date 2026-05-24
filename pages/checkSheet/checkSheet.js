@@ -244,6 +244,10 @@ Page({
     wx.switchTab({ url: '/pages/dashboard/dashboard' })
   },
 
+  onGoAddCar() {
+    wx.navigateTo({ url: '/pages/carAdd/carAdd' })
+  },
+
   onPlateTap() {
     var plate = this.data.plate
     if (plate) {

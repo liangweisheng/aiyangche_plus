@@ -1005,6 +1005,8 @@ Page({
   _deductStockIfNeeded(form, rows, page) {
     var productItems = []
     rows.forEach(function (r) {
+      // Plan B：权益关联商品由 repair_main.useBenefit 统一扣减，此处跳过避免双重扣减
+      if (r._fromBenefit) return
       if (r._fromProduct && r._productId && r._productQuantity > 0) {
         productItems.push({
           productId: r._productId,

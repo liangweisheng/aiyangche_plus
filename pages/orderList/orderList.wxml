@@ -104,6 +104,7 @@
       <text class="empty-icon">📋</text>
       <text class="empty-text">暂无工单记录</text>
       <text class="empty-hint">开始为您的车辆创建工单吧</text>
+      <view class="empty-cta" bindtap="onNewOrder">📝 去创建第一张工单 →</view>
     </view>
 
     <!-- 加载更多 / 没有更多 -->

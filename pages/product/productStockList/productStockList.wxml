@@ -42,6 +42,8 @@
     <view class="empty-state" wx:if="{{productList.length === 0 && !loading}}">
       <text class="empty-icon">📦</text>
       <text class="empty-text">暂无商品</text>
+      <text class="empty-hint">添加商品后可管理库存和出入库</text>
+      <view class="empty-cta" bindtap="onAddProduct">📦 去添加第一个商品 →</view>
     </view>
     <view class="loading-state" wx:if="{{loading}}">
       <text>加载中...</text>

@@ -2,6 +2,93 @@
 
 ---
 
+## v6.5.1（2026-05-24）
+
+### 核心功能：入库单管理
+
+1. **新增入库单详情页（全新）**
+   - 🆕 `pages/product/productReceiptDetail/`（4文件，JS 93行 + WXML 65行 + WXSS 2.89KB）
+   - 展示入库单完整快照：单号 + 时间 + 商品明细表格（品名/规格/进价/数量/小计）+ 合计汇总
+   - 支持按 `batchId` 和 `logId` 两种方式查询入库单
+   - 显示供货商、操作人、备注等辅助信息
+
+2. **云函数 `repair_inventory` 新增 4 个 action**
+   - `getStockLogDetail`（registered）— 获取单条库存流水详情
+   - `listReceipts`（admin）— 入库单列表查询
+   - `getReceiptDetail`（registered）— 按 `batchId` 查询入库单
+   - `getReceiptByLogId`（registered）— 按流水 ID 反查所属入库单
+
+3. **入库自动生成入库单**
+   - `addStock` 和 `batchAddStock` 自动生成 `batchId`（格式：`IN-{shopPhone}-{timestamp}`）
+   - 入库时同步保存入库单快照到 `repair_stock_receipts` 集合
+   - `_updateSpecStock` 返回值新增 `unit` 字段
+
+4. **入库单入口贯通**
+   - 库存流水详情（productStockLogDetail）：新增入库单号展示 + 🟢「查看完整入库单」按钮
+   - 商品详情页（productDetail）：库存流水列表中入库记录新增🔗「入库单」链接
+   - 库存流水详情 → 入库单详情页串联，形成完整追溯链
+
+### UX 优化：空态引导按钮
+
+5. **6 个页面空态增加 CTA 引导**
+   - `carList`：暂无车辆 →「➕ 去添加第一辆车 →」/ 未找到 →「➕ 去添加车辆」
+   - `checkSheet`：未找到相关车辆 →「➕ 去新增车辆 →」
+   - `checkSheetList`：暂无查车单 →「📋 去创建第一张查车单 →」
+   - `orderList`：暂无工单 →「📋 去创建第一张工单 →」
+   - `productStockList`：暂无商品 →「📦 去添加第一个商品 →」
+   - 统一蓝底渐变胶囊按钮样式，0→1 断点消除
+
+### Bug 修复 / 健壮性增强
+
+6. **`orderAdd` 权益商品双重扣减修复**
+   - `_deductStockIfNeeded` 跳过 `_fromBenefit` 标记的商品行，避免与 `repair_main.useBenefit` 重复扣减
+
+7. **`proUnlock` 店主退出登录安全拦截**
+   - `onLogout` 替换为「此功能暂不可使用」弹窗提示，防止误操作退出
+
+8. **`productSelect` 商品选择器增强**
+   - 权益模式（`benefitSelect`）：数量 > 1 时即时 Toast 提示「此数量为每次核销时扣减库存的份数」
+   - 模板分类切换：立即清空旧列表避免遮挡 loading
+   - 模板商品数据注入 `specPrice` / `specCost` 字段
+
+9. **`productStockIn` 入库成功跳转优化**
+   - 成功入库后 `wx.navigateBack()` → `wx.redirectTo('/productStockList')`，让用户立即看到库存变化
+
+### UI 调整
+
+10. **`orderDetail` 工单详情头部布局修复**
+    - `top-card-header` 改为 `align-items: flex-start` + `flex-wrap: wrap` + `gap: 12rpx`
+    - 修复多标签场景下 `space-between` 导致的溢出换行错位
+    - 标签尺寸缩小（22rpx→20rpx，padding 6/16→4/12），适配更多标签
+
+### 数据库变更
+
+11. **新增 `repair_stock_receipts` 集合**（入库单快照表）
+    - 字段：`batchId` / `shopPhone` / `items` / `totalQuantity` / `totalCost` / `supplier` / `remark` / `operator` / `createTime`
+
+### 部署注意
+
+⚠️ **云函数有变更，需要上传并部署 `repair_inventory` 到正式环境**
+⚠️ **需要在云开发控制台新建 `repair_stock_receipts` 数据库集合**
+
+**变更统计：** 26 文件（+481 / -71 行）
+- 🆕 `pages/product/productReceiptDetail/`（4文件，入库单详情页）
+- 📝 `cloudfunctions/repair_inventory/index.js`（+223行，4个新action + batchId生成 + 入库单快照）
+- 📝 `pages/product/productStockLogDetail/`（3文件，入库单号展示 + 查看入库单按钮）
+- 📝 `pages/product/productDetail/`（3文件，流水列表入库单链接）
+- 📝 `pages/**/empty-state`（carList/checkSheet/checkSheetList/orderList/productStockList，5页空态CTA）
+- 📝 `pages/orderDetail/orderDetail.wxss`（头部布局修复）
+- 📝 `pages/orderAdd/orderAdd.js`（权益双重扣减修复）
+- 📝 `pages/proUnlock/proUnlock.js`（退出登录拦截）
+- 📝 `pages/product/productSelect/`（3文件，权益模式提示+模板增强）
+- 📝 `pages/product/productStockIn/`（入库成功跳转优化）
+- 📝 `app.json`（注册 receiptDetail 路由）
+- 📝 `utils/constants.js`（版本号 v6.5.0 → v6.5.1）
+
+**向后兼容性：** ✅ `repair_stock_receipts` 为新独立集合，不影响旧数据；旧库存流水无 `batchId` 则隐入入库单入口
+
+---
+
 ## v6.4.0（2026-05-19）
 
 ### 功能新增：进销存管理 Phase M6~M12 完整交付

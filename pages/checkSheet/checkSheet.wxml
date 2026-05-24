@@ -36,6 +36,7 @@
     <!-- 无结果提示 -->
     <view class="dropdown-empty" wx:if="{{searched && searchResults.length === 0}}">
       <text class="empty-text">未找到相关车辆</text>
+      <view class="empty-cta" bindtap="onGoAddCar">➕ 去新增车辆 →</view>
     </view>
 
     <!-- 最近添加的车辆 -->

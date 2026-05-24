@@ -62,6 +62,12 @@
         <text class="field-value remark">{{log.remark}}</text>
       </view>
 
+      <!-- 入库单号（入库类型且有 batchId 时显示） -->
+      <view class="field-row" wx:if="{{log.type === 'in' && log.batchId}}">
+        <text class="field-label">入库单号</text>
+        <text class="field-value batch-id">{{log.batchId}}</text>
+      </view>
+
       <!-- 时间 -->
       <view class="field-row">
         <text class="field-label">时间</text>
@@ -69,9 +75,10 @@
       </view>
     </view>
 
-    <!-- 操作按钮（仅出库流水且有 orderRef 时显示） -->
-    <view class="action-area" wx:if="{{log.type === 'out' && log.orderRef}}">
-      <button class="action-btn" bindtap="onViewOrder">查看工单详情</button>
+    <!-- 操作按钮（出库→工单 / 入库→入库单） -->
+    <view class="action-area">
+      <button class="action-btn" wx:if="{{log.type === 'out' && log.orderRef}}" bindtap="onViewOrder">查看工单详情</button>
+      <button class="action-btn receipt-btn" wx:if="{{log.type === 'in'}}" bindtap="onViewReceipt">查看完整入库单</button>
     </view>
   </view>
 </view>

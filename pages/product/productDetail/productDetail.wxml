@@ -80,6 +80,7 @@
           </text>
         </view>
         <view class="log-right">
+          <text class="log-receipt-link" wx:if="{{item.type === 'in' && item.batchId}}" catchtap="onViewReceipt" data-id="{{item._id}}">入库单</text>
           <text class="log-spec" wx:if="{{item.spec}}">{{item.spec}}</text>
           <text class="log-cost" wx:if="{{item.type === 'out' && item.salePrice > 0}}">售价 ¥{{item.salePrice}}</text>
           <text class="log-cost" wx:elif="{{item.cost > 0}}">进价 ¥{{item.cost}}</text>

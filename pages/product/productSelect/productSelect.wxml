@@ -25,9 +25,9 @@
           <text class="product-card-name">{{item.name}}<text class="template-badge" wx:if="{{item.isTemplate}}">模板</text></text>
 
           <!-- 模板商品：导入按钮 -->
-          <block wx:if="{{item.isTemplate && item.specs && item.specs.length > 0}}">
+          <block wx:if="{{item.isTemplate}}">
             <view class="template-import-row">
-              <view class="spec-tags">
+              <view class="spec-tags" wx:if="{{item.specs && item.specs.length > 0}}">
                 <text class="spec-tag" wx:for="{{item.specs}}" wx:for-index="sidx" wx:key="sidx">{{item}}</text>
               </view>
               <view class="template-import-btn" data-id="{{item._id}}" bindtap="onImportTemplate" hover-class="template-import-btn-hover" wx:if="{{!item.importing && !item.isImported}}">导入</view>
@@ -73,7 +73,8 @@
           <text class="empty-text" wx:else>暂无商品</text>
         </view>
         <view class="loading-state" wx:if="{{loading || templateLoading}}">
-          <text>加载中...</text>
+          <text wx:if="{{templateLoading}}">模板商品加载中...</text>
+          <text wx:else>加载中...</text>
         </view>
       </view>
     </scroll-view>
