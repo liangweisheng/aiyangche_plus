@@ -50,7 +50,7 @@ export async function fetchRevenueTrend(days = 7) {
     throw new Error(result.msg || '获取趋势数据失败')
   }
 
-  const orders = result.data || []
+  const orders = (result.data && result.data.orders) || []
   // 按日期聚合
   const dateMap = {}
   for (let i = 0; i < days; i++) {
