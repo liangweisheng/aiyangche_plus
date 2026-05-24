@@ -6,6 +6,9 @@
         <el-button type="primary" @click="$router.push('/inventory/products/add')">
           <el-icon><Plus /></el-icon> 新增商品
         </el-button>
+        <el-button type="success" plain @click="openTemplateDialog">
+          <el-icon><FolderAdd /></el-icon> 导入模板
+        </el-button>
         <el-button @click="$router.push('/inventory/stock-in')">
           <el-icon><ShoppingCart /></el-icon> 入库
         </el-button>
@@ -108,15 +111,75 @@
       </div>
       </template>
     </el-card>
+
+    <!-- 模板商品导入弹窗 -->
+    <el-dialog v-model="showTemplateDialog" title="导入模板商品" width="780px" destroy-on-close @opened="loadTemplates">
+      <el-row :gutter="12" style="margin-bottom:16px">
+        <el-col :span="8">
+          <el-input v-model="templateKeyword" placeholder="搜索模板名称" :prefix-icon="Search" clearable @input="filterTemplates" />
+        </el-col>
+        <el-col :span="4">
+          <el-select v-model="templateCategory" placeholder="分类" clearable @change="filterTemplates">
+            <el-option label="全部" value="" />
+            <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
+          </el-select>
+        </el-col>
+        <el-col :span="4">
+          <el-button type="primary" @click="batchImportSelected" :disabled="selectedTemplateIds.length === 0" :loading="importingBatch">
+            批量导入（{{ selectedTemplateIds.length }}）
+          </el-button>
+        </el-col>
+      </el-row>
+
+      <div v-loading="templateLoading">
+        <el-table
+          :data="displayedTemplates"
+          stripe
+          max-height="420"
+          @selection-change="onTemplateSelectionChange"
+          ref="templateTableRef"
+        >
+          <el-table-column type="selection" width="50" />
+          <el-table-column prop="name" label="商品名称" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="category" label="分类" width="90">
+            <template #default="{ row }">
+              <el-tag size="small" effect="plain" type="info">{{ row.category }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="参考售价" width="100" align="right">
+            <template #default="{ row }">¥{{ formatYuan(row.sellPrice || row.price || 0) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="110" align="center">
+            <template #default="{ row }">
+              <el-button
+                size="small"
+                type="primary"
+                :loading="importingId === row._id"
+                :disabled="importingId && importingId !== row._id"
+                @click="importOne(row)"
+              >
+                导入
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <el-empty v-if="!templateLoading && displayedTemplates.length === 0" description="暂无模板商品" />
+
+      <template #footer>
+        <el-button @click="showTemplateDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchProductList, toggleProductStatus } from '@/api/inventory'
+import { fetchProductList, toggleProductStatus, fetchTemplateProductList, importTemplateProduct, batchImportTemplateProducts } from '@/api/inventory'
 import { formatYuan } from '@/utils/format'
-import { Search, Plus, ShoppingCart } from '@element-plus/icons-vue'
+import { Search, Plus, ShoppingCart, FolderAdd } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -173,6 +236,87 @@ async function handleToggle(row) {
     row.productStatus = row.productStatus === 'off_shelf' ? 'on_shelf' : 'off_shelf'
   } catch (err) {
     ElMessage.error(err.message || '操作失败')
+  }
+}
+
+// ========== 模板导入 ==========
+const showTemplateDialog = ref(false)
+const templateLoading = ref(false)
+const templateList = ref([])
+const templateKeyword = ref('')
+const templateCategory = ref('')
+const selectedTemplateIds = ref([])
+const importingId = ref('')
+const importingBatch = ref(false)
+const templateTableRef = ref(null)
+
+const displayedTemplates = computed(() => {
+  let list = templateList.value
+  const kw = templateKeyword.value.trim().toLowerCase()
+  if (kw) {
+    list = list.filter(t => (t.name || '').toLowerCase().includes(kw))
+  }
+  const cat = templateCategory.value
+  if (cat) {
+    list = list.filter(t => t.category === cat)
+  }
+  return list
+})
+
+function onTemplateSelectionChange(rows) {
+  selectedTemplateIds.value = rows.map(r => r._id)
+}
+
+function filterTemplates() {
+  // displayedTemplates 是 computed，自动计算
+}
+
+async function loadTemplates() {
+  templateLoading.value = true
+  try {
+    const result = await fetchTemplateProductList({ category: templateCategory.value, keyword: templateKeyword.value })
+    templateList.value = result.list || []
+  } catch (err) {
+    ElMessage.error(err.message || '加载模板失败')
+  } finally {
+    templateLoading.value = false
+  }
+}
+
+function openTemplateDialog() {
+  templateKeyword.value = ''
+  templateCategory.value = ''
+  selectedTemplateIds.value = []
+  showTemplateDialog.value = true
+}
+
+async function importOne(row) {
+  importingId.value = row._id
+  try {
+    await importTemplateProduct(row._id)
+    ElMessage.success(`已导入：${row.name}`)
+    // 刷新商品列表
+    await loadData()
+  } catch (err) {
+    ElMessage.error(err.message || '导入失败')
+  } finally {
+    importingId.value = ''
+  }
+}
+
+async function batchImportSelected() {
+  if (selectedTemplateIds.value.length === 0) return
+  importingBatch.value = true
+  try {
+    await batchImportTemplateProducts(selectedTemplateIds.value)
+    ElMessage.success(`成功导入 ${selectedTemplateIds.value.length} 个商品`)
+    selectedTemplateIds.value = []
+    if (templateTableRef.value) templateTableRef.value.clearSelection()
+    await loadData()
+  } catch (err) {
+    ElMessage.error(err.message || '批量导入失败')
+  } finally {
+    importingBatch.value = false
   }
 }
 </script>
