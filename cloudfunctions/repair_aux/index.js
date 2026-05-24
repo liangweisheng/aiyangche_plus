@@ -1559,6 +1559,11 @@ exports.main = async (event, context) => {
   var wxContext = cloud.getWXContext()
   var openid = event.clientOpenid || wxContext.OPENID || ''
 
+  // ★ 匿名登录归一化：Web 后台的匿名 openid 等同于多端模式（均依赖 shopPhone 鉴权）
+  if (openid && (openid.indexOf('anon-') === 0 || openid.indexOf('anonymous') === 0)) {
+    openid = ''
+  }
+
   var handler = {
     activatePro: activatePro,
     updateShopInfo: updateShopInfo,

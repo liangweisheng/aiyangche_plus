@@ -59,27 +59,50 @@ async function checkPermission(event, context, actionName) {
   var wxContext = cloud.getWXContext()
   var callerOpenId = event.clientOpenid || wxContext.OPENID || ''
 
+  // ★ 匿名登录归一化：Web 后台匿名 openid 等同于多端模式（均依赖 shopPhone 鉴权）
+  if (callerOpenId && (callerOpenId.indexOf('anon-') === 0 || callerOpenId.indexOf('anonymous') === 0)) {
+    callerOpenId = ''
+  }
+
   if (requirePublic) return null // 不需要鉴权
 
-  if (!callerOpenId && !requirePublic) {
+  // ★ 游客账号检测
+  var GUEST_PHONE = '13507720000'
+  var shopPhone = event.shopPhone || ''
+  var isGuestShop = (shopPhone === GUEST_PHONE)
+
+  // ★ 空 openid + 无 shopPhone 才拒绝（Web/多端有 shopPhone 应走 phone 降级）
+  if (!callerOpenId && !requirePublic && !shopPhone && !isGuestShop) {
     return { code: -2, msg: '未获取到用户身份' }
   }
 
-  // 查询调用者记录
+  // 查询调用者记录（openid 优先 → phone 降级）
   var callerRecord = null
   try {
-    var callerRes = await db.collection('repair_activationCodes')
-      .where({ openid: callerOpenId })
-      .orderBy('createTime', 'desc')
-      .limit(1)
-      .get()
-    if (callerRes.data && callerRes.data.length > 0) {
-      callerRecord = callerRes.data[0]
+    if (callerOpenId) {
+      var callerRes = await db.collection('repair_activationCodes')
+        .where({ openid: callerOpenId })
+        .orderBy('createTime', 'desc')
+        .limit(1)
+        .get()
+      if (callerRes.data && callerRes.data.length > 0) {
+        callerRecord = callerRes.data[0]
+      }
+    }
+    // ★ phone 降级：Web 匿名登录 / 多端无微信 openid 场景
+    if (!callerRecord && shopPhone) {
+      var phoneRes = await db.collection('repair_activationCodes')
+        .where({ phone: shopPhone, type: 'free' })
+        .limit(1)
+        .get()
+      if (phoneRes.data && phoneRes.data.length > 0) {
+        callerRecord = phoneRes.data[0]
+      }
     }
   } catch (e) {}
 
-  // registered：需要有记录
-  if (requireRegistered && !callerRecord) {
+  // registered：需要有记录（游客放行）
+  if (requireRegistered && !callerRecord && !isGuestShop) {
     return { code: -3, msg: '请先注册门店' }
   }
 
@@ -102,13 +125,17 @@ async function checkPermission(event, context, actionName) {
         }
       } catch (e) {}
     }
-    if (!isPro) {
+    // ★ 游客放行
+    if (!isPro && !isGuestShop) {
       return { code: -4, msg: '请先激活 Pro 版' }
     }
   }
 
-  // admin：需要是管理员以上
+  // admin：需要是管理员以上（游客放行）
   if (requireAdmin) {
+    if (isGuestShop) {
+      return null // 游客继承管理员权限
+    }
     var role = callerRecord ? (callerRecord.role || 'admin') : ''
     if (role !== 'admin' || !callerRecord) {
       return { code: -5, msg: '无权限，仅管理员可操作' }
