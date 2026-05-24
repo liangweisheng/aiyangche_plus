@@ -101,10 +101,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { fetchDashboardStats, fetchRevenueTrend } from '@/api/dashboard'
-import { formatYuan, formatPhone, formatDate, formatDays } from '@/utils/format'
+import { formatYuan, formatMoney, formatPhone, formatDate, formatDays } from '@/utils/format'
 import StatCard from '@/components/StatCard.vue'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
@@ -127,8 +127,22 @@ const alerts = ref([])
 const chartRef = ref(null)
 const chartLoading = ref(true)
 
+let chartInstance = null
+let resizeHandler = null
+
 onMounted(async () => {
   await loadData()
+})
+
+onUnmounted(() => {
+  if (chartInstance) {
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler)
+      resizeHandler = null
+    }
+    chartInstance.dispose()
+    chartInstance = null
+  }
 })
 
 async function loadData() {
@@ -174,12 +188,22 @@ async function loadData() {
 function renderChart(data) {
   if (!chartRef.value) return
 
-  const myChart = echarts.init(chartRef.value)
+  // 清理旧实例和监听器
+  if (chartInstance) {
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler)
+      resizeHandler = null
+    }
+    chartInstance.dispose()
+    chartInstance = null
+  }
+
+  chartInstance = echarts.init(chartRef.value)
   const dates = data.map(d => d.date.slice(5)) // MM-DD 格式
-  const revenues = data.map(d => (d.revenue / 100).toFixed(2)) // 分→元
+  const revenues = data.map(d => formatMoney(d.revenue)) // 分→元
   const counts = data.map(d => d.count)
 
-  myChart.setOption({
+  chartInstance.setOption({
     tooltip: {
       trigger: 'axis'
     },
@@ -243,8 +267,13 @@ function renderChart(data) {
     ]
   })
 
-  // 窗口大小变化时自适应
-  window.addEventListener('resize', () => myChart.resize())
+  // 窗口大小变化时自适应（先移除旧的再注册新的，防止重复监听）
+  resizeHandler = () => {
+    if (chartInstance && !chartInstance.isDisposed()) {
+      chartInstance.resize()
+    }
+  }
+  window.addEventListener('resize', resizeHandler)
 }
 </script>
 

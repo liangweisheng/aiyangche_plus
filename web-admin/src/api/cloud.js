@@ -53,14 +53,15 @@ export async function callCloudFunction(action, data = {}, options = {}) {
       }
     })
 
-    // 统一错误处理
-    if (res.code) {
-      const errMsg = res.msg || `云函数错误: ${res.code}`
-      console.error(`[Cloud] ${action} 返回错误:`, res)
+    // 统一错误处理（CloudBase SDK 的 callFunction 返回 { result: { code, data, msg, ... } }）
+    const businessResult = res.result || {}
+    if (businessResult.code && businessResult.code !== 0) {
+      const errMsg = businessResult.msg || `云函数错误: ${businessResult.code}`
+      console.error(`[Cloud] ${action} 返回错误:`, businessResult)
       throw new Error(errMsg)
     }
 
-    return res.result || res.data || {}
+    return businessResult
   } catch (err) {
     // 区分网络错误和业务错误
     if (err.message && (err.message.includes('超时') || err.message.includes('timeout'))) {

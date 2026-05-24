@@ -1,5 +1,6 @@
 import { callCloudFunction } from './cloud'
 import { useUserStore } from '@/stores/user'
+import { formatDate } from '@/utils/format'
 
 /**
  * 获取仪表盘数据（今日概况 + 商机提醒）
@@ -72,9 +73,4 @@ export async function fetchRevenueTrend(days = 7) {
   return Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date))
 }
 
-function formatDate(d) {
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+

@@ -1,0 +1,110 @@
+/* ========================================
+ * Web Admin 公共样式
+ * 各页面中重复的 .loading-wrapper/.error-wrapper 等在此统一定义
+ * ======================================== */
+
+/* 页面容器 */
+.page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* 页面标题 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+.page-subtitle {
+  font-size: 13px;
+  color: #999;
+}
+
+/* 三态：加载/错误/空数据 */
+.loading-wrapper {
+  padding: 20px 0;
+}
+
+.error-wrapper {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.retry-btn {
+  margin-top: 16px;
+}
+
+.empty-wrapper {
+  padding: 60px 0;
+}
+
+/* 搜索卡片 */
+.search-card {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+.search-card :deep(.el-card__body) {
+  padding: 16px 20px;
+}
+
+/* 表格卡片 */
+.table-card {
+  border-radius: 8px;
+}
+.table-card :deep(.el-card__body) {
+  padding: 0;
+}
+
+/* 分页 */
+.pagination-wrapper {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 卡片标题 */
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 卡片标题行（标题 + 操作按钮） */
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 通用无数据 */
+.no-data {
+  text-align: center;
+  color: #ccc;
+  padding: 40px 0;
+  font-size: 14px;
+}
+
+/* 金额显示 */
+.amount-cell {
+  font-family: 'Helvetica Neue', monospace;
+  font-weight: 500;
+}
+
+/* 车间码/单号等 monospace 文本 */
+.code-cell {
+  font-family: monospace;
+  font-weight: 600;
+}
+
+/* 操作按钮组 */
+.action-btns {
+  display: flex;
+  gap: 8px;
+}

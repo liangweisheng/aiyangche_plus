@@ -8,6 +8,7 @@
       </div>
       <el-menu
         :default-active="activeMenu"
+        :default-openeds="openedSubMenus"
         :collapse="!userStore.opened"
         background-color="#001529"
         text-color="rgba(255,255,255,0.65)"
@@ -17,6 +18,44 @@
         <el-menu-item index="/dashboard">
           <el-icon><Odometer /></el-icon>
           <template #title>仪表盘</template>
+        </el-menu-item>
+        <el-menu-item index="/report">
+          <el-icon><TrendCharts /></el-icon>
+          <template #title>报表中心</template>
+        </el-menu-item>
+        <el-menu-item index="/cars">
+          <el-icon><Van /></el-icon>
+          <template #title>车辆管理</template>
+        </el-menu-item>
+        <el-menu-item index="/orders">
+          <el-icon><Document /></el-icon>
+          <template #title>工单管理</template>
+        </el-menu-item>
+        <el-menu-item index="/members">
+          <el-icon><UserFilled /></el-icon>
+          <template #title>会员管理</template>
+        </el-menu-item>
+        <el-sub-menu index="/inventory">
+          <template #title>
+            <el-icon><Box /></el-icon>
+            <span>库存管理</span>
+          </template>
+          <el-menu-item index="/inventory/products">
+            <el-icon><Goods /></el-icon>
+            <template #title>商品管理</template>
+          </el-menu-item>
+          <el-menu-item index="/inventory/stock-in">
+            <el-icon><ShoppingCart /></el-icon>
+            <template #title>入库管理</template>
+          </el-menu-item>
+          <el-menu-item index="/inventory/receipts">
+            <el-icon><Tickets /></el-icon>
+            <template #title>入库单列表</template>
+          </el-menu-item>
+        </el-sub-menu>
+        <el-menu-item index="/settings">
+          <el-icon><Setting /></el-icon>
+          <template #title>门店设置</template>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -57,13 +96,25 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { Fold, Expand, Odometer, User } from '@element-plus/icons-vue'
+import { Fold, Expand, Odometer, TrendCharts, Van, Document, UserFilled, Box, Goods, ShoppingCart, Tickets, Setting, User } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => {
+  const path = route.path
+  // 库存子路由映射到父级 index 以便高亮
+  if (path.startsWith('/inventory')) {
+    if (path.startsWith('/inventory/products')) return '/inventory/products'
+    return path
+  }
+  return path
+})
+const openedSubMenus = computed(() => {
+  if (route.path.startsWith('/inventory')) return ['/inventory']
+  return []
+})
 const asideWidth = computed(() => userStore.opened ? '220px' : '64px')
 
 function toggleSidebar() {
