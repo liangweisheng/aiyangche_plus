@@ -104,7 +104,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { fetchDashboardStats, fetchRevenueTrend } from '@/api/dashboard'
-import { formatYuan, formatMoney, formatPhone, formatDate, formatDays } from '@/utils/format'
+import { formatYuan, formatPhone, formatDate, formatDays } from '@/utils/format'
 import StatCard from '@/components/StatCard.vue'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
@@ -200,7 +200,7 @@ function renderChart(data) {
 
   chartInstance = echarts.init(chartRef.value)
   const dates = data.map(d => d.date.slice(5)) // MM-DD 格式
-  const revenues = data.map(d => formatMoney(d.revenue)) // 分→元
+  const revenues = data.map(d => (d.revenue || 0)) // fetchRevenueTrend 已汇总为元，无需 formatMoney 除以100
   const counts = data.map(d => d.count)
 
   chartInstance.setOption({

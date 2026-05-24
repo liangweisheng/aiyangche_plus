@@ -4,6 +4,9 @@
       <h2 class="page-title">工单管理</h2>
       <div class="header-right">
         <span class="subtitle" v-if="!loading">共 {{ total }} 个工单</span>
+        <el-button type="primary" size="small" @click="$router.push('/orders/add')">
+          <el-icon><Plus /></el-icon> 新开工单
+        </el-button>
         <el-button size="small" :disabled="total === 0 || loading" @click="exportOrders">
           <el-icon><Download /></el-icon> 导出
         </el-button>
@@ -206,7 +209,7 @@ import { ref, onMounted } from 'vue'
 import { fetchOrderList, voidOrder as voidOrderApi } from '@/api/order'
 import { formatYuan, formatDate } from '@/utils/format'
 import { exportToCSV } from '@/utils/export'
-import { Search, Download } from '@element-plus/icons-vue'
+import { Search, Download, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 // ============ 数据 ============
@@ -239,7 +242,8 @@ function statusType(status) {
 }
 
 function payMethodLabel(method) {
-  const map = { cash: '现金', wechat: '微信', alipay: '支付宝', card: '刷卡' }
+  // ★ 兼容：1=现付, 2=挂账（小程序端格式）；cash/wechat/alipay/card/credit（Web端旧格式）
+  const map = { '1': '现付', '2': '挂账', cash: '现金', wechat: '微信', alipay: '支付宝', card: '刷卡', credit: '挂账' }
   return map[method] || method || '-'
 }
 

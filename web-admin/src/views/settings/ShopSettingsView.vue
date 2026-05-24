@@ -50,37 +50,7 @@
           <el-descriptions-item label="门店码">
             <strong>{{ userStore.shopCode }}</strong>
           </el-descriptions-item>
-          <el-descriptions-item label="Pro 码">
-            {{ userStore.code || '未激活' }}
-          </el-descriptions-item>
         </el-descriptions>
-      </el-card>
-
-      <!-- 经营配置 (Pro 功能) -->
-      <el-card v-if="userStore.isPro" shadow="hover" class="section-card">
-        <template #header><span class="card-title">经营配置</span></template>
-        <el-form label-position="top" size="default">
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <el-form-item label="工位数">
-                <el-input-number v-model="profileForm.bayCount" :min="0" :max="50" controls-position="right" style="width:100%" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="开业年份">
-                <el-input-number v-model="profileForm.openYear" :min="2000" :max="2030" controls-position="right" style="width:100%" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="城市">
-                <el-input v-model="profileForm.city" placeholder="如：广州" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-form-item>
-            <el-button type="primary" :loading="savingProfile" @click="saveProfile">保存配置</el-button>
-          </el-form-item>
-        </el-form>
       </el-card>
 
       <!-- 员工管理 (Pro 功能) -->
@@ -158,7 +128,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { fetchShopProfile, updateShopInfo, updateShopProfile, fetchStaffList, addStaff, removeStaff, updateStaffRole } from '@/api/shop'
+import { fetchShopProfile, updateShopInfo, fetchStaffList, addStaff, removeStaff, updateStaffRole } from '@/api/shop'
 import { formatPhone, formatDate } from '@/utils/format'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -168,7 +138,6 @@ const userStore = useUserStore()
 // ============ 状态 ============
 const loading = ref(true)
 const saving = ref(false)
-const savingProfile = ref(false)
 
 // 基本信息
 const editName = ref('')
@@ -176,14 +145,12 @@ const editTel = ref('')
 const editAddr = ref('')
 const editDisplayName = ref('')
 
-// 经营配置
-const profileForm = reactive({ bayCount: 0, openYear: 2020, city: '' })
-
 // 员工
 const staffLoading = ref(false)
 const staffList = ref([])
 const showAddStaff = ref(false)
 const addingStaff = ref(false)
+const staffForm = ref(null)
 const newStaff = reactive({ phone: '', displayName: '', role: 'staff' })
 const staffRules = {
   phone: [{ required: true, message: '请输入手机号', trigger: 'blur' }, { pattern: /^1\d{10}$/, message: '格式错误', trigger: 'blur' }],
@@ -199,9 +166,6 @@ onMounted(async () => {
     editTel.value = profile.shopTel || ''
     editAddr.value = profile.shopAddr || ''
     editDisplayName.value = profile.displayName || ''
-    profileForm.bayCount = profile.bayCount || 0
-    profileForm.openYear = profile.openYear || 2020
-    profileForm.city = profile.city || ''
   } catch (err) {
     // 兜底用 store 数据
     editName.value = userStore.shopName
@@ -230,18 +194,6 @@ async function saveInfo() {
     ElMessage.error(err.message || '保存失败')
   } finally {
     saving.value = false
-  }
-}
-
-async function saveProfile() {
-  savingProfile.value = true
-  try {
-    await updateShopProfile({ ...profileForm })
-    ElMessage.success('保存成功')
-  } catch (err) {
-    ElMessage.error(err.message || '保存失败')
-  } finally {
-    savingProfile.value = false
   }
 }
 
