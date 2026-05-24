@@ -66,14 +66,27 @@
 11. **新增 `repair_stock_receipts` 集合**（入库单快照表）
     - 字段：`batchId` / `shopPhone` / `items` / `totalQuantity` / `totalCost` / `supplier` / `remark` / `operator` / `createTime`
 
+### 健壮性增强（2026-05-25 补充）
+
+12. **Web后台匿名登录鉴权兼容**
+    - `repair_aux` 和 `repair_inventory` 新增匿名 openid 归一化（`anon-*` / `anonymous` → 空）
+    - `repair_inventory` 的 `checkPermission` 新增 phone 降级鉴权（Web匿名/多端无微信openid场景）
+    - 游客账号（13507720000）放行：registered/admin 权限级别均允许游客通过
+    - 空 openid + 无 shopPhone 才拒绝（Web/多端有 shopPhone 走 phone 降级）
+
+13. **Web后台营收趋势折线图空白修复**
+    - 根因：`getReportOrders` 云函数返回 `{ code: 0, data: { orders: [...] } }`，前端 `fetchRevenueTrend` 错误将 `data` 对象当数组使用 → `.forEach` 报错被 `.catch(() => [])` 吞掉
+    - 修复：`result.data` → `result.data.orders` 正确穿透解包
+
 ### 部署注意
 
-⚠️ **云函数有变更，需要上传并部署 `repair_inventory` 到正式环境**
+⚠️ **云函数有变更，需要上传并部署 `repair_inventory` 和 `repair_aux` 到正式环境**
 ⚠️ **需要在云开发控制台新建 `repair_stock_receipts` 数据库集合**
 
-**小程序变更统计：** 26 文件（+481 / -71 行）
+**小程序变更统计：** 28 文件（+526 / -84 行）
 - 🆕 `pages/product/productReceiptDetail/`（4文件，入库单详情页）
-- 📝 `cloudfunctions/repair_inventory/index.js`（+223行，4个新action + batchId生成 + 入库单快照）
+- 📝 `cloudfunctions/repair_inventory/index.js`（+276行，4个新action + batchId生成 + 入库单快照 + 匿名鉴权 + phone降级）
+- 📝 `cloudfunctions/repair_aux/index.js`（+5行，匿名openid归一化）
 - 📝 `pages/product/productStockLogDetail/`（3文件，入库单号展示 + 查看入库单按钮）
 - 📝 `pages/product/productDetail/`（3文件，流水列表入库单链接）
 - 📝 `pages/**/empty-state`（carList/checkSheet/checkSheetList/orderList/productStockList，5页空态CTA）
@@ -87,7 +100,7 @@
 
 ### Web管理后台（v6.5.1 同步发布）
 
-12. **Web端PC管理后台全面升级**（`web-admin/` 独立Vue3项目）
+14. **Web端PC管理后台全面升级**（`web-admin/` 独立Vue3项目）
     - 7个功能模块：仪表盘、报表中心、车辆管理、工单管理、会员管理、库存管理（商品+入库单）、门店设置
     - 技术栈：Vue3 + Vite6 + Pinia + Element Plus + ECharts5 + CloudBase JS SDK
     - CloudBase 匿名认证登录 + 手机号门店码验证
@@ -96,18 +109,18 @@
     - 报表中心4时段Tab（今日/本周/本月/本年）+ 消费排行
     - 库存管理：商品CRUD + 多规格 + 上下架 + 入库管理 + 入库单追溯
 
-13. **Code Review 质量提升（Sprint 1-3）**
+15. **Code Review 质量提升（Sprint 1-3）**
     - **P0修复 × 5**：ECharts内存泄漏(2处)、作废操作原子性、表单验证、CloudBase SDK返回值解析
     - **P1修复 × 6**：全局错误边界、路由角色校验、请求去重、金额格式化统一、三态补齐(3页)
     - **产品增强 × 5**：CSV导出工具、公共CSS样式、工单/会员列表导出按钮、operator硬编码修复
 
-14. **新增文件清单**
+16. **新增文件清单**
     - 🆕 `web-admin/src/api/`（7个API模块：auth/car/cloud/dashboard/inventory/member/order/report/shop）
     - 🆕 `web-admin/src/views/`（15个页面组件，覆盖全部功能模块）
     - 🆕 `web-admin/src/utils/export.js`（CSV导出工具，BOM+中文转义）
     - 🆕 `web-admin/src/assets/common.css`（公共样式库）
 
-**变更统计：** 26 文件（+481 / -71 行）+ **web-admin/ 35 文件（+4204 / -321 行）**
+**变更统计：** 28 文件（+526 / -84 行）+ **web-admin/ 36 文件（+4205 / -322 行）**
 
 ---
 
