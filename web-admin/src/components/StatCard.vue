@@ -2,7 +2,9 @@
   <el-card class="stat-card" shadow="hover">
     <div class="stat-content">
       <div class="stat-icon" :style="{ background: iconBg }">
-        <el-icon :size="24" color="#fff">{{ iconComponent }}</el-icon>
+        <el-icon :size="24" color="#fff">
+          <component :is="iconComponent" />
+        </el-icon>
       </div>
       <div class="stat-info">
         <div class="stat-value">{{ value }}</div>

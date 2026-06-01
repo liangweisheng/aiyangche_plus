@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 const routes = [
@@ -32,16 +32,34 @@ const routes = [
         meta: { requiresAuth: true, title: '车辆管理' }
       },
       {
+        path: 'cars/add',
+        name: 'CarAdd',
+        component: () => import('@/views/car/CarAddView.vue'),
+        meta: { requiresAuth: true, title: '新增车辆' }
+      },
+      {
         path: 'orders',
         name: 'Orders',
         component: () => import('@/views/order/OrderListView.vue'),
         meta: { requiresAuth: true, title: '工单管理' }
       },
       {
+        path: 'orders/add',
+        name: 'OrderAdd',
+        component: () => import('@/views/order/OrderAddView.vue'),
+        meta: { requiresAuth: true, title: '新开工单' }
+      },
+      {
         path: 'members',
         name: 'Members',
         component: () => import('@/views/member/MemberListView.vue'),
         meta: { requiresAuth: true, title: '会员管理' }
+      },
+      {
+        path: 'members/add',
+        name: 'MemberAdd',
+        component: () => import('@/views/member/MemberAddView.vue'),
+        meta: { requiresAuth: true, title: '新增会员' }
       },
       {
         path: 'inventory',
@@ -102,7 +120,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes
 })
 

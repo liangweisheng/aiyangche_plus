@@ -2,6 +2,39 @@ import { callCloudFunction } from './cloud'
 import { useUserStore } from '@/stores/user'
 
 /**
+ * 新增车辆
+ * @param {object} carData - 车辆数据
+ * @param {string} carData.plate - 车牌号（必填）
+ * @param {string} [carData.carType] - 车型
+ * @param {string} [carData.color] - 颜色
+ * @param {number} [carData.mileage] - 里程
+ * @param {string} [carData.phone] - 手机号
+ * @param {string} [carData.ownerName] - 车主姓名
+ * @param {string} [carData.maintainDate] - 保养到期
+ * @param {string} [carData.insuranceDate] - 保险到期
+ * @param {string} [carData.partReplaceName] - 配件名称
+ * @param {string} [carData.partReplaceDate] - 配件更换日期
+ * @param {string} [carData.remark] - 备注
+ * @param {string} [carData.vin] - VIN码
+ * @returns {Promise<object>}
+ */
+export async function addCar(carData) {
+  const userStore = useUserStore()
+  const shopPhone = userStore.shopPhone
+
+  const result = await callCloudFunction('addCar', {
+    ...carData,
+    shopPhone
+  }, { shopPhone, clientPhone: shopPhone })
+
+  if (result.code !== 0) {
+    throw new Error(result.msg || '新增车辆失败')
+  }
+
+  return result.data || {}
+}
+
+/**
  * 获取车辆列表（服务端聚合：车辆+会员状态+工单统计）
  * @returns {Promise<{list: Array, total: number, memberMap: Object, orderStats: Object}>}
  */

@@ -2,6 +2,42 @@ import { callCloudFunction } from './cloud'
 import { useUserStore } from '@/stores/user'
 
 /**
+ * 创建工单
+ * @param {object} orderData
+ * @param {string} orderData.plate - 车牌号（必填）
+ * @param {string} orderData.serviceItems - 服务项目（逗号分隔）
+ * @param {string} orderData.serviceAmounts - 金额（逗号分隔）
+ * @param {number} orderData.totalAmount - 总金额
+ * @param {number} [orderData.paidAmount] - 实收金额
+ * @param {string} [orderData.payMethod] - 支付方式
+ * @param {string} [orderData.status] - 状态
+ * @param {string} [orderData.remark] - 备注
+ * @param {string} [orderData.setMaintainDate] - 保养到期
+ * @param {number} [orderData.setMileage] - 里程
+ * @param {string} [orderData.carDocId] - 车辆 docId
+ * @param {string} [orderData.serviceCategories] - 分类（逗号分隔）
+ * @param {string} [orderData.orderCategory] - 工单分类
+ * @param {number} [orderData.partCost] - 配件成本
+ * @param {number} [orderData.profit] - 毛利
+ * @returns {Promise<object>}
+ */
+export async function createOrder(orderData) {
+  const userStore = useUserStore()
+  const shopPhone = userStore.shopPhone
+
+  const result = await callCloudFunction('createOrder', {
+    ...orderData,
+    shopPhone
+  }, { shopPhone, clientPhone: shopPhone })
+
+  if (result.code !== 0) {
+    throw new Error(result.msg || '创建工单失败')
+  }
+
+  return result.data || {}
+}
+
+/**
  * 获取工单列表（服务端分页 + 会员标记）
  * @param {object} params
  * @param {number} params.page - 页码

@@ -1,6 +1,8 @@
 import cloudbase from '@cloudbase/js-sdk'
 
 const RESOURCE_ENV = import.meta.env.VITE_RESOURCE_ENV || 'cloud1-2gwoxtay6a4d8181'
+const RESOURCE_REGION = import.meta.env.VITE_RESOURCE_REGION || 'ap-shanghai'
+const PUBLISHABLE_KEY = import.meta.env.VITE_PUBLISHABLE_KEY || ''
 const CLOUD_FN = import.meta.env.VITE_CLOUD_FUNCTION_NAME || 'repair_main'
 
 let app = null
@@ -11,7 +13,12 @@ let anonymousAuthed = false
  */
 export function getCloudApp() {
   if (!app) {
-    app = cloudbase.init({ env: RESOURCE_ENV })
+    app = cloudbase.init({
+      env: RESOURCE_ENV,
+      region: RESOURCE_REGION,
+      accessKey: PUBLISHABLE_KEY,
+      auth: { detectSessionInUrl: true }
+    })
   }
   return app
 }
@@ -40,10 +47,11 @@ export async function callCloudFunction(action, data = {}, options = {}) {
   const cloudApp = getCloudApp()
   const shopPhone = options.shopPhone || ''
   const clientPhone = options.clientPhone || shopPhone
+  const functionName = options.functionName || CLOUD_FN
 
   try {
     const res = await cloudApp.callFunction({
-      name: CLOUD_FN,
+      name: functionName,
       data: {
         action,
         ...data,

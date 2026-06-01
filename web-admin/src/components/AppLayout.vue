@@ -75,6 +75,9 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
+          <el-button text size="small" @click="contactVisible = true">
+            <el-icon><Service /></el-icon> 联系客服
+          </el-button>
           <el-tag v-if="userStore.isPro" type="warning" size="small" effect="dark">Pro</el-tag>
           <span class="user-info">
             {{ userStore.displayName }}
@@ -89,18 +92,72 @@
         <router-view />
       </el-main>
     </el-container>
+    <!-- 联系客服弹窗 -->
+    <el-dialog v-model="contactVisible" title="联系客服" width="420px" :close-on-click-modal="true" center>
+      <div class="contact-cards">
+        <div class="contact-card">
+          <div class="contact-icon phone-icon">
+            <el-icon :size="28"><Phone /></el-icon>
+          </div>
+          <div class="contact-info">
+            <div class="contact-label">客服电话</div>
+            <div class="contact-value">{{ servicePhone }}</div>
+            <div class="contact-desc">工作日 9:00-18:00</div>
+          </div>
+          <div class="contact-actions">
+            <el-button type="primary" size="small" @click="copyText(servicePhone, '电话已复制')">
+              <el-icon><CopyDocument /></el-icon> 复制
+            </el-button>
+            <a :href="'tel:' + servicePhone" class="call-link">
+              <el-button size="small">
+                <el-icon><Phone /></el-icon> 拨打
+              </el-button>
+            </a>
+          </div>
+        </div>
+        <div class="contact-card">
+          <div class="contact-icon wechat-icon">
+            <el-icon :size="28"><ChatDotSquare /></el-icon>
+          </div>
+          <div class="contact-info">
+            <div class="contact-label">官方微信</div>
+            <div class="contact-value">{{ serviceWechat }}</div>
+            <div class="contact-desc">添加时请备注门店名称</div>
+          </div>
+          <div class="contact-actions">
+            <el-button type="success" size="small" @click="copyText(serviceWechat, '微信号已复制')">
+              <el-icon><CopyDocument /></el-icon> 复制微信号
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </el-container>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { Fold, Expand, Odometer, TrendCharts, Van, Document, UserFilled, Box, Goods, ShoppingCart, Tickets, Setting, User } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { Fold, Expand, Odometer, TrendCharts, Van, Document, UserFilled, Box, Goods, ShoppingCart, Tickets, Setting, User, Service, Phone, ChatDotSquare, CopyDocument } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+// 联系客服
+const contactVisible = ref(false)
+const servicePhone = '17807725166'
+const serviceWechat = 'liang-weisheng'
+
+function copyText(text, msg) {
+  navigator.clipboard.writeText(text).then(() => {
+    ElMessage.success(msg || '已复制')
+  }).catch(() => {
+    ElMessage.warning('复制失败，请手动复制')
+  })
+}
 
 const activeMenu = computed(() => {
   const path = route.path
@@ -185,5 +242,65 @@ function handleLogout() {
   padding: 20px;
   height: calc(100vh - 60px);
   overflow: auto;
+}
+
+/* 联系客服 */
+.contact-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.contact-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #eee;
+}
+.contact-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.phone-icon {
+  background: #ecf5ff;
+  color: #409eff;
+}
+.wechat-icon {
+  background: #f0f9eb;
+  color: #67c23a;
+}
+.contact-info {
+  flex: 1;
+  min-width: 0;
+}
+.contact-label {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 2px;
+}
+.contact-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+.contact-desc {
+  font-size: 12px;
+  color: #bbb;
+  margin-top: 2px;
+}
+.contact-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.call-link {
+  text-decoration: none;
 }
 </style>

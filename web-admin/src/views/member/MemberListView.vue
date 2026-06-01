@@ -4,6 +4,9 @@
       <h2 class="page-title">会员管理</h2>
       <div class="header-right">
         <span class="subtitle" v-if="!loading">共 {{ total }} 位会员</span>
+        <el-button type="primary" size="small" @click="$router.push('/members/add')">
+          <el-icon><Plus /></el-icon> 新增会员
+        </el-button>
         <el-button size="small" :disabled="total === 0 || loading" @click="exportMembers">
           <el-icon><Download /></el-icon> 导出
         </el-button>
@@ -166,7 +169,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { fetchMemberList, updateMember } from '@/api/member'
 import { formatYuan, formatPhone, formatDate } from '@/utils/format'
 import { exportToCSV } from '@/utils/export'
-import { Search, Download } from '@element-plus/icons-vue'
+import { Search, Download, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 // ============ 状态 ============

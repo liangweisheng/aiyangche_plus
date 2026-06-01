@@ -946,6 +946,9 @@ App({
         app.globalData.shopName = record.name || constants.GUEST_DISPLAY_NAME
         app.globalData.shopPhone = guestPhone
         app.globalData.shopInfo = shopInfo
+
+        // ★ 访客埋点（静默 fire-and-forget，不影响任何业务逻辑）
+        app._trackVisitorAsync('enter_guest', true)
       })
       .catch(function (err) {
         // 网络异常 → 用本地默认数据进入游客模式
@@ -967,6 +970,9 @@ App({
         app.globalData.shopName = constants.GUEST_DISPLAY_NAME
         app.globalData.shopPhone = guestPhone
         app.globalData.shopInfo = fallbackShopInfo
+
+        // ★ 访客埋点（静默 fire-and-forget，不影响任何业务逻辑）
+        app._trackVisitorAsync('enter_guest_fallback', true)
       })
   },
 
@@ -1804,5 +1810,43 @@ App({
     this.globalData.shopName = shopInfo.name || wx.getStorageSync('shopName') || ''
     this.globalData.shopPhone = shopInfo.phone || ''
     this.globalData.shopInfo = shopInfo
+  },
+
+  // ===========================
+  // 访客追踪辅助方法（零侵入：静默 fire-and-forget）
+  // ===========================
+
+  /**
+   * 异步发送访客埋点（不阻塞、不报错、不影响任何业务流程）
+   * @param {string} eventName 事件名，如 'enter_guest', 'app_launch'
+   * @param {boolean} isGuest 是否游客模式
+   */
+  _trackVisitorAsync: function (eventName, isGuest) {
+    var app = this
+    if (!_cloudReady || !app._resourceCloud) return  // 云环境未就绪则跳过
+
+    try {
+      var sysInfo = {}
+      try {
+        var si = wx.getSystemInfoSync()
+        sysInfo.model = si.model || ''
+        sysInfo.system = si.system || ''
+      } catch (e) {}
+
+      var source = _platformDetected ? 'multiend' : 'miniprogram'
+
+      app.callFunction('repair_main', {
+        action: 'trackVisitor',
+        event: eventName,
+        isGuest: !!isGuest,
+        source: source,
+        deviceModel: sysInfo.model || '',
+        deviceSystem: sysInfo.system || ''
+      }).catch(function () {
+        /* 静默：埋点失败不影响任何业务 */
+      })
+    } catch (e) {
+      /* 静默：埋点异常不影响任何业务 */
+    }
   }
 })

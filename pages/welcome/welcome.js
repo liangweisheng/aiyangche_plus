@@ -324,10 +324,17 @@ Page({
         // 同步门店联系方式到独立缓存（proUnlock 等页面直接读取）
         if (shopInfo.shopTel) { wx.setStorageSync('shopTel', shopInfo.shopTel) }
         if (shopInfo.shopAddr) { wx.setStorageSync('shopAddr', shopInfo.shopAddr) }
+
+        // ★ 访客转化埋点（必须在移除 isGuestMode 前检测）
+        var wasGuest2 = !!(wx.getStorageSync('isGuestMode'))
         wx.removeStorageSync('isGuestMode')
         if (openid) {
           wx.setStorageSync('openid', openid)
         }
+        app._trackVisitorAsync('login', wasGuest2)
+        try {
+          app.callFunction('repair_main', { action: 'recordConversion', phone: phone }).catch(function () {})
+        } catch (e) {}
 
         // 恢复全局数据
         var realShopPhone = shopInfo.shopPhone || shopInfo.phone
@@ -444,6 +451,12 @@ Page({
           showCancel: false,
           confirmText: '知道了'
         })
+
+        // ★ 访客转化埋点（静默 fire-and-forget，不影响注册流程）
+        app._trackVisitorAsync('register', false)
+        try {
+          app.callFunction('repair_main', { action: 'recordConversion', phone: phone }).catch(function () {})
+        } catch (e) {}
 
         setTimeout(function () {
           wx.reLaunch({ url: '/pages/dashboard/dashboard' })

@@ -44,7 +44,12 @@ var CORE_ACTIONS = {
   listOrders: 'registered',
   listMembers: 'admin',
   listCheckSheets: 'registered',
-  exportData: 'superAdmin+pro'
+  exportData: 'superAdmin+pro',
+
+  // 访客追踪域（零侵入埋点）
+  trackVisitor: 'public',
+  recordConversion: 'public',
+  getVisitorAnalytics: 'superAdmin'
 }
 
 // ★ auth 初始化必须在 ACTION_PERMISSIONS 定义之后
@@ -1604,6 +1609,296 @@ async function exportData(event, openid) {
 // deleteAccount → 已迁至 repair_aux
 
 // ============================
+// trackVisitor - 访客追踪埋点（零侵入：前端显式调用，不影响任何业务逻辑）
+// 入参：{ event, isGuest, source, deviceModel, deviceSystem }
+// 逻辑：
+//   1. 从 wxContext.OPENID 获取真实 openid（游客模式下 wxContext 仍可获取）
+//   2. upsert repair_visitor_tracking 集合
+//   3. 更新 visitCount / lastVisitTime / pageViews / lastActions / recentDays
+//   4. 首次访问时记录 deviceModel/deviceSystem/source
+// 返回：{ code: 0, msg: 'ok' }
+// ============================
+async function trackVisitor(event, openid) {
+  if (!openid || openid.length < 5) {
+    // 无有效 openid（如多端模式匿名用户）→ 静默跳过
+    return { code: 0, msg: 'skipped' }
+  }
+
+  var evtName = event.event || 'unknown'
+  var isGuest = !!event.isGuest
+  var source = event.source || ''        // 'miniprogram' | 'multiend' | 'web'
+  var deviceModel = event.deviceModel || ''
+  var deviceSystem = event.deviceSystem || ''
+
+  try {
+    var todayStr = new Date().toISOString().slice(0, 10)  // '2026-06-01'
+
+    // 1. 查询现有记录
+    var existRes = await db.collection('repair_visitor_tracking')
+      .where({ openid: openid })
+      .limit(1)
+      .get()
+
+    if (existRes.data && existRes.data.length > 0) {
+      // 已存在 → 更新
+      var doc = existRes.data[0]
+      var updateData = {
+        lastVisitTime: db.serverDate(),
+        visitCount: _.inc(1),
+        totalApiCalls: _.inc(1),
+        isGuest: isGuest,
+        ['recentDays.' + todayStr]: _.inc(1),
+        updateTime: db.serverDate()
+      }
+
+      // lastActions: 保留最近 10 条
+      var lastActions = (doc.lastActions || []).slice(0, 9)
+      lastActions.unshift(evtName + '@' + new Date().toISOString())
+      updateData.lastActions = lastActions
+
+      // pageViews: 记录事件名
+      if (doc.pageViews) {
+        updateData['pageViews.' + evtName] = _.inc(1)
+      } else {
+        updateData.pageViews = {}
+        updateData.pageViews[evtName] = 1
+      }
+
+      // source 只在首次设置后保留，不覆盖
+      if (!doc.source && source) {
+        updateData.source = source
+      }
+
+      await db.collection('repair_visitor_tracking').doc(doc._id).update({ data: updateData })
+    } else {
+      // 首次访问 → 创建
+      var newData = {
+        openid: openid,
+        firstVisitTime: db.serverDate(),
+        lastVisitTime: db.serverDate(),
+        visitCount: 1,
+        totalApiCalls: 1,
+        isGuest: isGuest,
+        source: source,
+        deviceModel: deviceModel,
+        deviceSystem: deviceSystem,
+        pageViews: {},
+        lastActions: [evtName + '@' + new Date().toISOString()],
+        recentDays: {},
+        converted: false,
+        createTime: db.serverDate(),
+        updateTime: db.serverDate()
+      }
+      newData.pageViews[evtName] = 1
+      newData.recentDays[todayStr] = 1
+
+      await db.collection('repair_visitor_tracking').add({ data: newData })
+    }
+
+    return { code: 0, msg: 'ok' }
+  } catch (err) {
+    // ★ 埋点失败静默，绝不抛出错误影响业务流程
+    console.warn('[trackVisitor] 静默失败:', err && err.message || err)
+    return { code: 0, msg: 'silent_error' }
+  }
+}
+
+// ============================
+// recordConversion - 记录访客转化（游客 → 注册）
+// 入参：{ phone }
+// 逻辑：
+//   1. 从 wxContext.OPENID 获取真实 openid
+//   2. 更新 repair_visitor_tracking 记录：converted=true, conversionTime, conversionPhone, isGuest=false
+// 返回：{ code: 0, msg: 'ok' }
+// ============================
+async function recordConversion(event, openid) {
+  var phone = event.phone || ''
+  if (!openid || openid.length < 5) {
+    return { code: 0, msg: 'skipped' }
+  }
+  if (!phone) {
+    return { code: 0, msg: 'skipped_no_phone' }
+  }
+
+  try {
+    var existRes = await db.collection('repair_visitor_tracking')
+      .where({ openid: openid })
+      .limit(1)
+      .get()
+
+    if (existRes.data && existRes.data.length > 0) {
+      await db.collection('repair_visitor_tracking').doc(existRes.data[0]._id).update({
+        data: {
+          converted: true,
+          conversionTime: db.serverDate(),
+          conversionPhone: phone,
+          isGuest: false,
+          updateTime: db.serverDate()
+        }
+      })
+    }
+    // 如果记录不存在（极端情况：trackVisitor 从未被调用过），静默跳过
+
+    return { code: 0, msg: 'ok' }
+  } catch (err) {
+    console.warn('[recordConversion] 静默失败:', err && err.message || err)
+    return { code: 0, msg: 'silent_error' }
+  }
+}
+
+// ============================
+// getVisitorAnalytics - 获取访客分析统计数据（供 mytool 仪表盘调用）
+// 权限：仅 superAdmin 可调用（通过 CORE_ACTIONS 鉴权）
+// 返回聚合后的访客统计数据
+// ============================
+async function getVisitorAnalytics(event, openid) {
+  try {
+    var now = new Date()
+    var todayStr = now.toISOString().slice(0, 10)
+    var sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    var thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+
+    // 分页全量查询
+    var allRecords = []
+    var batch = 0
+    var countRes = await db.collection('repair_visitor_tracking').count()
+    var total = countRes.total
+    while (batch * MAX_LIMIT < total) {
+      var res = await db.collection('repair_visitor_tracking')
+        .skip(batch * MAX_LIMIT)
+        .limit(MAX_LIMIT)
+        .get()
+      allRecords = allRecords.concat(res.data || [])
+      batch++
+    }
+
+    if (allRecords.length === 0) {
+      return { code: 0, data: { overview: {}, dailyTrend: [], pageRanking: [], sourceDistribution: {} } }
+    }
+
+    // === 统计计算 ===
+    var totalVisitors = allRecords.length
+    var newToday = 0
+    var new7d = 0
+    var new30d = 0
+    var convertedCount = 0
+    var totalVisitsForConversion = 0
+    var conversionVisitCount = 0
+    var active7d = 0
+
+    // 来源分布
+    var sourceDist = {}
+    // 页面排行（聚合所有记录）
+    var pageRankMap = {}
+    // 最近行为排行
+    var actionRankMap = {}
+    // 每日新增趋势（近 30 天）
+    var dailyNewMap = {}
+
+    // 初始化近 30 天数组
+    for (var d = 0; d < 30; d++) {
+      var dayDate = new Date(now.getTime() - (29 - d) * 24 * 60 * 60 * 1000)
+      var dayKey = dayDate.toISOString().slice(0, 10)
+      dailyNewMap[dayKey] = 0
+    }
+
+    allRecords.forEach(function (r) {
+      var ft = r.firstVisitTime ? new Date(r.firstVisitTime) : null
+      var lt = r.lastVisitTime ? new Date(r.lastVisitTime) : null
+
+      // 今日新增
+      if (ft && ft.toISOString().slice(0, 10) === todayStr) newToday++
+      // 7 日新增
+      if (ft && ft >= sevenDaysAgo) new7d++
+      // 30 日新增
+      if (ft && ft >= thirtyDaysAgo) new30d++
+
+      // 7 日活跃
+      if (lt && lt >= sevenDaysAgo) active7d++
+
+      // 转化
+      if (r.converted) {
+        convertedCount++
+        if (r.visitCount > 0) {
+          totalVisitsForConversion += r.visitCount
+          conversionVisitCount++
+        }
+      }
+
+      // 来源分布
+      var src = r.source || 'unknown'
+      sourceDist[src] = (sourceDist[src] || 0) + 1
+
+      // 页面排行
+      var pv = r.pageViews || {}
+      Object.keys(pv).forEach(function (k) {
+        pageRankMap[k] = (pageRankMap[k] || 0) + pv[k]
+      })
+
+      // 最近行为排行
+      var actions = r.lastActions || []
+      actions.forEach(function (a) {
+        var actionName = a.split('@')[0] || a
+        actionRankMap[actionName] = (actionRankMap[actionName] || 0) + 1
+      })
+
+      // 每日新增趋势（按 firstVisitTime）
+      if (ft) {
+        var ftKey = ft.toISOString().slice(0, 10)
+        if (dailyNewMap[ftKey] !== undefined) {
+          dailyNewMap[ftKey]++
+        }
+      }
+    })
+
+    // 排序
+    var pageRanking = Object.keys(pageRankMap)
+      .map(function (k) { return { key: k, count: pageRankMap[k] } })
+      .sort(function (a, b) { return b.count - a.count })
+      .slice(0, 10)
+
+    var actionRanking = Object.keys(actionRankMap)
+      .map(function (k) { return { key: k, count: actionRankMap[k] } })
+      .sort(function (a, b) { return b.count - a.count })
+
+    var dailyTrend = Object.keys(dailyNewMap).sort().map(function (k) {
+      return { date: k, count: dailyNewMap[k] }
+    })
+
+    var conversionRate = totalVisitors > 0
+      ? Math.round(convertedCount / totalVisitors * 10000) / 100
+      : 0
+
+    var avgVisitsToConversion = conversionVisitCount > 0
+      ? Math.round(totalVisitsForConversion / conversionVisitCount * 10) / 10
+      : 0
+
+    return {
+      code: 0,
+      data: {
+        overview: {
+          totalVisitors: totalVisitors,
+          newToday: newToday,
+          new7d: new7d,
+          new30d: new30d,
+          active7d: active7d,
+          convertedCount: convertedCount,
+          conversionRate: conversionRate,
+          avgVisitsToConversion: avgVisitsToConversion
+        },
+        dailyTrend: dailyTrend,
+        pageRanking: pageRanking,
+        actionRanking: actionRanking,
+        sourceDistribution: sourceDist
+      }
+    }
+  } catch (err) {
+    console.error('[getVisitorAnalytics] 错误:', err)
+    return { code: -99, msg: '统计加载失败' }
+  }
+}
+
+// ============================
 // 路由入口
 // ============================
 exports.main = async (event, context) => {
@@ -1640,7 +1935,11 @@ exports.main = async (event, context) => {
     listOrders: listOrders,
     listMembers: listMembers,
     listCheckSheets: listCheckSheets,
-    exportData: exportData
+    exportData: exportData,
+    // 访客追踪（零侵入埋点）
+    trackVisitor: trackVisitor,
+    recordConversion: recordConversion,
+    getVisitorAnalytics: getVisitorAnalytics
     // 17 个低耦合 action 已迁至 repair_aux
   }
 

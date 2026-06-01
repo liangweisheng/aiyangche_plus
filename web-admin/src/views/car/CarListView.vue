@@ -2,7 +2,12 @@
   <div class="car-page">
     <div class="page-header">
       <h2 class="page-title">车辆管理</h2>
-      <span class="subtitle" v-if="!loading">共 {{ filteredList.length }} 辆车</span>
+      <div class="header-right">
+        <span class="subtitle" v-if="!loading">共 {{ filteredList.length }} 辆车</span>
+        <el-button type="primary" size="small" @click="$router.push('/cars/add')">
+          <el-icon><Plus /></el-icon> 新建车辆
+        </el-button>
+      </div>
     </div>
 
     <!-- 搜索栏 -->
@@ -268,7 +273,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { fetchCarList, updateCarInfo } from '@/api/car'
 import { formatYuan, formatPhone, formatDate } from '@/utils/format'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 // ============ 数据状态 ============
@@ -448,7 +453,7 @@ async function saveEdit() {
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   margin-bottom: 12px;
 }
 
@@ -457,6 +462,12 @@ async function saveEdit() {
   font-size: 20px;
   font-weight: 600;
   color: #333;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .subtitle {
