@@ -812,6 +812,11 @@ Page({
     this.setData({ useHelpExpanded: !this.data.useHelpExpanded })
   },
 
+  // 跳转更新日志
+  onGoChangelog: function () {
+    wx.navigateTo({ url: '/pages/changelog/changelog' })
+  },
+
   // 跳转公众号教程
   onGoOfficialAccount: function () {
     if (this.data._isMultiEnd) {

@@ -316,6 +316,21 @@ var cloud = {
       ENV: 'mock-env'
     }
   },
+  // 跨云函数调用 mock（仅记录调用，不做实际调用）
+  callFunction: async function(options) {
+    // 如果调用的是自身模块的某个 action，尝试内部路由
+    if (options && options.name && options.data && options.data.action) {
+      try {
+        var targetModule = require('../../cloudfunctions/' + options.name + '/index.js')
+        if (targetModule && targetModule.main) {
+          return await targetModule.main(options.data, {})
+        }
+      } catch (e) {
+        // 模块不存在，返回模拟结果
+      }
+    }
+    return { result: { code: 0 } }
+  },
   database: function() {
     return {
       collection: function(name) {
@@ -346,6 +361,12 @@ var cloud = {
         },
         exists: function(value) {
           return { __exists: true, value: value }
+        },
+        inc: function(value) {
+          return { __inc: true, value: value }
+        },
+        remove: function() {
+          return { __remove: true }
         }
       },
       // db.RegExp 模拟

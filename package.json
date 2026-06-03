@@ -5,8 +5,13 @@
   "description": "爱养车+ 自动化测试",
   "scripts": {
     "test": "jest --verbose",
+    "test:all": "jest --verbose",
     "test:perm": "jest checkPermission --verbose",
-    "test:list": "jest listQuery --verbose"
+    "test:list": "jest listQuery --verbose",
+    "test:aux": "jest repairAux --verbose",
+    "sync:common": "node scripts/sync-common.js",
+    "check:sync": "jest sync-common --verbose",
+    "precommit": "npm run check:sync && npm run test:all"
   },
   "devDependencies": {
     "jest": "^29.7.0"

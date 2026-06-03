@@ -11,6 +11,10 @@ var { resetMockData } = require('../__mocks__/wx-server-sdk')
 var cloudFunc = require('../cloudfunctions/repair_main/index.js')
 var exportsMain = cloudFunc.main || cloudFunc
 
+// repair_aux 模块（用于测试拆分后迁至 aux 的 action）
+var cloudFuncAux = require('../cloudfunctions/repair_aux/index.js')
+var exportsAux = cloudFuncAux.main || cloudFuncAux
+
 // ============================
 // 测试数据工厂
 // ============================
@@ -151,6 +155,17 @@ async function callAction(action, event, openid) {
   return await exportsMain(ev, ctx)
 }
 
+/**
+ * 调用 repair_aux 云函数（用于测试迁至 aux 的 action）
+ */
+async function callAux(action, event, openid) {
+  var ev = Object.assign({ action: action }, event)
+  if (openid !== undefined) {
+    ev.clientOpenid = openid
+  }
+  return await exportsAux(ev, {})
+}
+
 // ============================
 // 测试套件
 // ============================
@@ -274,15 +289,15 @@ describe('checkPermission 权限矩阵测试', function() {
   })
 
   // ============================
-  // 4. admin+pro 动作：管理员 + Pro版
+  // 4. admin+pro 动作：管理员 + Pro版（repair_aux 鉴权链路）
   // ============================
-  describe.skip('admin+pro 动作（已迁至 repair_aux，需独立测试 repair_aux 鉴权链路）', function() {
+  describe('admin+pro 动作（repair_aux 鉴权链路）', function() {
     var adminProActions = Object.keys(PERMISSION_MATRIX).filter(function(k) {
       return PERMISSION_MATRIX[k].level === 'admin' && PERMISSION_MATRIX[k].pro
     })
 
     test('Pro 店主应能通过 admin+pro 权限', async function() {
-      var result = await callAction('addStaff', {
+      var result = await callAux('addStaff', {
         shopPhone: SHOP_PHONE,
         staffPhone: '13800004444',
         staffRole: 'staff'
@@ -295,7 +310,7 @@ describe('checkPermission 权限矩阵测试', function() {
       resetMockData({
         repair_activationCodes: [createShopOwnerNoPro()]
       })
-      var result = await callAction('addStaff', {
+      var result = await callAux('addStaff', {
         shopPhone: '13900009999',
         staffPhone: '13800004444',
         staffRole: 'staff'
@@ -305,7 +320,7 @@ describe('checkPermission 权限矩阵测试', function() {
     })
 
     test('staff 角色应被拒绝（需要管理员）', async function() {
-      var result = await callAction('addStaff', {
+      var result = await callAux('addStaff', {
         shopPhone: SHOP_PHONE,
         staffPhone: '13800004444',
         staffRole: 'staff'
@@ -321,7 +336,7 @@ describe('checkPermission 权限矩阵测试', function() {
           })
         ]
       })
-      var result = await callAction('addStaff', {
+      var result = await callAux('addStaff', {
         shopPhone: SHOP_PHONE,
         staffPhone: '13800004444',
         staffRole: 'staff'

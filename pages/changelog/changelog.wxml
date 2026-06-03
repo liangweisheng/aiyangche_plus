@@ -1,0 +1,63 @@
+<!-- pages/changelog/changelog.wxml -->
+<view class="container">
+
+  <!-- 反馈问题按钮 -->
+  <view class="feedback-section">
+    <button
+      wx:if="{{!_isMultiEnd}}"
+      class="feedback-btn"
+      open-type="contact"
+      session-from="changelog"
+    >
+      <text class="feedback-icon">💬</text>
+      <view class="feedback-text-wrap">
+        <text class="feedback-title">反馈问题</text>
+        <text class="feedback-desc">遇到问题或有功能建议？向我们反馈</text>
+      </view>
+      <text class="feedback-arrow">›</text>
+    </button>
+    <!-- 多端模式降级 -->
+    <view wx:else class="feedback-btn feedback-btn-multi" bindtap="onMultiEndFeedback">
+      <text class="feedback-icon">💬</text>
+      <view class="feedback-text-wrap">
+        <text class="feedback-title">反馈问题</text>
+        <text class="feedback-desc">点击选择联系方式</text>
+      </view>
+      <text class="feedback-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 更新时间线 -->
+  <view class="timeline">
+    <block wx:for="{{changelog}}" wx:key="version">
+      <!-- 年份分隔 -->
+      <view class="timeline-year" wx:if="{{index === 0 || item.date.substring(0,4) !== changelog[index - 1].date.substring(0,4)}}">
+        <text class="year-text">{{item.date.substring(0,4)}}</text>
+      </view>
+
+      <!-- 版本卡片 -->
+      <view class="timeline-item">
+        <view class="timeline-dot"></view>
+        <view class="timeline-line" wx:if="{{index < changelog.length - 1}}"></view>
+        <view class="timeline-card">
+          <view class="version-header">
+            <text class="version-tag">{{item.version}}</text>
+            <text class="version-date">{{item.date}}</text>
+          </view>
+          <view class="version-changes">
+            <view class="change-item" wx:for="{{item.changes}}" wx:for-item="change" wx:key="*this">
+              <text class="change-dot">•</text>
+              <text class="change-text">{{change}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="footer-hint">
+    <text>系统持续迭代中，更多功能敬请期待</text>
+  </view>
+
+</view>

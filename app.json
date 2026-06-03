@@ -15,7 +15,6 @@
     "pages/checkSheetList/checkSheetList",
     "pages/checkSheetDetail/checkSheetDetail",
     "pages/proUnlock/proUnlock",
-    "pages/dataExport/dataExport",
     "pages/report/report",
     "pages/privacy/privacy",
     "pages/userAgreement/userAgreement",
@@ -30,7 +29,15 @@
     "pages/product/productTemplateImport/productTemplateImport",
     "pages/product/productTemplateAdmin/productTemplateAdmin",
     "pages/product/productStockLogDetail/productStockLogDetail",
-    "pages/product/productReceiptDetail/productReceiptDetail"
+    "pages/product/productReceiptDetail/productReceiptDetail",
+    "pages/changelog/changelog"
+  ],
+  "subpackages": [
+    {
+      "root": "pages/dataExport",
+      "name": "dataExport",
+      "pages": ["dataExport"]
+    }
   ],
   "window": {
     "navigationBarBackgroundColor": "#1677ff",

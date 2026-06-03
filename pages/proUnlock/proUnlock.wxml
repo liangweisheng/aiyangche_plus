@@ -506,6 +506,10 @@
         <text class="help-item-text">点击前往 【公众号】 学习教程</text>
         <text class="help-item-arrow">›</text>
       </view>
+      <view class="help-item help-tappable" bindtap="onGoChangelog">
+        <text class="help-item-text">🆕 更新日志</text>
+        <text class="help-item-arrow">›</text>
+      </view>
     </view>
   </view>
 

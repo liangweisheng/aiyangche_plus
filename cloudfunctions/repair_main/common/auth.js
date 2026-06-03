@@ -2,8 +2,8 @@
  * 共享鉴权模块 — v6.5.0
  * 依赖：db, _ 通过工厂函数参数注入
  * 
- * ⚠️ 此文件是云函数内部子目录，部署时随云函数一同上传
- * ⚠️ repair_aux 将持有一份同步副本，修改时需同步两处
+ * ⚠️ 此文件是规范源（canonical source），所有云函数的 common/ 副本均从此处同步
+ * ⚠️ 修改后运行 `npm run sync:common` 同步到各个云函数
  * 
  * 提供：createAuthModule(db, _, permissions) → { checkPermission, _checkShopAccess, _getCallerRecord, _validatePhoneAccess }
  */

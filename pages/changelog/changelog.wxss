@@ -1,0 +1,209 @@
+/* pages/changelog/changelog.wxss */
+
+page {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
+}
+
+.container {
+  padding: 32rpx;
+  padding-bottom: 80rpx;
+}
+
+/* ========== 反馈按钮 ========== */
+.feedback-section {
+  margin-bottom: 40rpx;
+}
+
+.feedback-btn {
+  display: flex !important;
+  align-items: center;
+  width: 100% !important;
+  padding: 28rpx 28rpx !important;
+  margin: 0 !important;
+  background: linear-gradient(135deg, #e6f4ff 0%, #f0f7ff 100%) !important;
+  border: 2rpx solid #91caff !important;
+  border-radius: 20rpx !important;
+  box-sizing: border-box !important;
+  line-height: normal !important;
+  min-height: 0 !important;
+}
+
+.feedback-btn::after {
+  border: none !important;
+  display: none !important;
+}
+
+.feedback-btn:active {
+  background: linear-gradient(135deg, #d6eaff 0%, #e0edff 100%) !important;
+}
+
+.feedback-btn-multi {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #e6f4ff 0%, #f0f7ff 100%);
+  border: 2rpx solid #91caff;
+  border-radius: 20rpx;
+  padding: 28rpx;
+}
+
+.feedback-icon {
+  font-size: 48rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.feedback-text-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.feedback-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1677ff;
+  margin-bottom: 6rpx;
+}
+
+.feedback-desc {
+  font-size: 24rpx;
+  color: #7eb8ff;
+}
+
+.feedback-arrow {
+  font-size: 36rpx;
+  color: #91caff;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+
+/* ========== 时间线 ========== */
+.timeline {
+  position: relative;
+  padding-left: 40rpx;
+}
+
+/* 年份分隔 */
+.timeline-year {
+  position: relative;
+  left: -40rpx;
+  padding: 32rpx 0 24rpx 0;
+  display: flex;
+  align-items: center;
+}
+
+.timeline-year:first-child {
+  padding-top: 0;
+}
+
+.year-text {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #1677ff;
+  letter-spacing: 2rpx;
+}
+
+/* 时间线条目 */
+.timeline-item {
+  position: relative;
+  padding-bottom: 36rpx;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+/* 时间线圆点 */
+.timeline-dot {
+  position: absolute;
+  left: -34rpx;
+  top: 28rpx;
+  width: 16rpx;
+  height: 16rpx;
+  background: #1677ff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6rpx rgba(22, 119, 255, 0.15);
+  z-index: 1;
+}
+
+/* 时间线竖线 */
+.timeline-line {
+  position: absolute;
+  left: -28rpx;
+  top: 44rpx;
+  bottom: 0;
+  width: 2rpx;
+  background: linear-gradient(180deg, rgba(22, 119, 255, 0.3) 0%, rgba(22, 119, 255, 0.05) 100%);
+}
+
+/* 版本卡片 */
+.timeline-card {
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+  margin-left: 8rpx;
+}
+
+.version-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  padding-bottom: 18rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.version-tag {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1677ff;
+  background: linear-gradient(135deg, #e6f4ff 0%, #f0f7ff 100%);
+  padding: 6rpx 20rpx;
+  border-radius: 8rpx;
+}
+
+.version-date {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 变更列表 */
+.version-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.change-item {
+  display: flex;
+  align-items: flex-start;
+}
+
+.change-dot {
+  font-size: 28rpx;
+  color: #52c41a;
+  font-weight: 700;
+  margin-right: 14rpx;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+.change-text {
+  font-size: 27rpx;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* 底部提示 */
+.footer-hint {
+  text-align: center;
+  padding: 48rpx 0 32rpx;
+}
+
+.footer-hint text {
+  font-size: 24rpx;
+  color: #bbb;
+}
