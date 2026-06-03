@@ -161,8 +161,8 @@
     <view class="cancel-btn" catchtap="onCancel">
       <text class="cancel-text">取消</text>
     </view>
-    <view class="save-btn" catchtap="onSave">
-      <text class="btn-text">保存查车单</text>
+    <view class="save-btn {{saving ? 'save-btn-disabled' : ''}}" catchtap="onSave">
+      <text class="btn-text">{{saving ? '保存中...' : '保存查车单'}}</text>
     </view>
   </view>
 </view>

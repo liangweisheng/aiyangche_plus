@@ -49,7 +49,10 @@ var CORE_ACTIONS = {
   // 访客追踪域（零侵入埋点）
   trackVisitor: 'public',
   recordConversion: 'public',
-  getVisitorAnalytics: 'superAdmin'
+  getVisitorAnalytics: 'public',
+
+  // 运维管理（admin 级别：仅限本店数据，游客可用）
+  cleanupCheckSheets: 'admin'
 }
 
 // ★ auth 初始化必须在 ACTION_PERMISSIONS 定义之后
@@ -347,8 +350,6 @@ async function createOrder(event, openid) {
     var orderData = {
       plate: plate,
       serviceItems: serviceItems.trim(),
-      serviceAmounts: (serviceAmounts || '').trim(),
-      serviceCategories: serviceCategories,
       totalAmount: amount,
       paidAmount: Number(paidAmount) || 0,
       payMethod: payMethod,
@@ -365,7 +366,7 @@ async function createOrder(event, openid) {
     if (event.operatorName) orderData.operatorName = event.operatorName
     if (orderCategory) orderData.orderCategory = orderCategory
 
-    // ★ 双写：构建数组格式 _serviceItemsArr（兼容旧格式字符串）
+    // ★ 构建数组格式 _serviceItemsArr（新格式，取代旧 serviceAmounts/serviceQuantities/serviceCategories 字段）
     orderData._serviceItemsArr = parseServiceItems(serviceItems, serviceAmounts, event.serviceQuantities, serviceCategories)
 
     var orderResult = await db.collection('repair_orders').add({ data: orderData })
@@ -616,6 +617,25 @@ async function saveCheckSheet(event, openid) {
   }
 
   try {
+    // ★ 幂等保护：检查最近 30 秒内是否有完全相同的记录（防重复提交）
+    var dedupResult = await db.collection('repair_checkSheets')
+      .where({
+        shopPhone: shopPhone,
+        plate: plate.trim(),
+        operatorPhone: event.operatorPhone || '',
+        createTime: _.gte(new Date(Date.now() - 30000))
+      })
+      .orderBy('createTime', 'desc')
+      .limit(1)
+      .get()
+    if (dedupResult.data && dedupResult.data.length > 0) {
+      return {
+        code: 0,
+        msg: '已保存（防止重复提交）',
+        data: { _id: dedupResult.data[0]._id, dedup: true }
+      }
+    }
+
     var carRes = await db.collection('repair_cars')
       .where({ shopPhone: shopPhone, plate: plate.trim() })
       .limit(1)
@@ -884,8 +904,6 @@ async function useBenefit(event, openid) {
     var orderData = {
       plate: plate,
       serviceItems: baseServiceItems,
-      serviceAmounts: baseServiceAmounts,
-      serviceQuantities: baseServiceQuantities,
       totalAmount: 0,
       paidAmount: 0,
       payMethod: '1',
@@ -899,7 +917,7 @@ async function useBenefit(event, openid) {
     if (event.operatorPhone) orderData.operatorPhone = event.operatorPhone
     if (event.operatorName) orderData.operatorName = event.operatorName
     orderData.orderCategory = '核销权益卡'
-    // ★ 双写：权益核销工单也构建数组格式
+    // ★ 构建数组格式 _serviceItemsArr（新格式，取代旧 serviceAmounts/serviceQuantities）
     orderData._serviceItemsArr = parseServiceItems(orderData.serviceItems, baseServiceAmounts, baseServiceQuantities, '')
     var orderRes = await db.collection('repair_orders').add({ data: orderData })
     orderRef = orderRes._id
@@ -977,7 +995,7 @@ async function editOrder(event, openid) {
     if (order.data.shopPhone && order.data.shopPhone !== shopPhone) {
       return { code: -3, msg: '无权操作此工单' }
     }
-    // ★ 双写：编辑工单时如果有 serviceItems，同步构建 _serviceItemsArr
+    // ★ 编辑工单时如果有 serviceItems，同步构建 _serviceItemsArr，并清理旧字段
     if (updateData.serviceItems !== undefined) {
       updateData._serviceItemsArr = parseServiceItems(
         updateData.serviceItems,
@@ -985,6 +1003,10 @@ async function editOrder(event, openid) {
         updateData.serviceQuantities,
         updateData.serviceCategories
       )
+      // 清理旧格式冗余字段（数据已在 _serviceItemsArr 中）
+      delete updateData.serviceAmounts
+      delete updateData.serviceQuantities
+      delete updateData.serviceCategories
     }
     await db.collection('repair_orders').doc(docId).update({ data: updateData })
 
@@ -1899,6 +1921,102 @@ async function getVisitorAnalytics(event, openid) {
 }
 
 // ============================
+// cleanupCheckSheets - 清理重复查车单（运维专用）
+// ============================
+async function cleanupCheckSheets(event, openid) {
+  var shopPhone = event.shopPhone || ''
+  var dryRun = event.dryRun !== false  // 默认 true，安全模式
+
+  try {
+    var whereCondition = {}
+    if (shopPhone) {
+      whereCondition.shopPhone = shopPhone
+    }
+
+    // ★ 分页全量扫描：先 count，再分批拉取
+    var countRes = await db.collection('repair_checkSheets')
+      .where(whereCondition)
+      .count()
+    var totalCount = countRes.total
+    if (totalCount === 0) {
+      return { code: 0, msg: '没有数据', data: { total: 0, duplicates: 0, deleted: 0, dryRun: dryRun } }
+    }
+
+    var allData = []
+    var batch = 0
+    while (batch * MAX_LIMIT < totalCount) {
+      var res = await db.collection('repair_checkSheets')
+        .where(whereCondition)
+        .orderBy('createTime', 'desc')
+        .skip(batch * MAX_LIMIT)
+        .limit(MAX_LIMIT)
+        .get()
+      allData = allData.concat(res.data || [])
+      batch++
+    }
+
+    if (allData.length === 0) {
+      return { code: 0, msg: '没有数据', data: { total: 0, duplicates: 0, deleted: 0, dryRun: dryRun } }
+    }
+
+    // 构建去重 key：shopPhone + plate + operatorPhone + checkItems 序列化
+    var groups = {}
+    allData.forEach(function (doc) {
+      var key = (doc.shopPhone || '') + '|' + (doc.plate || '') + '|' + (doc.operatorPhone || '')
+      // 序列化 checkItems 作为内容指纹
+      var checkStr = JSON.stringify(doc.checkItems || {})
+      key = key + '|' + (doc.issue || '') + '|' + (doc.suggestion || '') + '|' + checkStr
+      if (!groups[key]) {
+        groups[key] = []
+      }
+      groups[key].push(doc)
+    })
+
+    // 找出所有重复组
+    var duplicateIds = []
+    var duplicateCount = 0
+    for (var key in groups) {
+      if (groups[key].length > 1) {
+        // 按 createTime 排序（最新的保留，其余删除）
+        var docs = groups[key].sort(function (a, b) {
+          var ta = a.createTime ? (a.createTime.getTime ? a.createTime.getTime() : 0) : 0
+          var tb = b.createTime ? (b.createTime.getTime ? b.createTime.getTime() : 0) : 0
+          return tb - ta  // desc
+        })
+        for (var i = 1; i < docs.length; i++) {
+          duplicateIds.push(docs[i]._id)
+          duplicateCount++
+        }
+      }
+    }
+
+    if (duplicateCount === 0) {
+      return { code: 0, msg: '没有发现重复数据', data: { total: allData.length, duplicates: 0, deleted: 0, dryRun: dryRun } }
+    }
+
+    if (!dryRun) {
+      // 分批删除（每批最多 100 条）
+      var batchSize = 100
+      for (var j = 0; j < duplicateIds.length; j += batchSize) {
+        var batchIds = duplicateIds.slice(j, j + batchSize)
+        await db.collection('repair_checkSheets')
+          .where({ _id: _.in(batchIds) })
+          .remove()
+      }
+    }
+
+    return {
+      code: 0,
+      msg: (dryRun ? '[预览模式] ' : '') + '共 ' + allData.length + ' 条数据，发现 ' + duplicateCount + ' 条重复' + (dryRun ? '（未实际删除）' : '（已删除）'),
+      data: { total: allData.length, duplicates: duplicateCount, deleted: dryRun ? 0 : duplicateCount, dryRun: dryRun }
+    }
+  } catch (err) {
+    console.error('cleanupCheckSheets 错误:', err)
+    return { code: -99, msg: '清理失败: ' + (err.message || '未知错误') }
+  }
+}
+
+// ============================
 // 路由入口
 // ============================
 exports.main = async (event, context) => {
@@ -1939,7 +2057,9 @@ exports.main = async (event, context) => {
     // 访客追踪（零侵入埋点）
     trackVisitor: trackVisitor,
     recordConversion: recordConversion,
-    getVisitorAnalytics: getVisitorAnalytics
+    getVisitorAnalytics: getVisitorAnalytics,
+    // 运维管理
+    cleanupCheckSheets: cleanupCheckSheets
     // 17 个低耦合 action 已迁至 repair_aux
   }
 

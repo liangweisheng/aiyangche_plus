@@ -463,10 +463,10 @@
 
 <!-- 底部提交按钮 -->
 <view class="footer">
-  <view class="draft-btn" bindtap="onSaveDraft">
-    <text class="btn-text">暂存工单</text>
+  <view class="draft-btn {{saving ? 'draft-btn-disabled' : ''}}" bindtap="onSaveDraft">
+    <text class="btn-text">{{saving ? '保存中...' : '暂存工单'}}</text>
   </view>
-  <view class="submit-btn" bindtap="onSave">
-    <text class="btn-text">保存工单</text>
+  <view class="submit-btn {{saving ? 'submit-btn-disabled' : ''}}" bindtap="onSave">
+    <text class="btn-text">{{saving ? '保存中...' : '保存工单'}}</text>
   </view>
 </view>

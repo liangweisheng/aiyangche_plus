@@ -4,6 +4,7 @@
 // 识别结果通过 EventChannel 回传到调用页，降级方案：app.globalData._ocrResult
 
 const app = getApp()
+var util = require('../../utils/util')
 
 Page({
   data: {
@@ -109,8 +110,7 @@ Page({
       console.log('[cameraScan] 开始调用云函数:', action, 'base64前50位:', base64.substring(0, 50))
       console.log('[cameraScan] isCloudReady:', app.isCloudReady ? app.isCloudReady() : 'N/A')
 
-      app.callFunction('repair_main', {
-        action: action,
+      util.callRepair(action, {
         imgBase64: base64
       }).then(function (res) {
         wx.hideLoading()

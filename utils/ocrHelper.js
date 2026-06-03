@@ -6,6 +6,7 @@
  */
 
 var app = getApp()
+var util = require('./util')
 
 /**
  * 打开相机/相册 → OCR识别 → 回调
@@ -41,8 +42,7 @@ function scanPlate(callback, options) {
 
       wx.showLoading({ title: '识别中...' })
 
-      app.callFunction('repair_main', {
-        action: 'ocrPlate',
+      util.callRepair('ocrPlate', {
         imgBase64: base64
       }).then(function (res) {
         wx.hideLoading()
@@ -98,8 +98,7 @@ function scanVIN(callback, options) {
 
       wx.showLoading({ title: '识别中...' })
 
-      app.callFunction('repair_main', {
-        action: 'ocrVIN',
+      util.callRepair('ocrVIN', {
         imgBase64: base64
       }).then(function (res) {
         wx.hideLoading()

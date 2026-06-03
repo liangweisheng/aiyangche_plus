@@ -53,27 +53,45 @@ Page({
         }
         var payMap = { '1': '现付', '2': '挂账' }
 
-        // 解析服务项目表格数据
-        var items = (order.serviceItems || '').split(/[,，]/).filter(function (s) { return s.trim() })
-        var amounts = (order.serviceAmounts || '').split(',').map(function (a) { return Number(a) || 0 })
-        var quantities = (order.serviceQuantities || '').split(',').map(function (q) { return Number(q) || 0 })
+        // 解析服务项目表格数据：优先读 _serviceItemsArr（新格式），旧格式兜底
+        var itemsArr = order._serviceItemsArr
         var isBenefitOrder = order.remark && order.remark.indexOf('权益核销') === 0
-        var itemRows = items.map(function (item, idx) {
-          var text = item.trim()
-          var parts = text.split(/\s+/)
-          var name = parts[0] || ''
-          // 权益核销工单：第一项项目名加 [核销] 前缀
-          if (idx === 0 && isBenefitOrder && name) {
-            name = '[核销]' + name
-          }
-          return {
-            index: idx + 1,
-            name: name,
-            spec: parts.slice(1).join(' ') || '',
-            amount: amounts[idx] || 0,
-            qty: quantities[idx] || 1
-          }
-        })
+        var itemRows
+        if (itemsArr && itemsArr.length > 0) {
+          itemRows = itemsArr.map(function (item, idx) {
+            var name = item.name || ''
+            if (idx === 0 && isBenefitOrder && name) {
+              name = '[核销]' + name
+            }
+            return {
+              index: idx + 1,
+              name: name,
+              spec: item.spec || '',
+              amount: item.amount || 0,
+              qty: item.qty || 1
+            }
+          })
+        } else {
+          // 旧格式兜底
+          var items = (order.serviceItems || '').split(/[,，]/).filter(function (s) { return s.trim() })
+          var amounts = (order.serviceAmounts || '').split(',').map(function (a) { return Number(a) || 0 })
+          var quantities = (order.serviceQuantities || '').split(',').map(function (q) { return Number(q) || 1 })
+          itemRows = items.map(function (item, idx) {
+            var text = item.trim()
+            var parts = text.split(/\s+/)
+            var name = parts[0] || ''
+            if (idx === 0 && isBenefitOrder && name) {
+              name = '[核销]' + name
+            }
+            return {
+              index: idx + 1,
+              name: name,
+              spec: parts.slice(1).join(' ') || '',
+              amount: amounts[idx] || 0,
+              qty: quantities[idx] || 1
+            }
+          })
+        }
 
         page.setData({
           order: order,
@@ -192,9 +210,19 @@ Page({
     var pad = 40
 
     // ====== 动态计算高度 ======
-    var items = (order.serviceItems || '').split(/[,，]/).filter(function (s) { return s.trim() })
-    var amounts = (order.serviceAmounts || '').split(',').map(function (a) { return Number(a) || 0 })
-    var quantities = (order.serviceQuantities || '').split(',').map(function (q) { return Number(q) || 1 })
+    // 优先读 _serviceItemsArr（新格式），旧格式兜底
+    var itemsArrS = order._serviceItemsArr
+    var items, amounts, quantities
+    if (itemsArrS && itemsArrS.length > 0) {
+      items = itemsArrS.map(function (si) { return si.name + (si.spec ? ' ' + si.spec : '') })
+      amounts = itemsArrS.map(function (si) { return si.amount || 0 })
+      quantities = itemsArrS.map(function (si) { return si.qty || 1 })
+    } else {
+      // 旧格式兜底
+      items = (order.serviceItems || '').split(/[,，]/).filter(function (s) { return s.trim() })
+      amounts = (order.serviceAmounts || '').split(',').map(function (a) { return Number(a) || 0 })
+      quantities = (order.serviceQuantities || '').split(',').map(function (q) { return Number(q) || 1 })
+    }
     var isBenefitOrderForShare = order.remark && order.remark.indexOf('权益核销') === 0
     var tableRowH = 32
     var tableH = 50 + items.length * tableRowH + 16

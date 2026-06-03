@@ -323,3 +323,9 @@
 .save-btn:active {
   background: #0958d9;
 }
+
+.save-btn-disabled {
+  background: #91caff;
+  box-shadow: none;
+  pointer-events: none;
+}

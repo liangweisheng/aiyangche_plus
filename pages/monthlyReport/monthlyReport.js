@@ -3,6 +3,7 @@
 
 const app = getApp()
 var constants = require('../../utils/constants')
+var util = require('../../utils/util')
 
 Page({
   data: {
@@ -88,9 +89,7 @@ Page({
     var shopPhone = page.data.shopPhone
     if (!shopPhone) return Promise.reject(new Error('no shopPhone'))
 
-    return app.callFunction('repair_main', {
-      action: 'listRecentReports',
-      shopPhone: shopPhone,
+    return util.callRepair('listRecentReports', {
       limit: 6  // 多取几个月，用于智能选择
     }).then(function (res) {
       if (res.code !== 0 || !res.data || !Array.isArray(res.data.list) || res.data.list.length === 0) {
@@ -185,10 +184,8 @@ Page({
     // 显示 loading
     page.setData({ loading: true, emptyType: '' })
 
-    return app.callFunction('repair_main', {
-      action: 'getMonthlyReport',
-      yearMonth: currentMonth.yearMonth,
-      shopPhone: shopPhone
+    return util.callRepair('getMonthlyReport', {
+      yearMonth: currentMonth.yearMonth
     }).then(function (res) {
       if (res.code === 0 && res.data) {
         var reportData = res.data
@@ -207,12 +204,7 @@ Page({
         reportData = page._enrichReportData(reportData)
 
         // ★ 获取最新门店配置用于基准文案（reportData中的shopProfile是历史快照）
-        var myOpenid = app.globalData._openid || (wx.getStorageSync('shopInfo') || {}).openid || ''
-        return app.callFunction('repair_main', {
-          action: 'getShopProfile',
-          shopPhone: shopPhone,
-          clientOpenid: myOpenid   // ★ 传入 openid 做鉴权（修复 -3 "未登录" bug）
-        }).then(function (profileRes) {
+        return util.callRepair('getShopProfile').then(function (profileRes) {
           // 用最新配置覆盖报告中的旧快照（仅影响benchmarkText展示）
           if (profileRes.code === 0 && profileRes.data && profileRes.data.bayCount !== undefined) {
             if (!reportData.shopProfile) reportData.shopProfile = {}

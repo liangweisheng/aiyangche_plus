@@ -26,7 +26,8 @@ Page({
     colorExpanded: false,
     keyboardVisible: false,
     vinKeyboardVisible: false,
-    showDetail: false
+    showDetail: false,
+    saving: false      // 防重复提交锁
   },
 
   onLoad() {
@@ -217,6 +218,11 @@ Page({
   // 保存车辆（自动写入 shopPhone 实现门店隔离）
   onSave() {
     var page = this
+
+    // 防重复提交锁
+    if (page.data.saving) return
+    page.setData({ saving: true })
+
     var form = page.data.form
     var plateNumber = form.plateNumber
     var carModel = form.carModel
@@ -231,12 +237,13 @@ Page({
 
     if (!plateNumber.trim()) {
       wx.showToast({ title: '请输入车牌号', icon: 'none' })
+      page.setData({ saving: false })
       return
     }
 
     var db = app.db()
     var shopPhone = app.getShopPhone()
-    wx.showLoading({ title: '保存中...' })
+    wx.showLoading({ title: '保存中...', mask: true })
 
     // ★ 校验同门店下车牌号唯一性（核心索引：shopPhone + plate）
     var plateTrim = plateNumber.trim()
@@ -248,6 +255,7 @@ Page({
       .then(function (countRes) {
         if (countRes.total > 0) {
           wx.hideLoading()
+          page.setData({ saving: false })
           wx.showToast({ title: '该车牌号已存在', icon: 'none' })
           return
         }
@@ -271,6 +279,7 @@ Page({
       .then(function (res) {
         if (!res) return
         wx.hideLoading()
+        page.setData({ saving: false })
         if (res.code === 0) {
           wx.showToast({ title: '保存成功', icon: 'success' })
           setTimeout(function () { wx.navigateTo({ url: '/pages/carDetail/carDetail?id=' + res.data._id }) }, 1500)
@@ -280,6 +289,7 @@ Page({
       })
       .catch(function (err) {
         wx.hideLoading()
+        page.setData({ saving: false })
         console.error('保存车辆失败', err)
         wx.showToast({ title: '保存失败', icon: 'none' })
       })

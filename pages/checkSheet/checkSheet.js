@@ -18,6 +18,7 @@ Page({
     autoFocusSearch: true,
     recentCars: [],
     searching: false,
+    saving: false,     // 防重复提交锁
     form: {
       exterior: '',
       tire: '',
@@ -265,6 +266,12 @@ Page({
   // 保存查车单（自动写入 shopPhone）
   onSave() {
     var page = this
+
+    // 防重复提交锁
+    if (page.data.saving) {
+      return
+    }
+
     var data = page.data
     var plate = data.plate
     var carInfo = data.carInfo
@@ -291,7 +298,10 @@ Page({
     }
 
     var shopPhone = app.getShopPhone()
-    wx.showLoading({ title: '保存中...' })
+
+    // 锁定按钮，防止重复提交
+    page.setData({ saving: true })
+    wx.showLoading({ title: '保存中...', mask: true })
 
     var checkItemsData = {}
     checkItems.forEach(function (item) {
@@ -314,6 +324,7 @@ Page({
       operatorName: app.getOperatorName()
     }).then(function (res) {
       wx.hideLoading()
+      page.setData({ saving: false })
       if (res && res.code === 0) {
         wx.showToast({ title: '保存成功', icon: 'success' })
         setTimeout(function () { wx.navigateBack() }, 1500)
@@ -322,6 +333,7 @@ Page({
       }
     }).catch(function (err) {
       wx.hideLoading()
+      page.setData({ saving: false })
       console.error('保存查车单失败：', err)
       wx.showToast({ title: '保存失败', icon: 'none' })
     })

@@ -809,6 +809,11 @@
   opacity: 0.9;
 }
 
+.draft-btn-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .draft-btn .btn-text {
   color: #1677ff;
 }
@@ -827,6 +832,12 @@
 .submit-btn:active {
   transform: scale(0.98);
   opacity: 0.9;
+}
+
+.submit-btn-disabled {
+  background: linear-gradient(135deg, #91caff 0%, #b4d8ff 100%);
+  box-shadow: none;
+  pointer-events: none;
 }
 
 .btn-text {

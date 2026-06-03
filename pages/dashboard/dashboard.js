@@ -316,20 +316,30 @@ Page({
 
     page.setData({ reportLoading: true, _reportFetching: true })
 
-    return app.callFunction('repair_main', {
-      action: 'listRecentReports',
-      shopPhone: shopPhone,
+    return util.callRepair('listRecentReports', {
       limit: 1
     }).then(function (res) {
       if (res.code === 0 && res.data && res.data.list && res.data.list.length > 0) {
-        // 有报告数据，直接展示（不再自动弹引导）
-        page.setData({
-          latestReport: res.data.list[0],
-          reportLoading: false,
-          _reportFetching: false
-        })
-        // ★ 预取门店配置（用于引导弹窗判断是否需要弹出）
-        page._prefetchShopProfile()
+        // ★ 兜底检查：定时触发器失败时，Pro用户进入Dashboard自动补生成上月月报
+        var now = new Date()
+        var lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        var expectedYm = lastMonth.getFullYear() + '-' + ('0' + (lastMonth.getMonth() + 1)).slice(-2)
+        var latest = res.data.list[0]
+
+        if (latest.yearMonth !== expectedYm) {
+          // 最新月报落后于预期月份 → 触发生成上月报告
+          page.setData({ _reportFetching: false })
+          page._tryGenerateReport()
+        } else {
+          // 月报已是最新 → 直接展示
+          page.setData({
+            latestReport: latest,
+            reportLoading: false,
+            _reportFetching: false
+          })
+          // ★ 预取门店配置（用于引导弹窗判断是否需要弹出）
+          page._prefetchShopProfile()
+        }
       } else {
         // 无报告数据，尝试触发生成上月报告
         page.setData({ _reportFetching: false })
@@ -358,22 +368,20 @@ Page({
     var lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     var ym = lastMonth.getFullYear() + '-' + ('0' + (lastMonth.getMonth() + 1)).slice(-2)
 
-    app.callFunction('repair_main', {
-      action: 'generateMonthlyReport',
-      shopPhone: shopPhone,
+    util.callRepair('generateMonthlyReport', {
       yearMonth: ym
     }).then(function (res) {
       if (res.code === 0 && res.data) {
-        page.setData({ latestReport: res.data, reportLoading: false })
+        page.setData({ latestReport: res.data, reportLoading: false, _reportFetching: false })
         page._prefetchShopProfile()
       } else if (res.code === -2) {
         // 数据不足/新店/未达门槛 — 静默处理，不展示空报告卡片
-        page.setData({ latestReport: null, reportLoading: false })
+        page.setData({ latestReport: null, reportLoading: false, _reportFetching: false })
       } else {
-        page.setData({ latestReport: null, reportLoading: false })
+        page.setData({ latestReport: null, reportLoading: false, _reportFetching: false })
       }
     }).catch(function () {
-      page.setData({ reportLoading: false })
+      page.setData({ reportLoading: false, _reportFetching: false })
     })
   },
 
@@ -449,10 +457,7 @@ Page({
     var sp = page.data.isGuest ? constants.GUEST_PHONE : page.data.shopPhone
     if (!sp) return
 
-    app.callFunction('repair_main', {
-      action: 'getShopProfile',
-      shopPhone: sp
-    }).then(function (res) {
+    util.callRepair('getShopProfile').then(function (res) {
       if (res.code === 0 && res.data && res.data.bayCount) {
         page.setData({ _shopProfileCache: res.data })
       }

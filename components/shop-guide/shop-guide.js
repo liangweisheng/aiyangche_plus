@@ -1,6 +1,8 @@
 // components/shop-guide/shop-guide.js
 // 门店信息引导弹窗（首次使用月报功能时弹出）
 
+var util = require('../../utils/util')
+
 Component({
   properties: {
     visible: {
@@ -69,9 +71,7 @@ Component({
 
       page.setData({ submitting: true })
 
-      app.callFunction('repair_main', {
-        action: 'updateShopProfile',
-        shopPhone: shopPhone,
+      util.callRepair('updateShopProfile', {
         bayCount: page.data.bayCount,
         openYear: page.data.openYear
       }).then(function (res) {

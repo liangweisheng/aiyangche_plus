@@ -74,7 +74,8 @@ Page({
     // 进销存
     inventoryEnabled: false,
     // 自由开单模式
-    freeOrderMode: true
+    freeOrderMode: true,
+    saving: false     // 防重复提交锁
   },
 
   onUnload() {
@@ -127,13 +128,22 @@ Page({
         }
         // 回填车牌
         page.setPlate(order.plate || '')
-        // 回填服务项目（从 serviceItems 文本拆分为行）
-        var items = (order.serviceItems || '').split(/[,，]/).filter(function (s) { return s.trim() })
-        var amounts = (order.serviceAmounts || '').split(',').map(function (a) { return a })
-        var rows = items.map(function (item, idx) {
-          var parts = item.trim().split(/\s+/)
-          return { name: parts[0] || '', spec: parts.slice(1).join(' ') || '', amount: amounts[idx] || '' }
-        })
+        // 回填服务项目：优先读 _serviceItemsArr（新格式），旧格式兜底
+        var itemsArr = order._serviceItemsArr
+        var rows
+        if (itemsArr && itemsArr.length > 0) {
+          rows = itemsArr.map(function (item) {
+            return { name: item.name || '', spec: item.spec || '', amount: String(item.amount || '') }
+          })
+        } else {
+          // 旧格式兜底
+          var items = (order.serviceItems || '').split(/[,，]/).filter(function (s) { return s.trim() })
+          var amounts = (order.serviceAmounts || '').split(',').map(function (a) { return a })
+          rows = items.map(function (item, idx) {
+            var parts = item.trim().split(/\s+/)
+            return { name: parts[0] || '', spec: parts.slice(1).join(' ') || '', amount: amounts[idx] || '' }
+          })
+        }
         // 保存原工单状态（区分草稿 vs 已完成，决定库存是否实际扣减）
         page._originalOrderStatus = order.status || ''
         // 从 _deductedItems 还原库存商品标记（用于编辑时库存校验/扣减）
@@ -1065,6 +1075,11 @@ Page({
 
   onSave() {
     var page = this
+
+    // 防重复提交锁
+    if (page.data.saving) return
+    page.setData({ saving: true })
+
     var data = page.data
     var plate = data.plate
     var form = data.form
@@ -1073,6 +1088,7 @@ Page({
 
     if (!plate) {
       wx.showToast({ title: '请先输入或选择车牌', icon: 'none' })
+      page.setData({ saving: false })
       return
     }
 
@@ -1094,6 +1110,7 @@ Page({
     })
     if (!hasItem) {
       wx.showToast({ title: '请输入服务项目', icon: 'none' })
+      page.setData({ saving: false })
       return
     }
     // 验证：项目有内容时金额不能为空
@@ -1105,12 +1122,14 @@ Page({
     })
     if (amountError) {
       wx.showToast({ title: '有项目的金额未填写', icon: 'none' })
+      page.setData({ saving: false })
       return
     }
     var totalAmount = latestForm.totalAmount ? Number(latestForm.totalAmount) : 0
     // ★ v6.x 编辑模式允许金额为 0（权益核销工单无金额）
     if (totalAmount <= 0 && !page.data.editId) {
       wx.showToast({ title: '请输入服务金额', icon: 'none' })
+      page.setData({ saving: false })
       return
     }
     var paidAmount = latestForm.paidAmount ? Number(latestForm.paidAmount) : 0
@@ -1124,6 +1143,8 @@ Page({
         success: function (modalRes) {
           if (modalRes.confirm) {
             page._finalizeOrderSave(latestForm, itemsText, rows, page)
+          } else {
+            page.setData({ saving: false })
           }
         }
       })
@@ -1135,10 +1156,16 @@ Page({
   // 暂存工单（状态：施工中，仅要求车牌，允许项目和金额为空）
   onSaveDraft() {
     var page = this
+
+    // 防重复提交锁
+    if (page.data.saving) return
+    page.setData({ saving: true })
+
     var plate = page.data.plate
 
     if (!plate) {
       wx.showToast({ title: '请先输入或选择车牌', icon: 'none' })
+      page.setData({ saving: false })
       return
     }
 
@@ -1193,6 +1220,7 @@ Page({
           var cnt = countRes.total || 0
           if (cnt >= constants.FREE_MAX_ORDERS) {
             wx.hideLoading()
+            page.setData({ saving: false })
             wx.showModal({
               title: '已达免费版上限',
               content: '免费版最多创建' + constants.FREE_MAX_ORDERS + '个工单（当前' + cnt + '个）\n升级Pro版即可无限使用',
@@ -1216,7 +1244,7 @@ Page({
 
   _doSaveOrder(plate, form, status, shopPhone, editId, isEdit, skipDeduct) {
     var page = this
-    wx.showLoading({ title: '保存中...' })
+    wx.showLoading({ title: '保存中...', mask: true })
 
     // 先收集需扣减的库存项（在扣减之前记录）
     var deductedItems = []
@@ -1244,6 +1272,7 @@ Page({
         page._commitOrder(plate, form, status, shopPhone, editId, isEdit, deductedItems)
       }).catch(function (err) {
         wx.hideLoading()
+        page.setData({ saving: false })
         wx.showModal({
           title: '库存不足',
           content: (err && err.msg) || '部分商品库存不足，无法保存工单',
@@ -1307,6 +1336,7 @@ Page({
 
     promise.then(function (res) {
       wx.hideLoading()
+      page.setData({ saving: false })
       if (res && res.code === 0) {
         wx.showToast({ title: isEdit ? '修改成功' : '开单成功', icon: 'success' })
 
@@ -1342,6 +1372,7 @@ Page({
       }
     }).catch(function () {
       wx.hideLoading()
+      page.setData({ saving: false })
       wx.showToast({ title: '保存失败', icon: 'none' })
     })
   },
@@ -1352,6 +1383,7 @@ Page({
     var paidAmount = Number(form.paidAmount) || 0
     if (paidAmount > 999999) {
       wx.showToast({ title: '金额过大，请检查！', icon: 'none' })
+      page.setData({ saving: false })
       return
     }
 

@@ -519,7 +519,7 @@ async function generateMonthlyReport(event, openid) {
     var baseWhere = { shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.and([_.gte(monthStart), _.lte(monthEnd)]) }
 
     // 并行获取：当月订单、历史所有订单(用于新客/老客判断)、车辆列表、门店配置
-    var ordersRes = await fetchAllOrders(db, _, baseWhere, { plate: true, totalAmount: true, serviceItems: true, createTime: true })
+    var ordersRes = await fetchAllOrders(db, _, baseWhere, { plate: true, totalAmount: true, serviceItems: true, _serviceItemsArr: true, createTime: true })
     var allOrdersRes = await fetchAllOrders(db, _, { shopPhone: shopPhone, isVoided: _.neq(true) }, { plate: true, createTime: true })
 
     // ====== 三重前置校验 ======
@@ -579,7 +579,14 @@ async function generateMonthlyReport(event, openid) {
     var valueAddedOrderCount = 0
 
     ordersRes.forEach(function (o) {
-      var items = (o.serviceItems || '').toLowerCase()
+      // 优先用 _serviceItemsArr 构建项目文本，旧格式 serviceItems 兜底
+      var items
+      if (o._serviceItemsArr && o._serviceItemsArr.length > 0) {
+        items = o._serviceItemsArr.map(function (si) { return (si.name || '') + ' ' + (si.spec || '') }).join('，')
+      } else {
+        items = o.serviceItems || ''
+      }
+      items = items.toLowerCase()
       if (!items) return
 
       var isMaintenance = MAINTENANCE_KEYWORDS.some(function (kw) { return items.indexOf(kw) !== -1 })
