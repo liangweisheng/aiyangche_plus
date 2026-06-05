@@ -195,8 +195,7 @@ Page({
 
         wx.showLoading({ title: '识别中...' })
 
-        app.callFunction('repair_main', {
-          action: action,
+        util.callRepair(action, {
           imgBase64: base64
         }).then(function (res) {
           wx.hideLoading()

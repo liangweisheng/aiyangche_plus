@@ -663,6 +663,24 @@ Page({
     wx.navigateTo({ url: '/pages/product/productStockList/productStockList' })
   },
 
+  // 💡 快速入门：跳转公众号图文教程
+  onQuickStart() {
+    var url = constants.QUICK_START_ARTICLE_URL
+    if (!url) {
+      // 文章尚未发布时，引导用户关注公众号
+      wx.showModal({
+        title: '教程正在准备中',
+        content: '快速入门图文教程即将发布，请先关注公众号「汽修店小管家」获取最新动态',
+        showCancel: false,
+        confirmText: '知道了'
+      })
+      return
+    }
+    wx.navigateTo({
+      url: '/pages/webview/webview?url=' + encodeURIComponent(url)
+    })
+  },
+
   // 📷 车牌OCR识别（v6.1.0）
   onScanPlate() {
     var page = this

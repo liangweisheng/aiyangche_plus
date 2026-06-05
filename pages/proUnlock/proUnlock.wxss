@@ -1245,6 +1245,59 @@ page {
   margin-top: 16rpx;
 }
 
+/* ========== 使用帮助 - 文章列表 ========== */
+.help-article-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 20rpx;
+  background: linear-gradient(135deg, #f0f7ff 0%, #fafcff 100%);
+  border-radius: 12rpx;
+  margin-bottom: 12rpx;
+  border: 1rpx solid #e8f0fe;
+}
+
+.help-article-item:active {
+  background: linear-gradient(135deg, #d6e4ff 0%, #e6f4ff 100%);
+  border-color: #91caff;
+}
+
+.help-article-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.help-article-icon {
+  font-size: 32rpx;
+  flex-shrink: 0;
+}
+
+.help-article-text {
+  font-size: 28rpx;
+  color: #1a1a1a;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.help-article-arrow {
+  font-size: 28rpx;
+  color: #1677ff;
+  flex-shrink: 0;
+  margin-left: 8rpx;
+}
+
+/* 分隔线 */
+.help-divider {
+  height: 1rpx;
+  background: #f0f0f0;
+  margin: 14rpx 0 18rpx;
+}
+
 /* ========== 使用帮助展开项 ========== */
 .help-item {
   display: flex;

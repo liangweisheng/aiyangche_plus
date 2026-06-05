@@ -319,6 +319,17 @@
   color: #1677ff;
 }
 
+/* 隐私提示条 */
+.detail-privacy-hint {
+  padding: 12rpx 0 4rpx;
+  border-top: 1rpx solid #f5f5f5;
+}
+
+.detail-privacy-hint text {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
 /* 加载 */
 .loading-wrap {
   display: flex;
@@ -366,6 +377,33 @@
   opacity: 0.85;
 }
 
+/* 生成报价单按钮（绿色主题） */
+.quote-btn {
+  flex: 3;
+  background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+  border-radius: 20rpx;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  box-shadow: 0 8rpx 24rpx rgba(82, 196, 26, 0.3);
+}
+
+.quote-btn:active {
+  opacity: 0.85;
+}
+
+.quote-icon {
+  font-size: 32rpx;
+}
+
+.quote-text {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
 .reorder-icon {
   font-size: 36rpx;
 }
@@ -377,7 +415,7 @@
 }
 
 .edit-btn {
-  flex: 3;
+  flex: 2;
   background: #fff;
   border: 2rpx solid #1677ff;
   border-radius: 20rpx;
@@ -430,6 +468,7 @@
   font-size: 28rpx;
   font-weight: 600;
   color: #ff4d4f;
+  white-space: nowrap;
 }
 
 .void-btn.voided .void-text {

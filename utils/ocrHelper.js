@@ -2,7 +2,7 @@
  * utils/ocrHelper.js
  * 车牌OCR识别统一入口（v6.1.0）
  * 所有页面共享同一套拍照→压缩→识别→回填流程
- * 方案：云函数 repair_main (action: ocrPlate) → 腾讯云OCR API
+ * 方案：云函数 repair_aux (action: ocrPlate) → 腾讯云OCR API
  */
 
 var app = getApp()

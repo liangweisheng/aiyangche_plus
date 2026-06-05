@@ -145,8 +145,8 @@
           <text>用于每月经营报告的基准值对标和诊断分析</text>
         </view>
       </block>
-      <!-- 门店联系方式（仅 Pro 版显示） -->
-      <block wx:if="{{isPro}}">
+      <!-- 门店联系方式 -->
+      <block>
         <view class="settings-divider"></view>
         <view class="settings-section-title">
           <text>📞 门店联系方式</text>
@@ -178,6 +178,17 @@
           <view class="profile-value-row">
             <text class="profile-value">{{shopAddr}}</text>
           </view>
+        </view>
+      </block>
+      <!-- 门店码 -->
+      <block wx:if="{{shopCode}}">
+        <view class="settings-divider"></view>
+        <view class="settings-section-title">
+          <text>🏪 门店码</text>
+        </view>
+        <view class="shop-code-section">
+          <view class="shop-code-num" bindtap="onCopyShopCode">{{shopCode}}</view>
+          <view class="shop-code-tip">点击复制，分享给员工即可加入此门店</view>
         </view>
       </block>
     </view>
@@ -438,23 +449,6 @@
     </view>
   </view>
 
-  <!-- ★ 门店码（可折叠，默认收起） -->
-  <view class="card collapsible-card" wx:if="{{shopCode}}">
-    <view class="collapse-header" bindtap="toggleShopCode">
-      <view class="collapse-title">
-        <text class="icon">🏪</text>
-        门店码
-      </view>
-      <text class="collapse-arrow {{shopCodeExpanded ? 'expanded' : ''}}">›</text>
-    </view>
-    <view wx:if="{{shopCodeExpanded}}">
-      <view class="shop-code-section">
-        <view class="shop-code-num" bindtap="onCopyShopCode">{{shopCode}}</view>
-        <view class="shop-code-tip">点击复制，分享给员工即可加入此门店</view>
-      </view>
-    </view>
-  </view>
-
   <!-- 免费版权益（已隐藏） -->
   <view class="card benefit-card" wx:if="{{false}}">
     <view class="card-title">
@@ -498,14 +492,31 @@
       <text class="collapse-arrow {{useHelpExpanded ? 'expanded' : ''}}">›</text>
     </view>
     <view wx:if="{{useHelpExpanded}}">
-      <view class="help-item help-tappable" bindtap="{{_isMultiEnd ? 'onGoVideoHelpMultiEnd' : 'onGoVideoHelp'}}">
-        <text class="help-item-text">点击前往 【视频号】 学习教程</text>
-        <text class="help-item-arrow">›</text>
+      <!-- 文章列表 -->
+      <view class="help-article-item" wx:for="{{helpArticles}}" wx:key="title" bindtap="onOpenHelpArticle" data-url="{{item.url}}" data-title="{{item.title}}">
+        <view class="help-article-left">
+          <text class="help-article-icon">📄</text>
+          <text class="help-article-text">{{item.title}}</text>
+        </view>
+        <text class="help-article-arrow">›</text>
       </view>
+
+      <!-- 分隔线 -->
+      <view class="help-divider"></view>
+
+      <!-- 前往公众号查看全部（保留） -->
       <view class="help-item help-tappable" bindtap="onGoOfficialAccount">
-        <text class="help-item-text">点击前往 【公众号】 学习教程</text>
+        <text class="help-item-text">🔗 前往公众号查看全部</text>
         <text class="help-item-arrow">›</text>
       </view>
+
+      <!-- 视频号教程（保留） -->
+      <view class="help-item help-tappable" bindtap="{{_isMultiEnd ? 'onGoVideoHelpMultiEnd' : 'onGoVideoHelp'}}">
+        <text class="help-item-text">🎬 视频号教程</text>
+        <text class="help-item-arrow">›</text>
+      </view>
+
+      <!-- 更新日志（保留） -->
       <view class="help-item help-tappable" bindtap="onGoChangelog">
         <text class="help-item-text">🆕 更新日志</text>
         <text class="help-item-arrow">›</text>

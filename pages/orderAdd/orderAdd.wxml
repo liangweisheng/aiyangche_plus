@@ -191,6 +191,10 @@
           </view>
         </view>
       </view>
+      <!-- 隐私提示 -->
+      <view class="amount-privacy-hint">
+        <text>🔒 配件成本及利润仅门店内部可见，车主无法查看</text>
+      </view>
     </view>
   </view>
 

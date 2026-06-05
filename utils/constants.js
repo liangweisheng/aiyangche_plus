@@ -163,6 +163,17 @@ var SEARCH_DEBOUNCE_MS = 500
 /** OCR 车牌识别超时时间（毫秒） */
 var OCR_TIMEOUT_MS = 15000
 
+/** 快速入门公众号文章 URL */
+var QUICK_START_ARTICLE_URL = 'https://mp.weixin.qq.com/s/ehqMdw9kq83w738TU3h33A'
+
+/** 使用帮助 - 公众号文章列表（在数组中追加即可新增文章） */
+var HELP_ARTICLES = [
+  {
+    title: '快速入门指南',
+    url: 'https://mp.weixin.qq.com/s/ehqMdw9kq83w738TU3h33A'
+  }
+]
+
 
 // ===========================
 // Pro 状态判定（唯一来源）
@@ -242,6 +253,8 @@ module.exports = {
   TAB_BAR_PAGES: TAB_BAR_PAGES,
   SEARCH_DEBOUNCE_MS: SEARCH_DEBOUNCE_MS,
   OCR_TIMEOUT_MS: OCR_TIMEOUT_MS,
+  QUICK_START_ARTICLE_URL: QUICK_START_ARTICLE_URL,
+  HELP_ARTICLES: HELP_ARTICLES,
 
   // Pro 状态判定
   checkProFromRecord: checkProFromRecord

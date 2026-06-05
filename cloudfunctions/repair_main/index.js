@@ -1053,9 +1053,9 @@ async function voidOrder(event, openid) {
     if (order.data.shopPhone && order.data.shopPhone !== shopPhone) {
       return { code: -3, msg: '无权操作此工单' }
     }
-    // 仅已完成工单可作废（草稿可直接删除、待结算应走收银流程）
+    // 仅已完成或暂存工单可作废（待结算应走收银流程）
     if (order.data.isVoided) return { code: -4, msg: '工单已作废' }
-    if (order.data.status !== '已完成') return { code: -5, msg: '仅已完成工单可作废' }
+    if (order.data.status !== '已完成' && order.data.status !== '施工中') return { code: -5, msg: '仅已完成或暂存工单可作废' }
 
     // === 库存回滚：如果该工单有扣减项，按规格恢复库存 ===
     var deductedItems = order.data._deductedItems || []

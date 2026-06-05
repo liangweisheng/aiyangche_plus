@@ -789,6 +789,9 @@ App({
     }
     wx.setStorageSync('shopInfo', shopInfo)
     wx.setStorageSync('shopName', shopName)
+    // 同步门店联系方式到独立存储键（供分享工单等场景读取）
+    if (record.shopTel) wx.setStorageSync('shopTel', record.shopTel)
+    if (record.shopAddr) wx.setStorageSync('shopAddr', record.shopAddr)
     // 设置角色标签
     var roleLabel = shopInfo.role === 'staff' ? '店员' : ''
     wx.setStorageSync('roleLabel', roleLabel)

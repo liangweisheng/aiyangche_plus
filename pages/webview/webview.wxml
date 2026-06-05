@@ -1,0 +1,2 @@
+<!-- 通用 WebView 容器 -->
+<web-view src="{{url}}" binderror="onWebViewError"></web-view>

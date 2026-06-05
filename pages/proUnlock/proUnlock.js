@@ -31,7 +31,6 @@ Page({
     roleLabel: '',    // 账号类型标签
     roleTagClass: '', // 账号类型样式类
     contactExpanded: false,    // 联系客服折叠状态
-    shopCodeExpanded: false,   // 门店码折叠状态
     isOwner: false,            // 是否店主账号（注册者本人）
     isStaff: false,            // 是否员工身份
     // 员工管理
@@ -98,7 +97,8 @@ Page({
     page.setData({
       freeMaxOrders: constants.FREE_MAX_ORDERS,
       freeMaxMembers: constants.FREE_MAX_MEMBERS,
-      servicePhone: constants.SERVICE_PHONE
+      servicePhone: constants.SERVICE_PHONE,
+      helpArticles: constants.HELP_ARTICLES
     })
     // 加载开单设置
     var invEnabled = wx.getStorageSync(constants.INVENTORY_ENABLED_KEY)
@@ -781,11 +781,6 @@ Page({
     })
   },
 
-  // 切换门店码展开/收起
-  toggleShopCode: function () {
-    this.setData({ shopCodeExpanded: !this.data.shopCodeExpanded })
-  },
-
   // 游客模式 - 跳转登录/注册
   onGuestLogin: function () {
     wx.reLaunch({ url: '/pages/welcome/welcome' })
@@ -815,6 +810,16 @@ Page({
   // 跳转更新日志
   onGoChangelog: function () {
     wx.navigateTo({ url: '/pages/changelog/changelog' })
+  },
+
+  // 打开帮助文章（通过 web-view 加载公众号文章）
+  onOpenHelpArticle: function (e) {
+    var url = e.currentTarget.dataset.url
+    var title = e.currentTarget.dataset.title || '使用帮助'
+    if (!url) return
+    wx.navigateTo({
+      url: '/pages/webview/webview?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title)
+    })
   },
 
   // 跳转公众号教程

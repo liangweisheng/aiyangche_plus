@@ -36,7 +36,7 @@
 /* 顶部欢迎 */
 .header {
   background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
-  padding: 56rpx 40rpx 48rpx;
+  padding: 56rpx 40rpx 18rpx;
   color: #fff;
   box-shadow: 0 8rpx 32rpx rgba(22, 119, 255, 0.15);
 }
@@ -45,13 +45,42 @@
   display: block;
   font-size: 48rpx;
   font-weight: 700;
-  margin-bottom: 12rpx;
+  margin-bottom: 44rpx;
+}
+
+.header-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .date {
-  display: block;
   font-size: 24rpx;
   opacity: 0.85;
+  flex: 1;
+}
+
+.quick-start-btn {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: visible;
+  margin-left: 16rpx;
+  padding: 8rpx 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1677ff;
+  font-size: 24rpx;
+  font-weight: 600;
+  border-radius: 32rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.quick-start-btn:active {
+  background: rgba(255, 255, 255, 0.98);
+  transform: scale(0.96);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.12);
 }
 
 /* 分区标题 */
@@ -180,7 +209,7 @@
 
 /* 快捷操作 */
 .actions-section {
-  padding: 32rpx 24rpx 0;
+  padding: 18rpx 24rpx 0;
 }
 
 .actions-grid {
@@ -327,7 +356,7 @@
 
 /* 到期提醒 */
 .alert-section {
-  padding: 32rpx 24rpx 0;
+  padding: 22rpx 24rpx 0;
 }
 
 .section-title-row {
@@ -709,4 +738,31 @@
 .alert-refresh-icon {
   font-size: 28rpx;
   line-height: 1;
+}
+
+/* 💡 快速入门红点呼吸灯 */
+.quick-start-dot {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  width: 18rpx;
+  height: 18rpx;
+  background: #ff4d4f;
+  border-radius: 50%;
+  border: 2rpx solid #fff;
+  box-shadow: 0 0 8rpx rgba(255, 77, 79, 0.4);
+  animation: breatheRed 1.8s ease-in-out infinite;
+}
+
+@keyframes breatheRed {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 8rpx rgba(255, 77, 79, 0.4);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.6);
+    box-shadow: 0 0 16rpx rgba(255, 77, 79, 0.6);
+  }
 }

@@ -13,7 +13,13 @@
   <!-- 顶部欢迎 -->
   <view class="header">
     <text class="greeting">{{shopName}}{{roleLabel ? '  ' + roleLabel : ''}}{{shopName || roleLabel ? ' 欢迎您 👋' : '欢迎使用AI养车 👋'}}</text>
-    <text class="date">{{date}}</text>
+    <view class="header-bottom">
+      <text class="date">{{date}}</text>
+      <view class="quick-start-btn" bindtap="onQuickStart">
+        <view class="quick-start-dot"></view>
+        <text>💡 快速入门</text>
+      </view>
+    </view>
   </view>
 
   <!-- 免费版工单超限提醒 -->

@@ -30,7 +30,8 @@
     "pages/product/productTemplateAdmin/productTemplateAdmin",
     "pages/product/productStockLogDetail/productStockLogDetail",
     "pages/product/productReceiptDetail/productReceiptDetail",
-    "pages/changelog/changelog"
+    "pages/changelog/changelog",
+    "pages/webview/webview"
   ],
   "subpackages": [
     {

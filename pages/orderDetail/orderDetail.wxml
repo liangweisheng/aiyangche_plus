@@ -76,6 +76,9 @@
           {{order.profit >= 0 ? '+' : ''}}¥{{order.profit}}
         </text>
       </view>
+      <view class="detail-privacy-hint" wx:if="{{order.partCost && order.partCost > 0}}">
+        <text>🔒 配件成本及利润仅门店内部可见，车主无法查看</text>
+      </view>
     </view>
   </view>
 
@@ -131,36 +134,51 @@
 <!-- 底部操作按钮 -->
 <view class="footer" wx:if="{{!loading && order}}">
   <view class="footer-row">
-    <!-- 施工中 → 编辑 -->
-    <view class="edit-btn" bindtap="onEdit"
-      wx:if="{{!order.isVoided && order.status === '施工中'}}">
-      <text class="edit-icon">✏️</text>
-      <text class="edit-text">编辑工单</text>
-    </view>
-    <!-- 已完成 → 作废 -->
-    <view class="void-btn" bindtap="onVoidOrder"
-      wx:if="{{!order.isVoided && order.status === '已完成'}}">
-      <text class="void-text">🗑️ 作废</text>
-    </view>
-    <!-- 待结算 → 收银 -->
-    <view class="void-btn settle-btn" bindtap="onSettleOrder"
-      wx:if="{{!order.isVoided && order.status === '待结算'}}">
-      <text class="void-text settle-text">💰 收银</text>
-    </view>
-    <!-- 再开一单 (所有非作废状态都有) -->
-    <view class="reorder-btn" bindtap="onReorder" wx:if="{{!order.isVoided}}">
-      <text class="reorder-icon">📝</text>
-      <text class="reorder-text">再开一单</text>
-    </view>
+    <!-- 施工中 → 作废 + 编辑 + 生成报价单 -->
+    <block wx:if="{{!order.isVoided && order.status === '施工中'}}">
+      <view class="void-btn" bindtap="onVoidOrder">
+        <text class="void-text">🗑️ 作废</text>
+      </view>
+      <view class="edit-btn" bindtap="onEdit">
+        <text class="edit-icon">✏️</text>
+        <text class="edit-text">编辑工单</text>
+      </view>
+      <view class="quote-btn" bindtap="onGenerateQuote">
+        <text class="quote-icon">📋</text>
+        <text class="quote-text">生成报价单</text>
+      </view>
+    </block>
+    <!-- 已完成 → 作废 + 再开一单 -->
+    <block wx:elif="{{!order.isVoided && order.status === '已完成'}}">
+      <view class="void-btn" bindtap="onVoidOrder">
+        <text class="void-text">🗑️ 作废</text>
+      </view>
+      <view class="reorder-btn" bindtap="onReorder">
+        <text class="reorder-icon">📝</text>
+        <text class="reorder-text">再开一单</text>
+      </view>
+    </block>
+    <!-- 待结算 → 收银 + 再开一单 -->
+    <block wx:elif="{{!order.isVoided && order.status === '待结算'}}">
+      <view class="void-btn settle-btn" bindtap="onSettleOrder">
+        <text class="void-text settle-text">💰 收银</text>
+      </view>
+      <view class="reorder-btn" bindtap="onReorder">
+        <text class="reorder-icon">📝</text>
+        <text class="reorder-text">再开一单</text>
+      </view>
+    </block>
     <!-- 已作废占位 -->
-    <view class="void-btn voided disabled" wx:elif="{{order.isVoided}}">
-      <text class="void-text">已作废</text>
-    </view>
+    <block wx:elif="{{order.isVoided}}">
+      <view class="void-btn voided disabled">
+        <text class="void-text">已作废</text>
+      </view>
+    </block>
   </view>
 </view>
 
 <!-- 离屏分享画布（高度设大，JS中动态绘制） -->
-<canvas canvas-id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:600px;height:1600px;"></canvas>
+<canvas canvas-id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:600px;height:900px;"></canvas>
 
 <!-- 浮动首页按钮 -->
 <view class="fab-home" bindtap="onGoHome">首页</view>

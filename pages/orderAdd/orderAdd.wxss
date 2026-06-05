@@ -1055,6 +1055,17 @@
   color: #52c41a;
 }
 
+/* 配件成本/利润隐私提示 */
+.amount-privacy-hint {
+  padding: 8rpx 0 0;
+  margin-top: 8rpx;
+  border-top: 1rpx solid #f5f5f5;
+}
+.amount-privacy-hint text {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
 /* 利润值容器 */
 .profit-value-wrap {
   flex: 1;
