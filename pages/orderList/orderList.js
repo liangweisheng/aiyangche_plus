@@ -23,6 +23,7 @@ Page({
     isEmpty: false,
     noMore: false,
     totalCount: 0,
+    monthlyNew: 0,
     searchTimer: null          // 搜索防抖定时器
   },
 
@@ -136,7 +137,7 @@ Page({
   // 重置列表并重新加载
   _resetAndFetch() {
     this._reqVersion = (this._reqVersion || 0) + 1
-    this.setData({ orderList: [], noMore: false, isEmpty: false, totalCount: 0 })
+    this.setData({ orderList: [], noMore: false, isEmpty: false, totalCount: 0, monthlyNew: 0 })
     this._page = 1
     return this.fetchOrderList()
   },
@@ -178,7 +179,8 @@ Page({
         orderList: list,
         isEmpty: list.length === 0,
         noMore: noMore,
-        totalCount: res.data.total || 0
+        totalCount: res.data.total || 0,
+        monthlyNew: res.data.monthlyNew || 0
       })
     }).catch(function (err) {
       console.error('[orderList] 加载失败:', err)

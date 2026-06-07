@@ -34,6 +34,7 @@
     <view class="stats-card">
       <text class="stats-num">{{totalCount}}</text>
       <text class="stats-label">会员总数{{!isPro ? '（' + totalCount + '/' + freeMaxMembers + '）' : ''}}</text>
+      <text class="stats-monthly" wx:if="{{monthlyNew > 0}}">（本月 +{{monthlyNew}}位）</text>
     </view>
     <view class="member-limit-hint" wx:if="{{memberLimitReached && !isPro}}" bindtap="goToPro">
       <text>⚠️ 免费版会员已达上限，升级Pro版 ›</text>

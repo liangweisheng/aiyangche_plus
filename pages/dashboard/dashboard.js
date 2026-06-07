@@ -241,8 +241,22 @@ Page({
 
 
 
-  goToAddCar() {
-    wx.navigateTo({ url: '/pages/carAdd/carAdd' })
+  // 判断是否为完整车牌号（7~8位，首字中文，其余大写字母数字）
+  _isCompletePlate(str) {
+    if (!str) return false
+    if (str.length < 7 || str.length > 8) return false
+    if (!/^[\u4e00-\u9fa5]/.test(str)) return false
+    if (!/^[A-Z0-9]+$/.test(str.slice(1))) return false
+    return true
+  },
+
+  goToAddCar(e) {
+    var plate = (e && e.currentTarget && e.currentTarget.dataset.plate) || ''
+    var url = '/pages/carAdd/carAdd'
+    if (plate && this._isCompletePlate(plate)) {
+      url += '?plate=' + encodeURIComponent(plate)
+    }
+    wx.navigateTo({ url: url })
   },
 
   goToCreateOrder() {

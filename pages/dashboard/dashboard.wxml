@@ -117,7 +117,7 @@
       <view class="quick-search-empty" wx:elif="{{searchEmpty}}">
         <text class="qs-empty-icon">🔍</text>
         <text class="qs-empty-text">未找到匹配车辆，请</text>
-        <text class="qs-empty-link" bindtap="goToAddCar">新增车辆</text>
+        <text class="qs-empty-link" bindtap="goToAddCar" data-plate="{{searchKeyword}}">新增车辆</text>
       </view>
       <view wx:elif="{{searchResults.length > 0}}">
         <view class="quick-search-label">搜索结果({{searchResults.length}})</view>

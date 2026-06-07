@@ -17,6 +17,7 @@ Page({
     isEmpty: false,
     noMore: false,
     totalCount: 0,
+    monthlyNew: 0,
     isGuest: false,
     isPro: !!wx.getStorageSync('isPro'),
     memberLimitReached: false,
@@ -152,7 +153,7 @@ Page({
   // 重置列表并重新加载
   _resetAndFetch() {
     this._reqVersion = (this._reqVersion || 0) + 1
-    this.setData({ memberList: [], noMore: false, isEmpty: false, totalCount: 0, memberLimitReached: false })
+    this.setData({ memberList: [], noMore: false, isEmpty: false, totalCount: 0, monthlyNew: 0, memberLimitReached: false })
     this._page = 1
     return this.fetchMemberList()
   },
@@ -189,7 +190,8 @@ Page({
         memberList: list,
         isEmpty: list.length === 0,
         noMore: noMore,
-        totalCount: total
+        totalCount: total,
+        monthlyNew: res.data.monthlyNew || 0
       }
       // 免费版会员上限提示
       if (!page.data.isPro && total >= constants.FREE_MAX_MEMBERS) {

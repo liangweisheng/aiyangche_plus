@@ -1396,9 +1396,16 @@ async function listCars(event, openid) {
       })
     }
 
+    // 3. 本月新增车辆数
+    var now = new Date()
+    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    var monthlyNewRes = await db.collection('repair_cars')
+      .where({ shopPhone: shopPhone, createTime: _.gte(monthStart) })
+      .count()
+
     return {
       code: 0,
-      data: { list: allCars, total: total, memberMap: memberMap, orderStats: orderStats }
+      data: { list: allCars, total: total, memberMap: memberMap, orderStats: orderStats, monthlyNew: monthlyNewRes.total }
     }
   } catch (err) {
     console.error('listCars 错误:', err)
@@ -1467,7 +1474,14 @@ async function listOrders(event, openid) {
       return o
     })
 
-    return { code: 0, data: { list: list, total: total } }
+    // 本月新增工单数
+    var now = new Date()
+    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    var monthlyNewRes = await db.collection('repair_orders')
+      .where({ shopPhone: shopPhone, isVoided: _.neq(true), createTime: _.gte(monthStart) })
+      .count()
+
+    return { code: 0, data: { list: list, total: total, monthlyNew: monthlyNewRes.total } }
   } catch (err) {
     console.error('listOrders 错误:', err)
     return { code: -99, msg: '加载失败' }
@@ -1515,7 +1529,14 @@ async function listMembers(event, openid) {
 
     var members = membersRes.data || []
 
-    return { code: 0, data: { list: members, total: total } }
+    // 本月新增会员数
+    var now = new Date()
+    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    var monthlyNewRes = await db.collection('repair_members')
+      .where({ shopPhone: shopPhone, createTime: _.gte(monthStart) })
+      .count()
+
+    return { code: 0, data: { list: members, total: total, monthlyNew: monthlyNewRes.total } }
   } catch (err) {
     console.error('listMembers 错误:', err)
     return { code: -99, msg: '加载失败' }
@@ -1554,7 +1575,14 @@ async function listCheckSheets(event, openid) {
 
     var sheets = sheetsRes.data || []
 
-    return { code: 0, data: { list: sheets, total: total } }
+    // 本月新增查车单数
+    var now = new Date()
+    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    var monthlyNewRes = await db.collection('repair_checkSheets')
+      .where({ shopPhone: shopPhone, createTime: _.gte(monthStart) })
+      .count()
+
+    return { code: 0, data: { list: sheets, total: total, monthlyNew: monthlyNewRes.total } }
   } catch (err) {
     console.error('listCheckSheets 错误:', err)
     return { code: -99, msg: '加载失败' }

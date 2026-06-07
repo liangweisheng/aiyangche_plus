@@ -21,6 +21,7 @@ Page({
 
     // 统计
     totalCount: 0,
+    monthlyNew: 0,
 
     // 筛选
     filters: {
@@ -222,11 +223,11 @@ Page({
       that._setCache('agg', { memberMap: that._memberMap, orderStats: that._orderStats, time: Date.now() })
 
       if (that._allCars.length === 0) {
-        that.setData({ loading: false, isEmpty: true, totalCount: 0 })
+        that.setData({ loading: false, isEmpty: true, totalCount: 0, monthlyNew: 0 })
         return
       }
 
-      that.setData({ loading: false })
+      that.setData({ loading: false, monthlyNew: res.data.monthlyNew || 0 })
       that._applyFiltersAndRender(1)
     }).catch(function (err) {
       console.error('[carList] 加载失败:', err)
@@ -257,6 +258,7 @@ Page({
       that._setCache('agg', { memberMap: that._memberMap, orderStats: that._orderStats, time: Date.now() })
 
       // 静默更新当前列表
+      that.setData({ monthlyNew: res.data.monthlyNew || 0 })
       that._applyFiltersAndRender(that.data.page)
     }).catch(function () {
       // 静默失败不提示

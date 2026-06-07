@@ -12,6 +12,7 @@ Page({
     keyword: '',
     list: [],
     totalCount: 0,
+    monthlyNew: 0,
     page: 1,
     loading: false,
     noMore: false,
@@ -136,7 +137,8 @@ Page({
         loading: false,
         noMore: noMore,
         firstLoad: false,
-        totalCount: res.data.total || 0
+        totalCount: res.data.total || 0,
+        monthlyNew: res.data.monthlyNew || 0
       })
     }).catch(function (err) {
       if (reqVersion !== page._reqVersion) return  // 竞态保护

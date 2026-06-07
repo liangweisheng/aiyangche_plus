@@ -129,6 +129,12 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+.stats-monthly {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-left: 4rpx;
+}
+
 /* 筛选标签 */
 .filter-tabs {
   display: flex;

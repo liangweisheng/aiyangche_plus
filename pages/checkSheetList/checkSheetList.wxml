@@ -25,6 +25,7 @@
     <view class="stats-card">
       <text class="stats-num">{{totalCount}}</text>
       <text class="stats-label">份查车单</text>
+      <text class="stats-monthly" wx:if="{{monthlyNew > 0}}">（本月 +{{monthlyNew}}份）</text>
     </view>
   </view>
   </view>

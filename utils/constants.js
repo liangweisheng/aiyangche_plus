@@ -13,7 +13,7 @@
 // ===========================
 
 /** 应用版本号（唯一来源，全局统一引用） */
-var APP_VERSION = 'v6.6.0'
+var APP_VERSION = 'v6.6.2'
 
 
 // ===========================
@@ -164,12 +164,16 @@ var SEARCH_DEBOUNCE_MS = 500
 var OCR_TIMEOUT_MS = 15000
 
 /** 快速入门公众号文章 URL */
-var QUICK_START_ARTICLE_URL = 'https://mp.weixin.qq.com/s/ehqMdw9kq83w738TU3h33A'
+var QUICK_START_ARTICLE_URL = 'https://mp.weixin.qq.com/s/mmBShFxTT2PHPg0ZK8_q-w'
 
 /** 使用帮助 - 公众号文章列表（在数组中追加即可新增文章） */
 var HELP_ARTICLES = [
   {
     title: '快速入门指南',
+    url: 'https://mp.weixin.qq.com/s/mmBShFxTT2PHPg0ZK8_q-w'
+  },
+  {
+    title: '为什么要用“汽修店小管家”系统',
     url: 'https://mp.weixin.qq.com/s/ehqMdw9kq83w738TU3h33A'
   }
 ]

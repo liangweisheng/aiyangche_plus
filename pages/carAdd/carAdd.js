@@ -30,8 +30,12 @@ Page({
     saving: false      // 防重复提交锁
   },
 
-  onLoad() {
+  onLoad(options) {
     if (!app.checkPageAccess('registered')) return
+    // 从 dashboard 快速搜索 OCR 识别后无结果跳转时，自动填充车牌号
+    if (options && options.plate) {
+      this.setData({ 'form.plateNumber': decodeURIComponent(options.plate) })
+    }
   },
 
   showPlateKeyboard() {

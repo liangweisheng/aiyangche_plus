@@ -34,6 +34,7 @@
     <view class="stats-card">
       <text class="stats-num">{{totalCount}}</text>
       <text class="stats-label">总工单数</text>
+      <text class="stats-monthly" wx:if="{{monthlyNew > 0}}">（本月 +{{monthlyNew}}单）</text>
     </view>
   </view>
 
