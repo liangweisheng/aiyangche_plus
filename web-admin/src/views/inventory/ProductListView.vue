@@ -139,7 +139,7 @@
           @selection-change="onTemplateSelectionChange"
           ref="templateTableRef"
         >
-          <el-table-column type="selection" width="50" />
+          <el-table-column type="selection" width="50" :selectable="(row) => !row.isImported" />
           <el-table-column prop="name" label="商品名称" min-width="160" show-overflow-tooltip />
           <el-table-column prop="category" label="分类" width="90">
             <template #default="{ row }">
@@ -155,10 +155,10 @@
                 size="small"
                 type="primary"
                 :loading="importingId === row._id"
-                :disabled="importingId && importingId !== row._id"
+                :disabled="!!(row.isImported || (importingId && importingId !== row._id))"
                 @click="importOne(row)"
               >
-                导入
+                {{ row.isImported ? '已导入' : '导入' }}
               </el-button>
             </template>
           </el-table-column>
@@ -184,7 +184,7 @@ import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
-const categories = ['机油', '滤清器', '刹车片', '轮胎', '电瓶', '火花塞', '雨刷', '灯泡', '冷媒', '清洗类', '添加剂', '皮带', '减震器', '轮毂', '其他']
+const categories = ['其他', '机油', '轮胎', '刹车系统', '空调系统', '电器车灯', '美容保养', '动力系统', '传动系统', '悬挂系统', '冷却系统']
 
 const loading = ref(false)
 const loadError = ref('')
@@ -230,10 +230,11 @@ function goEdit(row) { router.push(`/inventory/products/${row._id}/edit`) }
 
 async function handleToggle(row) {
   try {
-    await toggleProductStatus(row._id)
-    ElMessage.success(row.productStatus === 'off_shelf' ? '已上架' : '已下架')
+    const newStatus = row.productStatus === 'off_shelf' ? 'on_shelf' : 'off_shelf'
+    await toggleProductStatus(row._id, newStatus)
+    ElMessage.success(newStatus === 'on_shelf' ? '已上架' : '已下架')
     // 乐观更新
-    row.productStatus = row.productStatus === 'off_shelf' ? 'on_shelf' : 'off_shelf'
+    row.productStatus = newStatus
   } catch (err) {
     ElMessage.error(err.message || '操作失败')
   }
@@ -264,7 +265,7 @@ const displayedTemplates = computed(() => {
 })
 
 function onTemplateSelectionChange(rows) {
-  selectedTemplateIds.value = rows.map(r => r._id)
+  selectedTemplateIds.value = rows.filter(r => !r.isImported).map(r => r._id)
 }
 
 function filterTemplates() {
@@ -274,10 +275,23 @@ function filterTemplates() {
 async function loadTemplates() {
   templateLoading.value = true
   try {
-    const result = await fetchTemplateProductList({ category: templateCategory.value, keyword: templateKeyword.value })
-    templateList.value = result.list || []
+    const [tplResult, prodResult] = await Promise.all([
+      fetchTemplateProductList({ category: templateCategory.value, keyword: templateKeyword.value }),
+      fetchProductList({ pageSize: 500 })
+    ])
+
+    const importedIds = new Set()
+    ;(prodResult.list || []).forEach(p => {
+      if (p._templateId) importedIds.add(p._templateId)
+    })
+
+    templateList.value = (tplResult.list || []).map(t => ({
+      ...t,
+      isImported: importedIds.has(t._id)
+    }))
   } catch (err) {
     ElMessage.error(err.message || '加载模板失败')
+    templateList.value = []
   } finally {
     templateLoading.value = false
   }
@@ -287,6 +301,7 @@ function openTemplateDialog() {
   templateKeyword.value = ''
   templateCategory.value = ''
   selectedTemplateIds.value = []
+  importingId.value = ''
   showTemplateDialog.value = true
 }
 
@@ -295,6 +310,7 @@ async function importOne(row) {
   try {
     await importTemplateProduct(row._id)
     ElMessage.success(`已导入：${row.name}`)
+    row.isImported = true
     // 刷新商品列表
     await loadData()
   } catch (err) {

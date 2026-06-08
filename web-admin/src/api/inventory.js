@@ -54,9 +54,9 @@ export async function updateProduct(productId, formData) {
 /**
  * 上下架切换
  */
-export async function toggleProductStatus(productId) {
+export async function toggleProductStatus(productId, status) {
   const shopPhone = getShopPhone()
-  const result = await callCloudFunction('toggleProductStatus', { productId, shopPhone }, { shopPhone, clientPhone: shopPhone, functionName: 'repair_inventory' })
+  const result = await callCloudFunction('toggleProductStatus', { productId, shopPhone, status }, { shopPhone, clientPhone: shopPhone, functionName: 'repair_inventory' })
   if (result.code !== 0) throw new Error(result.msg || '操作失败')
   return result.data || {}
 }
