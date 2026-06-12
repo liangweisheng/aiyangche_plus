@@ -41,7 +41,7 @@
             <view class="spec-row" wx:for="{{item.displaySpecs}}" wx:for-item="spec" wx:key="index">
               <view class="spec-label-wrap">
                 <text class="spec-label">{{spec.label}}</text>
-                <text class="spec-price" wx:if="{{spec.price}}">¥{{spec.price}}</text>
+                <text class="spec-price" wx:if="{{spec.price && !_hidePrice}}">¥{{spec.price}}</text>
                 <text class="spec-stock-hint" wx:if="{{skipStockCheck || spec.stock >= 0}}">(剩{{spec.stock}})</text>
               </view>
               <view class="spec-qty-control">
@@ -53,7 +53,8 @@
             </view>
             <!-- 无规格展示 -->
             <view class="spec-row {{!skipStockCheck && item.stock <= 0 ? 'spec-row-disabled' : ''}}" wx:if="{{!item.specs || item.specs.length === 0}}">
-              <text class="spec-label">¥{{item.price}}/{{item.unit}}
+              <text class="spec-label">
+                <text wx:if="{{!_hidePrice}}">¥{{item.price}}/</text>{{item.unit}}
                 <text class="spec-stock-hint" wx:if="{{skipStockCheck || item.stock > 0}}">(剩{{item.stock}})</text>
                 <text class="out-of-stock-tag-inline" wx:elif="{{!skipStockCheck}}">无货</text>
               </text>
@@ -83,7 +84,7 @@
   <!-- 底部确认栏 -->
   <view class="bottom-bar" wx:if="{{selectedItems.length > 0}}">
     <text class="bar-summary">已选 {{selectedItems.length}} 件</text>
-    <text class="bar-total" wx:if="{{!_benefitMode}}">合计：¥{{totalAmount}}</text>
+    <text class="bar-total" wx:if="{{!_hidePrice}}">合计：¥{{totalAmount}}</text>
     <button class="bar-btn" bindtap="onConfirm">确定</button>
   </view>
 </view>

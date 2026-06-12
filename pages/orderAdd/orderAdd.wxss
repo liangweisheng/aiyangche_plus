@@ -1094,6 +1094,8 @@
   font-weight: 400;
 }
 
+
+
 /* 实收金额弹窗内容区 */
 .paid-edit-body {
   padding: 0 32rpx 24rpx;

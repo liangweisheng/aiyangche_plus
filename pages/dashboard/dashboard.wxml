@@ -68,15 +68,15 @@
           <text class="stat-arrow">></text>
         </view>
       </view>
-      <view class="stat-card orange" bindtap="onStatCardTap" data-type="cars">
+      <view class="stat-card teal" bindtap="onStatCardTap" data-type="finance">
         <view class="stat-top">
-          <view class="stat-icon-wrap orange-bg">
-            <text class="stat-icon-text">🚗</text>
+          <view class="stat-icon-wrap teal-bg">
+            <text class="stat-icon-text">📒</text>
           </view>
-          <text class="stat-label">车辆总数</text>
+          <text class="stat-label">今日收支</text>
         </view>
         <view class="stat-bottom">
-          <text class="stat-num">{{stats.totalCars}}<text class="stat-unit">辆</text></text>
+          <text class="stat-num">¥ {{stats.todayNetProfit}}</text>
           <text class="stat-arrow">></text>
         </view>
       </view>

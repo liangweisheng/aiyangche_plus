@@ -137,6 +137,10 @@
   background: linear-gradient(90deg, #fa8c16, #ffa940);
 }
 
+.stat-card.teal::after {
+  background: linear-gradient(90deg, #08979c, #13c2c2);
+}
+
 .stat-card:active {
   transform: scale(0.96);
 }
@@ -171,6 +175,10 @@
 
 .orange-bg {
   background: rgba(250, 140, 22, 0.08);
+}
+
+.teal-bg {
+  background: rgba(8, 151, 156, 0.08);
 }
 
 .stat-label {

@@ -26,6 +26,7 @@
     <view class="date-tab {{activeTab === 'week' ? 'active' : ''}}" data-tab="week" bindtap="onTabChange">本周</view>
     <view class="date-tab {{activeTab === 'month' ? 'active' : ''}}" data-tab="month" bindtap="onTabChange">本月</view>
     <view class="date-tab {{activeTab === 'year' ? 'active' : ''}}" data-tab="year" bindtap="onTabChange">本年</view>
+    <view class="date-tab finance {{activeTab === 'finance' ? 'active' : ''}}" data-tab="finance" bindtap="onTabChange">💰财务🧾</view>
   </view>
 
   <!-- 月份/年份选择器 -->
@@ -41,7 +42,7 @@
   </view>
 
   <!-- 缓存提示 -->
-  <view class="cache-tip-bar" wx:if="{{cacheTip}}">
+  <view class="cache-tip-bar" wx:if="{{cacheTip && activeTab !== 'finance'}}">
   <text class="cache-tip-text">提示：{{cacheTip}}</text>
   </view>
 
@@ -58,7 +59,7 @@
   </view>
 
   <!-- 数据内容区：免费版被限制时隐藏 -->
-  <block wx:elif="{{!proLimitTip}}">
+  <block wx:elif="{{!proLimitTip && activeTab !== 'finance'}}">
 
   <!-- 空数据提示 -->
   <view class="empty-report" wx:if="{{isEmpty}}">
@@ -213,6 +214,135 @@
   </block>
   </block>
 
+  <!-- ============================ -->
+  <!-- 财务管理面板（activeTab === 'finance'） -->
+  <!-- ============================ -->
+  <block wx:if="{{activeTab === 'finance'}}">
+
+    <!-- 月份选择器 -->
+    <view class="picker-row">
+      <view class="picker-arrow" bindtap="_changeFinanceMonth" data-dir="prev"><text class="picker-arrow-text">‹</text></view>
+      <text class="picker-label">{{financeYearMonth || '----'}}</text>
+      <view class="picker-arrow" bindtap="_changeFinanceMonth" data-dir="next"><text class="picker-arrow-text">›</text></view>
+    </view>
+
+
+    <!-- 汇总卡片 -->
+    <view class="summary-section" wx:if="{{!proLimitTip}}">
+      <view class="summary-row">
+        <view class="summary-card green">
+          <text class="summary-label">总收入</text>
+          <text class="summary-value">¥{{financeTotalIncome}}</text>
+          <text class="summary-sub">维修收入+其他收入</text>
+        </view>
+        <view class="summary-card red">
+          <text class="summary-label">总支出</text>
+          <text class="summary-value">¥{{financeTotalExpense}}</text>
+          <text class="summary-sub">配件成本+其他支出</text>
+        </view>
+        <view class="summary-card blue">
+          <text class="summary-label">净利润</text>
+          <text class="summary-value">¥{{financeNetProfit}}</text>
+          <text class="summary-sub">收支差额</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 支出分布（有数据时） -->
+    <view class="finance-section-header" wx:if="{{!proLimitTip && expenseBreakdown.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">支出分布</text>
+      </view>
+    </view>
+    <view class="finance-expense-section" wx:if="{{!proLimitTip && expenseBreakdown.length > 0}}">
+      <view class="finance-expense-card">
+        <view class="finance-expense-item" wx:for="{{expenseBreakdown}}" wx:key="category">
+          <text class="finance-expense-label">{{item.categoryLabel}}</text>
+          <view class="finance-expense-bar-wrap">
+            <view class="finance-expense-bar" style="width: {{item.percent}}%;"></view>
+          </view>
+          <text class="finance-expense-amount">¥{{item.amount}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 收支明细列表 -->
+    <view class="finance-section-header" wx:if="{{!proLimitTip}}">
+      <view class="section-header">
+        <text class="section-title">收支明细</text>
+        <text class="add-finance-btn" bindtap="showFinanceForm">＋ 添加</text>
+      </view>
+    </view>
+
+    <!-- 快速筛选标签 -->
+    <view class="finance-filter-bar" wx:if="{{!proLimitTip && !financeLoading}}">
+      <scroll-view scroll-x class="filter-scroll" enhanced show-scrollbar="{{false}}">
+        <view class="filter-chip-group">
+          <view class="filter-chip {{!financeFilterType ? 'active' : ''}}" data-type="" bindtap="onFinanceFilterType">全部</view>
+          <view class="filter-chip income {{financeFilterType === 'income' ? 'active' : ''}}" data-type="income" bindtap="onFinanceFilterType">收入</view>
+          <view class="filter-chip expense {{financeFilterType === 'expense' ? 'active' : ''}}" data-type="expense" bindtap="onFinanceFilterType">支出</view>
+        </view>
+      </scroll-view>
+      <scroll-view scroll-x class="filter-sub-scroll" wx:if="{{financeFilterType}}" enhanced show-scrollbar="{{false}}">
+        <view class="filter-chip-sub-group">
+          <view class="filter-sub-chip all {{!financeFilterCategory ? 'active' : ''}}" data-category="" bindtap="onFinanceFilterCategory">全部{{financeFilterType === 'income' ? '收入' : '支出'}}</view>
+          <block wx:if="{{financeFilterType === 'income'}}">
+            <view class="filter-sub-chip income {{financeFilterCategory === item.key ? 'active' : ''}}" wx:for="{{cF_income}}" wx:key="key" data-category="{{item.key}}" bindtap="onFinanceFilterCategory">{{item.label}}</view>
+          </block>
+          <block wx:if="{{financeFilterType === 'expense'}}">
+            <view class="filter-sub-chip expense {{financeFilterCategory === item.key ? 'active' : ''}}" wx:for="{{cF_expense}}" wx:key="key" data-category="{{item.key}}" bindtap="onFinanceFilterCategory">{{item.label}}</view>
+          </block>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 空数据 -->
+    <view class="empty-report" wx:if="{{!proLimitTip && financeEmpty && !financeLoading}}">
+      <text class="empty-report-icon">📋</text>
+      <text class="empty-report-text">本月暂无收支记录</text>
+      <text class="empty-report-sub">添加第一笔收支，轻松管理门店财务</text>
+      <button class="empty-report-cta" bindtap="showFinanceForm">＋ 立即添加</button>
+    </view>
+
+    <!-- 收支列表（有数据） -->
+    <view class="finance-list-section" wx:if="{{!proLimitTip && financeList.length > 0}}">
+      <view class="finance-list-card">
+        <view class="finance-item" wx:for="{{financeList}}" wx:key="_id">
+          <view class="finance-item-top">
+            <view class="finance-item-left">
+              <text class="finance-item-type {{item.type === 'income' ? 'type-income' : 'type-expense'}}">{{item.type === 'income' ? '🟢 收入' : '🔴 支出'}}</text>
+              <text class="finance-item-category">{{item.categoryLabel}}</text>
+            </view>
+            <text class="finance-item-amount {{item.type === 'income' ? 'amount-income' : 'amount-expense'}}">{{item.type === 'income' ? '+' : '-'}}¥{{item.amount}}</text>
+          </view>
+          <view class="finance-item-bottom">
+            <text class="finance-item-date">{{item.date}} {{item.time}}</text>
+            <text class="finance-item-pay" wx:if="{{item.payMethodLabel}}">{{item.payMethodLabel}}</text>
+            <view class="finance-item-actions">
+              <text class="finance-action" bindtap="_showFinanceFormForEdit" data-id="{{item._id}}">编辑</text>
+              <text class="finance-action danger" bindtap="_deleteFinance" data-id="{{item._id}}">删除</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more-tip" wx:if="{{financeHasMore}}" bindtap="loadMoreFinance">
+      <text class="load-more-tip-text">上拉加载更多</text>
+    </view>
+    <view class="load-more-tip" wx:if="{{!financeHasMore && financeTotal > 0}}">
+      <text class="load-more-tip-text">— 已加载全部 {{financeTotal}} 条 —</text>
+    </view>
+
+    <!-- 加载状态 -->
+    <view class="g-loading-overlay" wx:if="{{financeLoading}}">
+      <view class="g-loading-spinner"></view>
+      <text class="g-loading-text">数据加载中...</text>
+    </view>
+
+  </block>
+
   <!-- 加载状态 -->
   <view class="g-loading-overlay" wx:if="{{loading}}">
     <view class="g-loading-spinner"></view>
@@ -222,6 +352,76 @@
   <!-- 隐藏Canvas：用于生成分享卡片 -->
   <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:400px;"></canvas>
   <canvas canvas-id="shareCanvasFallback" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:400px;"></canvas>
+
+  <!-- ============================ -->
+  <!-- 添加/编辑收支弹窗 -->
+  <!-- ============================ -->
+  <view class="finance-form-overlay" wx:if="{{showFinanceForm}}" bindtap="hideFinanceForm">
+    <view class="finance-form-modal" catchtap="noop">
+      <view class="finance-form-header">
+        <text class="finance-form-title">{{editingFinanceId ? '编辑收支' : '添加收支'}}</text>
+        <text class="finance-form-close" bindtap="hideFinanceForm">✕</text>
+      </view>
+
+      <!-- 类型切换 -->
+      <view class="finance-type-toggle">
+        <view class="finance-type-btn {{financeFormData.type === 'income' ? 'active income' : ''}}" data-type="income" bindtap="onFinanceTypeChange">收入</view>
+        <view class="finance-type-btn {{financeFormData.type === 'expense' ? 'active expense' : ''}}" data-type="expense" bindtap="onFinanceTypeChange">支出</view>
+      </view>
+
+      <!-- 类别选择 -->
+      <view class="finance-form-field">
+        <text class="finance-form-label">类别</text>
+        <view class="finance-category-grid">
+          <view
+            class="finance-category-item {{financeFormData.category === item.key ? 'selected' : ''}}"
+            wx:for="{{financeFormData.type === 'income' ? cF_income : cF_expense}}"
+            wx:key="key"
+            data-key="{{item.key}}"
+            bindtap="onFinanceCategorySelect">{{item.label}}</view>
+        </view>
+      </view>
+
+      <!-- 金额 -->
+      <view class="finance-form-field">
+        <text class="finance-form-label">金额（元）</text>
+        <input class="finance-form-input" type="digit" placeholder="输入金额" value="{{financeFormData.amount}}" bindinput="onFinanceAmountInput" />
+      </view>
+
+      <!-- 日期 -->
+      <view class="finance-form-field">
+        <text class="finance-form-label">日期</text>
+        <picker mode="date" value="{{financeFormData.date}}" bindchange="onFinanceDateChange">
+          <view class="finance-form-picker">{{financeFormData.date || '请选择'}}</view>
+        </picker>
+      </view>
+
+      <!-- 支付方式 -->
+      <view class="finance-form-field">
+        <text class="finance-form-label">支付方式</text>
+        <view class="finance-paymethod-grid">
+          <view
+            class="finance-paymethod-item {{financeFormData.payMethod === item.key ? 'selected' : ''}}"
+            wx:for="{{cF_payMethods}}"
+            wx:key="key"
+            data-key="{{item.key}}"
+            bindtap="onFinancePayMethodSelect">{{item.label}}</view>
+        </view>
+      </view>
+
+      <!-- 摘要 -->
+      <view class="finance-form-field">
+        <text class="finance-form-label">摘要</text>
+        <input class="finance-form-input" placeholder="简要描述（如：6月店面租金）" value="{{financeFormData.summary}}" bindinput="onFinanceSummaryInput" />
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="finance-form-actions">
+        <button class="finance-form-btn cancel" bindtap="hideFinanceForm">取消</button>
+        <button class="finance-form-btn submit" bindtap="_saveFinance">{{editingFinanceId ? '保存' : '添加'}}</button>
+      </view>
+    </view>
+  </view>
 
 </view>
 

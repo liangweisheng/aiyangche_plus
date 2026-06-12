@@ -15,7 +15,8 @@ Page({
       todayOrders: 0,
       todayRevenue: 0,
       totalRevenue: 0,
-      totalCars: 0
+      totalCars: 0,
+      todayNetProfit: 0
     },
     alertList: [],
     shopPhone: '',
@@ -74,6 +75,7 @@ Page({
       // ★ 优化：单次云函数调用同时获取看板数据+到期提醒
       page.fetchDashboardData()
       page._fetchLatestReport()
+      page._fetchTodayFinance()
     })
   },
 
@@ -112,6 +114,7 @@ Page({
       getApp().globalData.shouldRefreshOrderList = false
       // ★ 优化：单次云函数调用即可刷新看板+提醒
       this.fetchDashboardData()
+      this._fetchTodayFinance()
     }
     // OCR fallback: cameraScan 返回时的兜底处理
     var ocrResult = getApp().globalData._ocrResult
@@ -129,7 +132,8 @@ Page({
     page.updateDate()
     Promise.all([
       page.fetchDashboardData(),
-      page._fetchLatestReport()
+      page._fetchLatestReport(),
+      page._fetchTodayFinance()
     ]).then(function () {
       wx.stopPullDownRefresh()
       wx.showToast({ title: '刷新成功', icon: 'success' })
@@ -159,6 +163,7 @@ Page({
     })
     app.whenCloudReady().then(function () {
       page.fetchDashboardData()
+      page._fetchTodayFinance()
       // 员工不加载月报
       if (!page.data.showReportCard) return
       page._fetchLatestReport()
@@ -200,8 +205,11 @@ Page({
 
       if (res && res.code === 0 && res.data) {
         var d = res.data
+        var mergedStats = d.stats || { todayOrders: 0, todayRevenue: 0, totalRevenue: 0, totalCars: 0 }
+        // 保留 _fetchTodayFinance 设置的 todayNetProfit，防止被这里覆盖
+        mergedStats.todayNetProfit = page.data.stats.todayNetProfit || mergedStats.todayNetProfit || 0
         page.setData({
-          stats: d.stats || { todayOrders: 0, todayRevenue: 0, totalRevenue: 0, totalCars: 0 },
+          stats: mergedStats,
           totalOrderCount: d.totalOrderCount || 0,
           totalMemberCount: d.totalMemberCount || 0,
           alertList: d.alertList || [],
@@ -495,6 +503,21 @@ Page({
     wx.navigateTo({ url: '/pages/staffProfile/staffProfile' })
   },
 
+  /** 📒 获取今日收支概览 */
+  _fetchTodayFinance() {
+    var page = this
+    if (!page.data.shopPhone) return
+    app.callFunction('repair_finance', {
+      action: 'getTodayFinance',
+      shopPhone: page.data.shopPhone
+    }).then(function (res) {
+      if (res && res.code === 0 && res.data) {
+        var d = res.data
+        page.setData({ 'stats.todayNetProfit': d.netProfit || 0 })
+      }
+    }).catch(function () {})
+  },
+
   onUnload() {
     // 清理延时器，防止页面销毁后 setData
     if (this.data._shopGuideTimer) {
@@ -532,6 +555,10 @@ Page({
     } else if (type === 'cars') {
       // 跳转车辆列表页（TabBar 页面）
       wx.switchTab({ url: '/pages/carList/carList' })
+    } else if (type === 'finance') {
+      // 跳转报表页 → 财务 tab
+      getApp().globalData.reportActiveTab = 'finance'
+      wx.switchTab({ url: '/pages/report/report' })
     }
   },
 

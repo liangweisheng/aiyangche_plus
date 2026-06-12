@@ -155,28 +155,37 @@
 .template-name-row {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 6rpx;
   margin-bottom: 8rpx;
 }
 .template-name {
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 500;
   color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 .template-category-tag {
-  font-size: 22rpx;
+  font-size: 16rpx;
   color: #1677ff;
   background: #e6f0ff;
-  padding: 2rpx 12rpx;
+  padding: 1rpx 8rpx;
   border-radius: 6rpx;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 /* 排序号标签 */
 .template-sortorder-tag {
-  font-size: 22rpx;
+  font-size: 16rpx;
   color: #999;
   background: #f5f5f5;
-  padding: 2rpx 12rpx;
+  padding: 1rpx 8rpx;
   border-radius: 6rpx;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .template-meta {
   display: flex;

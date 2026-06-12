@@ -24,8 +24,11 @@ Page({
       (options && options.storageKey === 'stockIn_selectedProducts')
     // 权益关联模式：跳过库存检查 + 隐藏金额合计
     this._benefitMode = options && options.mode === 'benefitSelect'
+    // 入库/权益模式隐藏单品价格
+    this._hidePrice = this._benefitMode || (options && options.storageKey === 'stockIn_selectedProducts')
     this.setData({
       _benefitMode: this._benefitMode,
+      _hidePrice: this._hidePrice,
       skipStockCheck: this._skipStockCheck,
       categoryOptions: this.data.categoryOptions,
       storageKey: (options && options.storageKey) || 'orderAdd_selectedProducts',

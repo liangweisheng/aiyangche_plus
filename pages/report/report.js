@@ -42,7 +42,38 @@ Page({
     isGuest: false,
     proLimitTip: '',
     shareImagePath: '', // 分享卡片图片路径
-    _reqVersion: 0  // 竞态保护版本号
+    _reqVersion: 0,  // 竞态保护版本号
+    // 财务tab数据
+    financeYearMonth: '',
+    financeLoading: false,
+    financeEmpty: false,
+    financeTotalIncome: 0,
+    financeTotalExpense: 0,
+    financeNetProfit: 0,
+    expenseBreakdown: [],
+    financeList: [],
+    financePage: 1,
+    financeTotal: 0,
+    financeHasMore: false,
+    showFinanceForm: false,
+    editingFinanceId: '',
+    financeFormData: {
+      type: 'expense',
+      category: '',
+      amount: '',
+      date: '',
+      payMethod: '',
+      summary: '',
+      carPlate: '',
+      remark: ''
+    },
+    // 弹窗预置类别（WXML模板引用）
+    cF_income: constants.FINANCE_CATEGORIES.income,
+    cF_expense: constants.FINANCE_CATEGORIES.expense,
+    cF_payMethods: constants.PAY_METHODS,
+    // 收支明细筛选
+    financeFilterType: '',     // '' | 'income' | 'expense'
+    financeFilterCategory: ''  // 具体分类 key（如 'rent'）
   },
 
   onLoad() {
@@ -54,7 +85,8 @@ Page({
       pickerYear: now.getFullYear(),
       pickerMonth: now.getMonth() + 1,
       nowYear: now.getFullYear(),
-      nowMonth: now.getMonth() + 1
+      nowMonth: now.getMonth() + 1,
+      financeYearMonth: now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0')
     })
     // 游客共享真实账号数据，有 phone 即可查看报表（不依赖 app.isRegistered()，游客 isRegistered 返回 false）
     if (shopInfo.phone) {
@@ -83,11 +115,15 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
-    // Dashboard 统计卡片跳转 → 强制显示今日 tab
+    // Dashboard 统计卡片跳转 → 强制显示指定 tab
     if (app.globalData.reportActiveTab) {
       this.setData({ activeTab: app.globalData.reportActiveTab })
       delete app.globalData.reportActiveTab
-      this.loadData()
+      if (this.data.activeTab === 'finance') {
+        this._loadFinanceData()
+      } else {
+        this.loadData()
+      }
       return
     }
     // 同步游客状态
@@ -116,7 +152,13 @@ Page({
     if (tab !== 'today') {
       page._clearCache(tab)
     }
-    page.loadData(true).then(function () {
+    if (tab === 'finance') {
+      try { wx.removeStorageSync(constants.FINANCE_CACHE_KEY) } catch (e) {}
+      // 下拉刷新清除筛选状态
+      page.setData({ financeFilterType: '', financeFilterCategory: '' })
+    }
+    var loader = tab === 'finance' ? page._loadFinanceData() : page.loadData(true)
+    loader.then(function () {
       wx.stopPullDownRefresh()
       wx.showToast({ title: '刷新成功', icon: 'success' })
     }).catch(function () {
@@ -129,7 +171,11 @@ Page({
   onTabChange(e) {
     var tab = e.currentTarget.dataset.tab
     this.setData({ activeTab: tab })
-    this.loadData()
+    if (tab === 'finance') {
+      this._loadFinanceData()
+    } else {
+      this.loadData()
+    }
   },
 
   // ============================
@@ -623,5 +669,357 @@ Page({
       path: '/pages/report/report',
       imageUrl: this.data.shareImagePath || ''
     }
-  }
+  },
+
+  // ============================
+  // 财务管理
+  // ============================
+
+  // 加载财务数据（带缓存策略 + Pro限制）
+  _loadFinanceData: function () {
+    var page = this
+
+    page.setData({ proLimitTip: '', cacheTip: '' })
+
+    var yearMonth = page.data.financeYearMonth
+    var filterType = page.data.financeFilterType || ''
+    var filterCategory = page.data.financeFilterCategory || ''
+
+    // 有筛选条件时跳过缓存
+    if (!filterType && !filterCategory) {
+      try {
+        var raw = wx.getStorageSync(constants.FINANCE_CACHE_KEY)
+        if (raw && raw.date === page._todayStr() && raw.data && raw.data.yearMonth === yearMonth) {
+          var cached = raw.data
+          page.setData({
+            financeLoading: false,
+            financeTotalIncome: cached.financeTotalIncome,
+            financeTotalExpense: cached.financeTotalExpense,
+            financeNetProfit: cached.financeNetProfit,
+            expenseBreakdown: cached.expenseBreakdown,
+            financeList: cached.financeList,
+            financeTotal: cached.financeTotal,
+            financeHasMore: cached.financeHasMore,
+            financeEmpty: cached.financeEmpty,
+            cacheTip: '使用今日缓存数据，下拉可刷新'
+          })
+          return Promise.resolve()
+        }
+      } catch (e) {}
+    }
+
+    page.setData({ financeLoading: true, financeEmpty: false })
+
+    // 汇总始终拉全量（不受筛选影响）
+    var summaryPromise = app.callFunction('repair_finance', {
+      action: 'getFinanceSummary',
+      yearMonth: yearMonth
+    })
+
+    var listParams = {
+      action: 'listFinance',
+      yearMonth: yearMonth,
+      page: 1
+    }
+    if (filterType) listParams.type = filterType
+    if (filterCategory) listParams.category = filterCategory
+    var listPromise = app.callFunction('repair_finance', listParams)
+
+    return Promise.all([summaryPromise, listPromise]).then(function (results) {
+      var summaryRes = results[0] || {}
+      var listRes = results[1] || {}
+
+      if (summaryRes.code !== 0 || !summaryRes.data) {
+        console.error('财务报表汇总加载失败', summaryRes)
+        page.setData({ financeLoading: false, financeEmpty: true })
+        return
+      }
+
+      var breakdown = []
+      var expenseByCategory = summaryRes.data.expenseByCategory || {}
+      var totalExpense = summaryRes.data.totalExpense || 0
+      Object.keys(expenseByCategory).forEach(function (cat) {
+        var catInfo = null
+        var expenseCats = constants.FINANCE_CATEGORIES.expense
+        for (var i = 0; i < expenseCats.length; i++) {
+          if (expenseCats[i].key === cat) { catInfo = expenseCats[i]; break }
+        }
+        breakdown.push({
+          category: cat,
+          categoryLabel: catInfo ? catInfo.label : cat,
+          amount: expenseByCategory[cat],
+          percent: totalExpense > 0 ? Math.round(expenseByCategory[cat] / totalExpense * 100) : 0
+        })
+      })
+      breakdown.sort(function (a, b) { return b.amount - a.amount })
+
+      var list = (listRes.code === 0 && listRes.data) ? (listRes.data.list || []) : []
+      var total = (listRes.code === 0 && listRes.data) ? (listRes.data.total || 0) : 0
+
+      var snapshot = {
+        financeTotalIncome: summaryRes.data.totalIncome || 0,
+        financeTotalExpense: totalExpense,
+        financeNetProfit: summaryRes.data.netProfit || 0,
+        expenseBreakdown: breakdown,
+        financeList: list,
+        financeTotal: total,
+        financePage: 1,
+        financeHasMore: list.length < total,
+        financeEmpty: total === 0,
+        financeLoading: false,
+        yearMonth: yearMonth
+      }
+      page.setData(snapshot)
+
+      // 有筛选条件时不写缓存
+      if (!filterType && !filterCategory) {
+        try {
+          wx.setStorageSync(constants.FINANCE_CACHE_KEY, {
+            date: page._todayStr(),
+            data: snapshot,
+            ts: Date.now()
+          })
+        } catch (e) {}
+      }
+    }).catch(function (e) {
+      console.error('加载财务数据失败:', e)
+      page.setData({ financeLoading: false, financeEmpty: true })
+    })
+  },
+
+  // 月份切换
+  _changeFinanceMonth: function (e) {
+    var dir = e.currentTarget.dataset.dir
+    var parts = this.data.financeYearMonth.split('-')
+    var year = parseInt(parts[0]), month = parseInt(parts[1])
+    if (dir === 'prev') {
+      month--
+      if (month < 1) { month = 12; year-- }
+    } else {
+      var now = new Date()
+      if (year >= now.getFullYear() && month >= (now.getMonth() + 1)) return // 不超过当前月
+      month++
+      if (month > 12) { month = 1; year++ }
+    }
+    var now = new Date()
+    if (year > now.getFullYear() || (year === now.getFullYear() && month > (now.getMonth() + 1))) return
+    this.setData({ financeYearMonth: year + '-' + String(month).padStart(2, '0') })
+    this._loadFinanceData()
+  },
+
+  // 显示添加弹窗
+  showFinanceForm: function () {
+    this._financeSaving = false  // 重置防重复标记
+    this.setData({
+      showFinanceForm: true,
+      editingFinanceId: '',
+      financeFormData: {
+        type: 'expense',
+        category: '',
+        amount: '',
+        date: util.formatDate(new Date()),
+        payMethod: '',
+        summary: '',
+        carPlate: '',
+        remark: ''
+      }
+    })
+  },
+
+  // 隐藏弹窗
+  hideFinanceForm: function () {
+    this.setData({ showFinanceForm: false, editingFinanceId: '' })
+  },
+
+  // 编辑记录
+  _showFinanceFormForEdit: function (e) {
+    var id = e.currentTarget.dataset.id
+    var record = null
+    var list = this.data.financeList
+    for (var i = 0; i < list.length; i++) {
+      if (list[i]._id === id) { record = list[i]; break }
+    }
+    if (!record) return
+    this.setData({
+      showFinanceForm: true,
+      editingFinanceId: id,
+      financeFormData: {
+        type: record.type || 'expense',
+        category: record.category || '',
+        amount: String(record.amount || ''),
+        date: record.date || '',
+        payMethod: record.payMethod || '',
+        summary: record.summary || '',
+        carPlate: record.carPlate || '',
+        remark: record.remark || ''
+      }
+    })
+  },
+
+  // 类型切换
+  onFinanceTypeChange: function (e) {
+    var type = e.currentTarget.dataset.type
+    this.setData({
+      'financeFormData.type': type,
+      'financeFormData.category': ''
+    })
+  },
+
+  // 类别选择
+  onFinanceCategorySelect: function (e) {
+    this.setData({ 'financeFormData.category': e.currentTarget.dataset.key })
+  },
+
+  // 支付方式选择
+  onFinancePayMethodSelect: function (e) {
+    this.setData({ 'financeFormData.payMethod': e.currentTarget.dataset.key })
+  },
+
+  // 金额输入
+  onFinanceAmountInput: function (e) {
+    this.setData({ 'financeFormData.amount': e.detail.value })
+  },
+
+  // 日期选择
+  onFinanceDateChange: function (e) {
+    this.setData({ 'financeFormData.date': e.detail.value })
+  },
+
+  // 摘要输入
+  onFinanceSummaryInput: function (e) {
+    this.setData({ 'financeFormData.summary': e.detail.value })
+  },
+
+  // 保存收支
+  _saveFinance: function () {
+    var page = this
+    if (page._financeSaving) return  // 防重复点击
+
+    var fd = page.data.financeFormData
+    if (!fd.type || !fd.category || !fd.amount || !fd.date) {
+      wx.showToast({ title: '请完善必填信息', icon: 'none' })
+      return
+    }
+    var amountNum = Number(fd.amount)
+    if (isNaN(amountNum) || amountNum <= 0) {
+      wx.showToast({ title: '金额不合法', icon: 'none' })
+      return
+    }
+
+    page._financeSaving = true
+    wx.showLoading({ title: '保存中...', mask: true })
+
+    var actionName = page.data.editingFinanceId ? 'updateFinance' : 'addFinance'
+    var params = {
+      action: actionName,
+      type: fd.type,
+      category: fd.category,
+      amount: amountNum,
+      date: fd.date,
+      payMethod: fd.payMethod || '',
+      summary: fd.summary || '',
+      carPlate: fd.carPlate || '',
+      remark: fd.remark || ''
+    }
+    if (page.data.editingFinanceId) {
+      params.id = page.data.editingFinanceId
+    }
+
+    app.callFunction('repair_finance', params).then(function (res) {
+      wx.hideLoading()
+      page._financeSaving = false
+      if (res && res.code === 0) {
+        wx.showToast({ title: page.data.editingFinanceId ? '已更新' : '添加成功', icon: 'success' })
+        page.setData({ showFinanceForm: false, editingFinanceId: '' })
+        // 清除缓存后重载
+        try { wx.removeStorageSync(constants.FINANCE_CACHE_KEY) } catch (e) {}
+        page._loadFinanceData()
+      } else {
+        wx.showToast({ title: (res && res.msg) || '保存失败', icon: 'none' })
+      }
+    }).catch(function (e) {
+      wx.hideLoading()
+      page._financeSaving = false
+      wx.showToast({ title: '保存失败，请检查网络', icon: 'none' })
+      console.error('保存收支失败:', e)
+    })
+  },
+
+  // 删除收支
+  _deleteFinance: function (e) {
+    var page = this
+    var id = e.currentTarget.dataset.id
+    wx.showModal({
+      title: '确认删除',
+      content: '删除后不可恢复',
+      success: function (res) {
+        if (!res.confirm) return
+        app.callFunction('repair_finance', {
+          action: 'deleteFinance',
+          id: id
+        }).then(function (res) {
+          if (res && res.code === 0) {
+            wx.showToast({ title: '已删除', icon: 'success' })
+            try { wx.removeStorageSync(constants.FINANCE_CACHE_KEY) } catch (e) {}
+            page._loadFinanceData()
+          } else {
+            wx.showToast({ title: (res && res.msg) || '删除失败', icon: 'none' })
+          }
+        }).catch(function (e) {
+          wx.showToast({ title: '删除失败', icon: 'none' })
+          console.error('删除收支失败:', e)
+        })
+      }
+    })
+  },
+
+  // 一级筛选：收入 / 支出 / 全部
+  onFinanceFilterType: function (e) {
+    var type = e.currentTarget.dataset.type || ''
+    this.setData({
+      financeFilterType: type,
+      financeFilterCategory: ''  // 切换一级时清空二级
+    })
+    this._loadFinanceData()
+  },
+
+  // 二级筛选：具体分类
+  onFinanceFilterCategory: function (e) {
+    var category = e.currentTarget.dataset.category || ''
+    this.setData({ financeFilterCategory: category })
+    this._loadFinanceData()
+  },
+
+  // 加载更多
+  loadMoreFinance: function () {
+    var page = this
+    if (!page.data.financeHasMore || page._loadingFinanceMore) return
+    page._loadingFinanceMore = true
+    var nextPage = page.data.financePage + 1
+    var params = {
+      action: 'listFinance',
+      yearMonth: page.data.financeYearMonth,
+      page: nextPage
+    }
+    if (page.data.financeFilterType) params.type = page.data.financeFilterType
+    if (page.data.financeFilterCategory) params.category = page.data.financeFilterCategory
+    app.callFunction('repair_finance', params).then(function (res) {
+      if (res && res.code === 0 && res.data) {
+        var newList = page.data.financeList.concat(res.data.list || [])
+        var total = res.data.total || 0
+        page.setData({
+          financeList: newList,
+          financePage: nextPage,
+          financeHasMore: newList.length < total
+        })
+      }
+    }).catch(function (e) {
+      console.error('加载更多财务记录失败:', e)
+    }).finally(function () {
+      page._loadingFinanceMore = false
+    })
+  },
+
+  // 空白事件拦截（阻止弹窗冒泡关闭）
+  noop: function () {}
 })

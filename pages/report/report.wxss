@@ -93,6 +93,20 @@
   box-shadow: 0 4rpx 12rpx rgba(22, 119, 255, 0.3);
 }
 
+/* 财务tab独立样式：金色渐变，与其他4个tab区分 */
+.date-tab.finance {
+  background: linear-gradient(135deg, #fff7e6, #ffe7ba);
+  border: 2rpx solid #ffd591;
+  font-weight: 700;
+  color: #d48806;
+}
+
+.date-tab.finance.active {
+  background: linear-gradient(135deg, #d48806, #faad14);
+  color: #fff;
+  box-shadow: 0 4rpx 12rpx rgba(250, 173, 20, 0.4);
+}
+
 /* 月份/年份选择器行 */
 .picker-row {
   display: flex;
@@ -800,4 +814,497 @@
   color: #999;
   text-align: center;
   line-height: 1.5;
+}
+
+/* 空状态 CTA 按钮 */
+.empty-report-cta {
+  margin-top: 32rpx;
+  padding: 20rpx 56rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #1677ff, #4096ff);
+  border-radius: 40rpx;
+  border: none;
+  box-shadow: 0 6rpx 20rpx rgba(22, 119, 255, 0.3);
+  line-height: 1.5;
+}
+
+.empty-report-cta::after {
+  border: none;
+}
+
+/* ======================================== */
+/*  财务管理面板样式                          */
+/* ======================================== */
+
+/* 红色汇总卡片 */
+.summary-card.red { border-left: 6rpx solid #cf1322; }
+.summary-card.red .summary-value { color: #cf1322; }
+
+/* 财务 section-header 容器（统一边距） */
+.finance-section-header {
+  margin: 0 24rpx;
+}
+
+/* 添加按钮 */
+.add-finance-btn {
+  font-size: 26rpx;
+  color: #1677ff;
+  font-weight: 600;
+  padding: 8rpx 16rpx;
+  background: #e6f4ff;
+  border-radius: 24rpx;
+}
+
+/* 支出分布 */
+.finance-expense-section {
+  margin: 0 24rpx 24rpx;
+}
+
+.finance-expense-card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
+}
+
+.finance-expense-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.finance-expense-item:last-child {
+  margin-bottom: 0;
+}
+
+.finance-expense-label {
+  width: 140rpx;
+  font-size: 26rpx;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.finance-expense-bar-wrap {
+  flex: 1;
+  height: 16rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  overflow: hidden;
+  margin: 0 16rpx;
+}
+
+.finance-expense-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ff7875 0%, #cf1322 100%);
+  border-radius: 8rpx;
+  min-width: 4rpx;
+  transition: width 0.3s ease;
+}
+
+.finance-expense-amount {
+  font-size: 26rpx;
+  color: #1a1a1a;
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 120rpx;
+  text-align: right;
+}
+
+/* ======================================== */
+/*  快速筛选标签                            */
+/* ======================================== */
+
+.finance-filter-bar {
+  margin: 16rpx 24rpx;
+}
+
+.filter-scroll {
+  white-space: nowrap;
+}
+
+.filter-chip-group {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 4rpx 0;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 12rpx 28rpx;
+  font-size: 24rpx;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 32rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.filter-chip.active {
+  background: #1677ff;
+  color: #fff;
+  font-weight: 600;
+  border-color: #1677ff;
+}
+
+.filter-chip.income.active {
+  background: #52c41a;
+  border-color: #52c41a;
+}
+
+.filter-chip.expense.active {
+  background: #cf1322;
+  border-color: #cf1322;
+}
+
+.filter-sub-scroll {
+  margin-top: 16rpx;
+  white-space: nowrap;
+}
+
+.filter-chip-sub-group {
+  display: inline-flex;
+  gap: 14rpx;
+  padding: 4rpx 0;
+}
+
+.filter-sub-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 10rpx 22rpx;
+  font-size: 22rpx;
+  color: #888;
+  background: #fafafa;
+  border-radius: 28rpx;
+  border: 2rpx solid #eee;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.filter-sub-chip.active {
+  background: #e6f4ff;
+  color: #1677ff;
+  border-color: #1677ff;
+  font-weight: 600;
+}
+
+.filter-sub-chip.income.active {
+  background: #f6ffed;
+  color: #52c41a;
+  border-color: #52c41a;
+}
+
+.filter-sub-chip.expense.active {
+  background: #fff2f0;
+  color: #cf1322;
+  border-color: #cf1322;
+}
+
+.filter-sub-chip.all.active {
+  background: #e6f4ff;
+  color: #1677ff;
+  border-color: #1677ff;
+}
+
+/* 收支明细列表 */
+.finance-list-section {
+  margin: 24rpx;
+}
+
+.finance-list-card {
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
+}
+
+.finance-item {
+  padding: 24rpx 28rpx;
+  border-bottom: 2rpx solid #f5f5f5;
+}
+
+.finance-item:last-child {
+  border-bottom: none;
+}
+
+.finance-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.finance-item-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.finance-item-type {
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+
+.finance-item-type.type-income {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.finance-item-type.type-expense {
+  background: #fff1f0;
+  color: #cf1322;
+}
+
+.finance-item-category {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.finance-item-amount {
+  font-size: 30rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.finance-item-amount.amount-income {
+  color: #52c41a;
+}
+
+.finance-item-amount.amount-expense {
+  color: #cf1322;
+}
+
+.finance-item-bottom {
+  display: flex;
+  align-items: center;
+}
+
+.finance-item-date {
+  font-size: 22rpx;
+  color: #999;
+  margin-right: 16rpx;
+}
+
+.finance-item-pay {
+  font-size: 22rpx;
+  color: #999;
+  margin-right: 8rpx;
+  background: #f5f5f5;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+}
+
+.finance-item-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 20rpx;
+}
+
+.finance-action {
+  font-size: 24rpx;
+  color: #1677ff;
+}
+
+.finance-action.danger {
+  color: #cf1322;
+}
+
+.finance-action:active {
+  opacity: 0.6;
+}
+
+/* ======================================== */
+/*  添加/编辑收支弹窗                          */
+/* ======================================== */
+
+.finance-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.finance-form-modal {
+  background: #fff;
+  border-radius: 24rpx;
+  width: 640rpx;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 32rpx 36rpx;
+  box-shadow: 0 8rpx 40rpx rgba(0,0,0,0.12);
+}
+
+.finance-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28rpx;
+}
+
+.finance-form-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.finance-form-close {
+  font-size: 36rpx;
+  color: #999;
+  padding: 8rpx;
+}
+
+.finance-type-toggle {
+  display: flex;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  padding: 6rpx;
+  margin-bottom: 28rpx;
+}
+
+.finance-type-btn {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 28rpx;
+  color: #666;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+}
+
+.finance-type-btn.active {
+  color: #fff;
+  font-weight: 600;
+}
+
+.finance-type-btn.active.income {
+  background: #52c41a;
+}
+
+.finance-type-btn.active.expense {
+  background: #cf1322;
+}
+
+.finance-form-field {
+  margin-bottom: 24rpx;
+}
+
+.finance-form-label {
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.finance-form-input {
+  height: 80rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #1a1a1a;
+}
+
+.finance-form-picker {
+  height: 80rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  line-height: 80rpx;
+  font-size: 28rpx;
+  color: #1a1a1a;
+}
+
+/* 类别网格 */
+.finance-category-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.finance-category-item {
+  padding: 12rpx 20rpx;
+  font-size: 24rpx;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  border: 2rpx solid transparent;
+}
+
+.finance-category-item.selected {
+  background: #e6f4ff;
+  color: #1677ff;
+  border-color: #1677ff;
+  font-weight: 600;
+}
+
+/* 支付方式网格 */
+.finance-paymethod-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.finance-paymethod-item {
+  padding: 12rpx 20rpx;
+  font-size: 24rpx;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  border: 2rpx solid transparent;
+}
+
+.finance-paymethod-item.selected {
+  background: #fff7e6;
+  color: #fa8c16;
+  border-color: #fa8c16;
+  font-weight: 600;
+}
+
+/* 弹窗按钮 */
+.finance-form-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 32rpx;
+  padding: 0;
+}
+
+.finance-form-btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.finance-form-btn:after {
+  border: none;
+}
+
+.finance-form-btn.cancel {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.finance-form-btn.submit {
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  color: #fff;
 }

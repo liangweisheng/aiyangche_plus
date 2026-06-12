@@ -204,6 +204,41 @@ function checkProFromRecord(record) {
 
 
 // ===========================
+// 财务模块配置
+// ===========================
+
+/** 收支类别（与云函数 FINANCE_CATEGORIES 保持同步） */
+var FINANCE_CATEGORIES = {
+  income: [
+    { key: 'otherRevenue', label: '其他营业收入' },
+    { key: 'scrapSale',    label: '废品出售' },
+    { key: 'commission',   label: '佣金返利' }
+  ],
+  expense: [
+    { key: 'rent',         label: '房租' },
+    { key: 'utilities',    label: '水电费' },
+    { key: 'salary',       label: '员工工资' },
+    { key: 'equipment',    label: '设备采购/维修' },
+    { key: 'supplies',     label: '物料/耗材' },
+    { key: 'marketing',    label: '推广/营销' },
+    { key: 'misc',         label: '日常杂费' },
+    { key: 'otherExpense', label: '其他支出' }
+  ]
+}
+
+/** 支付方式 */
+var PAY_METHODS = [
+  { key: 'cash',   label: '现金' },
+  { key: 'wechat', label: '微信支付' },
+  { key: 'alipay', label: '支付宝' },
+  { key: 'bank',   label: '银行转账' },
+  { key: 'other',  label: '其他' }
+]
+
+/** 财务报表缓存 key */
+var FINANCE_CACHE_KEY = 'reportCache_finance'
+
+// ===========================
 // 导出
 // ===========================
 
@@ -259,6 +294,11 @@ module.exports = {
   OCR_TIMEOUT_MS: OCR_TIMEOUT_MS,
   QUICK_START_ARTICLE_URL: QUICK_START_ARTICLE_URL,
   HELP_ARTICLES: HELP_ARTICLES,
+
+  // 财务模块
+  FINANCE_CATEGORIES: FINANCE_CATEGORIES,
+  PAY_METHODS: PAY_METHODS,
+  FINANCE_CACHE_KEY: FINANCE_CACHE_KEY,
 
   // Pro 状态判定
   checkProFromRecord: checkProFromRecord

@@ -6,7 +6,7 @@ const app = getApp()
 var util = require('../../utils/util')
 var constants = require('../../utils/constants')
 
-const XLSX = require('../../lib/xlsx.full.min.js')
+const XLSX = require('./xlsx.full.min.js')
 
 Page({
   data: {

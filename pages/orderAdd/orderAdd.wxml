@@ -176,15 +176,15 @@
           <view class="amount-input-wrapper cost-input">
             <text class="currency">¥</text>
             <view class="amount-input-display">
-              <text class="amount-display-text {{form.partCost ? '' : 'placeholder'}}">{{form.partCost || '选填'}}</text>
+              <text class="amount-display-text {{form.partCost ? '' : 'placeholder'}}">{{form.partCost || '点击填写'}}</text>
             </view>
             <text class="paid-edit-btn" bindtap="onEditPartCost">📝</text>
           </view>
         </view>
         <view class="amount-divider-v"></view>
-        <view class="amount-field" wx:if="{{form.partCost}}">
+        <view class="amount-field">
           <text class="amount-label gross-label">本单毛利</text>
-          <view class="profit-value-wrap">
+          <view class="profit-value-wrap" wx:if="{{form.partCost}}">
             <text class="profit-value {{grossProfit > 0 ? 'positive' : grossProfit < 0 ? 'negative' : ''}}">
               <text wx:if="{{grossProfit > 0}}">+</text>¥{{grossProfit}}
             </text>
